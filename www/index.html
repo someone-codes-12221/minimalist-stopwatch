@@ -4,15 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <title>Chrono</title>
+  <title>Chrono Study</title>
   <style>
     :root {
       --bg: #000000;
-      --surface: #111113;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.09);
       --text: #f5f5f7;
-      --muted: #6e6e73;
+      --muted: #63636b;
+      --dim: #2a2a30;
       --accent: #ffffff;
       --green: #30d158;
+      --blue: #64d2ff;
+      --amber: #ffd60a;
       --red: #ff453a;
     }
 
@@ -22,293 +26,590 @@
       padding: 0;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
+      -webkit-user-select: none;
     }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
       height: 100dvh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      padding: calc(env(safe-area-inset-top) + 28px) 24px calc(env(safe-area-inset-bottom) + 28px);
+      padding: calc(env(safe-area-inset-top) + 18px) 22px calc(env(safe-area-inset-bottom) + 24px);
       overflow: hidden;
+      position: relative;
     }
 
-    /* Status Pill */
-    .status {
+    /* Ambient Glow */
+    .ambient-aura {
+      position: fixed;
+      top: 34%;
+      left: 50%;
+      width: 340px;
+      height: 340px;
+      transform: translate(-50%, -50%) scale(0.85);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.065) 0%, rgba(100, 210, 255, 0.025) 45%, transparent 72%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease, transform 0.8s ease, background 0.6s ease;
+      z-index: 0;
+    }
+
+    body.running .ambient-aura {
+      opacity: 1;
+      animation: breathe 5s ease-in-out infinite alternate;
+    }
+
+    body.break-mode .ambient-aura {
+      background: radial-gradient(circle, rgba(100, 210, 255, 0.1) 0%, transparent 70%);
+    }
+
+    @keyframes breathe {
+      from { opacity: 0.65; transform: translate(-50%, -50%) scale(0.98); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1.16); }
+    }
+
+    /* Top Bar */
+    .topbar {
+      width: 100%;
+      max-width: 380px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      letter-spacing: 0.16em;
+      justify-content: space-between;
+      z-index: 5;
+      transition: opacity 0.4s ease;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .icon-btn.active {
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .icon-btn:active { transform: scale(0.9); }
+
+    .today-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      font-size: 11px;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .today-pill strong {
+      color: var(--text);
+      font-weight: 500;
     }
 
     .dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: var(--muted);
-      transition: background 0.3s ease, box-shadow 0.3s ease;
+      background: var(--dim);
+      transition: all 0.3s ease;
     }
 
     body.running .dot {
       background: var(--green);
-      box-shadow: 0 0 10px var(--green);
-      animation: pulse 1.4s infinite ease-in-out;
+      box-shadow: 0 0 8px var(--green);
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.8); }
+    body.break-mode.running .dot {
+      background: var(--blue);
+      box-shadow: 0 0 8px var(--blue);
     }
 
     /* Main Dial */
     .dial-wrap {
       position: relative;
-      width: 270px;
-      height: 270px;
+      width: 284px;
+      height: 284px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+      z-index: 2;
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .dial-wrap:active {
-      transform: scale(0.96);
-    }
+    .dial-wrap:active { transform: scale(0.97); }
 
-    .glow {
-      position: absolute;
-      inset: 24px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-      opacity: 0;
-      transition: opacity 0.4s ease;
-      pointer-events: none;
-    }
-
-    body.running .glow {
-      opacity: 1;
-    }
-
-    svg.ring {
+    svg.dial-svg {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
-      transform: rotate(-90deg);
+      overflow: visible;
     }
+
+    .tick { stroke: #1c1c21; stroke-width: 1.2; stroke-linecap: round; }
+    .tick.major { stroke: #32323a; stroke-width: 1.6; }
 
     .ring-track {
       fill: none;
-      stroke: #1c1c1e;
-      stroke-width: 3;
+      stroke: #141417;
+      stroke-width: 2;
     }
 
     .ring-progress {
       fill: none;
-      stroke: var(--accent);
-      stroke-width: 3;
+      stroke: #ffffff;
+      stroke-width: 2.5;
       stroke-linecap: round;
-      stroke-dasharray: 779.11;
-      stroke-dashoffset: 779.11;
-      transition: stroke 0.3s ease;
+      stroke-dasharray: 766.55;
+      stroke-dashoffset: 766.55;
+      transform: rotate(-90deg);
+      transform-origin: 142px 142px;
+      filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+      transition: stroke 0.4s ease;
     }
+
+    body.break-mode .ring-progress {
+      stroke: var(--blue);
+      filter: drop-shadow(0 0 8px rgba(100, 210, 255, 0.5));
+    }
+
+    .orb-live {
+      fill: #ffffff;
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
+      opacity: 0;
+      transition: opacity 0.3s ease, fill 0.3s ease;
+    }
+
+    body.started .orb-live { opacity: 1; }
+    body.break-mode .orb-live { fill: var(--blue); }
 
     .time-box {
       text-align: center;
-      z-index: 2;
+      z-index: 3;
+      pointer-events: none;
     }
 
-    .time {
-      font-size: 50px;
-      font-weight: 300;
-      letter-spacing: -0.02em;
+    .mode-label {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    body.break-mode .mode-label { color: var(--blue); }
+
+    .time-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
       font-variant-numeric: tabular-nums;
-      line-height: 1;
+      letter-spacing: -0.02em;
     }
 
-    .ms {
-      font-size: 24px;
+    .hrs, .colon-h {
+      font-size: 42px;
+      font-weight: 200;
+      color: var(--dim);
+      transition: color 0.35s ease;
+    }
+
+    .hrs.lit { color: var(--text); }
+    .colon-h.lit { color: var(--muted); }
+
+    .mins, .secs {
+      font-size: 46px;
+      font-weight: 200;
+      color: var(--text);
+    }
+
+    .colon {
+      font-size: 40px;
+      font-weight: 200;
+      color: var(--muted);
+      margin: 0 1px;
+    }
+
+    .earned-badge {
+      margin-top: 12px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
       color: var(--muted);
       font-variant-numeric: tabular-nums;
-      margin-top: 6px;
     }
 
-    .hint {
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #3a3a3c;
-      margin-top: 14px;
+    .earned-badge span {
+      color: var(--blue);
+      font-weight: 500;
     }
 
-    /* Laps List */
-    .laps {
+    /* Quick Action Strip (Slips + Break) */
+    .quick-strip {
+      display: flex;
+      gap: 10px;
+      z-index: 3;
+      margin-top: 4px;
+      transition: opacity 0.4s ease;
+    }
+
+    .chip {
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .chip:active { transform: scale(0.94); }
+    .chip.highlight {
+      color: var(--blue);
+      border-color: rgba(100, 210, 255, 0.3);
+      background: rgba(100, 210, 255, 0.08);
+    }
+    .chip.warn {
+      color: var(--amber);
+      border-color: rgba(255, 214, 10, 0.25);
+    }
+
+    /* Session History */
+    .sessions {
       width: 100%;
-      max-width: 360px;
+      max-width: 380px;
       flex: 1;
-      margin: 20px 0;
+      margin: 14px 0;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 7px;
       scrollbar-width: none;
+      mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+      padding-bottom: 16px;
+      z-index: 2;
+      transition: opacity 0.4s ease;
     }
-    .laps::-webkit-scrollbar { display: none; }
+    .sessions::-webkit-scrollbar { display: none; }
 
-    .lap-row {
+    .session-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      background: var(--surface);
+      padding: 11px 16px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
       border-radius: 14px;
-      font-size: 14px;
+      font-size: 13px;
       font-variant-numeric: tabular-nums;
-      animation: slideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      animation: slideIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-10px) scale(0.97); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .lap-num { color: var(--muted); font-size: 13px; }
-    .lap-delta { font-weight: 500; }
-    .lap-total { color: var(--muted); font-size: 13px; }
-
-    .lap-row.fastest .lap-delta { color: var(--green); }
-    .lap-row.slowest .lap-delta { color: var(--red); }
+    .s-meta { color: var(--muted); font-size: 11.5px; }
+    .s-dur { font-weight: 500; color: var(--text); }
+    .s-slips { font-size: 11.5px; color: var(--muted); }
+    .s-slips.clean { color: var(--green); }
 
     /* Controls */
     .controls {
       width: 100%;
-      max-width: 360px;
+      max-width: 380px;
       display: flex;
       gap: 14px;
+      z-index: 3;
+      transition: opacity 0.4s ease;
     }
 
-    button {
+    .btn {
       flex: 1;
       height: 54px;
       border-radius: 999px;
-      border: none;
-      font-size: 15px;
+      border: 1px solid var(--glass-border);
+      font-size: 14.5px;
       font-weight: 500;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.03em;
       cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.2s ease, background 0.2s ease;
+      transition: transform 0.16s ease, opacity 0.25s ease, background 0.25s ease;
     }
 
-    button:active { transform: scale(0.95); }
-    button:disabled { opacity: 0.3; pointer-events: none; }
+    .btn:active { transform: scale(0.96); }
+    .btn:disabled { opacity: 0.25; pointer-events: none; }
 
     .btn-secondary {
-      background: var(--surface);
+      background: var(--glass);
       color: var(--text);
     }
 
     .btn-primary {
       background: var(--accent);
       color: #000000;
+      border-color: transparent;
     }
 
     body.running .btn-primary {
-      background: #1c1c1e;
-      color: var(--red);
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Zen Mode */
+    body.zen .sessions,
+    body.zen .controls,
+    body.zen .quick-strip,
+    body.zen .today-pill,
+    body.zen #noiseBtn {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    body.zen .dial-wrap {
+      transform: translateY(15vh) scale(1.1);
     }
   </style>
 </head>
 <body>
-  <div class="status">
-    <span class="dot"></span>
-    <span id="statusText">Ready</span>
+  <div class="ambient-aura"></div>
+
+  <div class="topbar">
+    <button class="icon-btn" id="noiseBtn" aria-label="Brown Noise">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M2 12h2M6 8v8M10 5v14M14 9v6M18 7v10M22 12h-2"></path>
+      </svg>
+    </button>
+
+    <div class="today-pill">
+      <span class="dot"></span>
+      <span>Today</span>
+      <strong id="todayTotalEl">0h 00m</strong>
+    </div>
+
+    <button class="icon-btn" id="zenBtn" aria-label="Zen Mode">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    </button>
   </div>
 
   <div class="dial-wrap" id="dial">
-    <div class="glow"></div>
-    <svg class="ring" viewBox="0 0 260 260">
-      <circle class="ring-track" cx="130" cy="130" r="124"></circle>
-      <circle class="ring-progress" id="ringProgress" cx="130" cy="130" r="124"></circle>
+    <svg class="dial-svg" viewBox="0 0 284 284">
+      <g id="ticksGroup"></g>
+      <circle class="ring-track" cx="142" cy="142" r="122"></circle>
+      <circle class="ring-progress" id="ringProgress" cx="142" cy="142" r="122"></circle>
+      <circle class="orb-live" id="orbLive" cx="142" cy="20" r="4"></circle>
     </svg>
+
     <div class="time-box">
-      <div class="time" id="mainTime">00:00</div>
-      <div class="ms" id="msTime">.00</div>
-      <div class="hint" id="hintText">Tap to start</div>
+      <div class="mode-label" id="modeLabel">Focus</div>
+      <div class="time-row">
+        <span class="hrs" id="hrsEl">00</span><span class="colon-h" id="colonH">:</span>
+        <span class="mins" id="minsEl">00</span><span class="colon">:</span>
+        <span class="secs" id="secsEl">00</span>
+      </div>
+      <div class="earned-badge" id="earnedBadge">Earned break: <span>0m</span></div>
     </div>
   </div>
 
-  <div class="laps" id="lapsList"></div>
+  <div class="quick-strip">
+    <button class="chip" id="slipBtn">+ Distraction (0)</button>
+    <button class="chip" id="breakBtn" style="display:none;">Take Break</button>
+  </div>
+
+  <div class="sessions" id="sessionsList"></div>
 
   <div class="controls">
-    <button class="btn-secondary" id="secondaryBtn" disabled>Reset</button>
-    <button class="btn-primary" id="primaryBtn">Start</button>
+    <button class="btn btn-secondary" id="secondaryBtn" disabled>Save & Reset</button>
+    <button class="btn btn-primary" id="primaryBtn">Start</button>
   </div>
 
   <script>
-    const mainTimeEl = document.getElementById('mainTime');
-    const msTimeEl = document.getElementById('msTime');
-    const statusTextEl = document.getElementById('statusText');
-    const hintTextEl = document.getElementById('hintText');
+    const hrsEl = document.getElementById('hrsEl');
+    const colonH = document.getElementById('colonH');
+    const minsEl = document.getElementById('minsEl');
+    const secsEl = document.getElementById('secsEl');
+    const modeLabel = document.getElementById('modeLabel');
+    const earnedBadge = document.getElementById('earnedBadge');
+    const todayTotalEl = document.getElementById('todayTotalEl');
     const ringProgress = document.getElementById('ringProgress');
-    const lapsList = document.getElementById('lapsList');
+    const orbLive = document.getElementById('orbLive');
+    const slipBtn = document.getElementById('slipBtn');
+    const breakBtn = document.getElementById('breakBtn');
+    const sessionsList = document.getElementById('sessionsList');
     const primaryBtn = document.getElementById('primaryBtn');
     const secondaryBtn = document.getElementById('secondaryBtn');
     const dial = document.getElementById('dial');
+    const noiseBtn = document.getElementById('noiseBtn');
+    const zenBtn = document.getElementById('zenBtn');
 
-    const CIRCUMFERENCE = 2 * Math.PI * 124;
+    // 60 ticks around dial
+    const ticksGroup = document.getElementById('ticksGroup');
+    for (let i = 0; i < 60; i++) {
+      const a = (i * 6 - 90) * (Math.PI / 180);
+      const major = i % 5 === 0;
+      const r1 = major ? 131 : 134, r2 = 139;
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', 142 + r1 * Math.cos(a)); l.setAttribute('y1', 142 + r1 * Math.sin(a));
+      l.setAttribute('x2', 142 + r2 * Math.cos(a)); l.setAttribute('y2', 142 + r2 * Math.sin(a));
+      l.setAttribute('class', major ? 'tick major' : 'tick');
+      ticksGroup.appendChild(l);
+    }
+
+    const R = 122, CIRC = 2 * Math.PI * R;
+    const TODAY_KEY = 'chrono_study_' + new Date().toISOString().slice(0, 10);
+
+    let sessions = JSON.parse(localStorage.getItem(TODAY_KEY) || '[]');
     let running = false;
+    let isBreak = false;
     let startTime = 0;
     let elapsed = 0;
-    let lastLapTotal = 0;
-    let laps = [];
+    let breakDuration = 0;
+    let slips = 0;
     let rafId = null;
     let wakeLock = null;
 
-    function vibrate(ms = 12) {
-      if (navigator.vibrate) navigator.vibrate(ms);
+    // Synthesized Brown Noise (Offline)
+    let audioCtx = null, noiseNode = null, noiseGain = null, noiseOn = false;
+    function toggleBrownNoise() {
+      if (!noiseOn) {
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          const bufferSize = 2 * audioCtx.sampleRate;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const output = buffer.getChannelData(0);
+          let lastOut = 0.0;
+          for (let i = 0; i < bufferSize; i++) {
+            const white = Math.random() * 2 - 1;
+            output[i] = (lastOut + (0.02 * white)) / 1.02;
+            lastOut = output[i];
+            output[i] *= 3.2;
+          }
+          noiseNode = audioCtx.createBufferSource();
+          noiseNode.buffer = buffer;
+          noiseNode.loop = true;
+          noiseGain = audioCtx.createGain();
+          noiseGain.gain.value = 0.14;
+          noiseNode.connect(noiseGain);
+          noiseGain.connect(audioCtx.destination);
+          noiseNode.start();
+          noiseOn = true;
+          noiseBtn.classList.add('active');
+        } catch (_) {}
+      } else {
+        if (noiseNode) { noiseNode.stop(); noiseNode.disconnect(); }
+        noiseOn = false;
+        noiseBtn.classList.remove('active');
+      }
+      if (navigator.vibrate) navigator.vibrate(10);
     }
 
     async function setWakeLock(active) {
       try {
-        if (active && 'wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
-        } else if (!active && wakeLock) {
-          await wakeLock.release();
-          wakeLock = null;
-        }
+        if (active && 'wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+        else if (!active && wakeLock) { await wakeLock.release(); wakeLock = null; }
       } catch (_) {}
     }
 
-    function formatParts(ms) {
-      const totalSec = Math.floor(ms / 1000);
-      const mins = Math.floor(totalSec / 60);
-      const secs = totalSec % 60;
-      const centis = Math.floor((ms % 1000) / 10);
+    function formatHMS(ms) {
+      const totalSec = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
       return {
-        main: `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`,
-        ms: `.${String(centis).padStart(2, '0')}`
+        h, m, s,
+        hStr: String(h).padStart(2, '0'),
+        mStr: String(m).padStart(2, '0'),
+        sStr: String(s).padStart(2, '0')
       };
     }
 
-    function formatFull(ms) {
-      const p = formatParts(ms);
-      return p.main + p.ms;
+    function updateTodayUI() {
+      const totalMs = sessions.reduce((sum, s) => sum + s.duration, 0);
+      const totalMins = Math.floor(totalMs / 60000);
+      const h = Math.floor(totalMins / 60);
+      const m = totalMins % 60;
+      todayTotalEl.textContent = `${h}h ${String(m).padStart(2, '0')}m`;
+
+      sessionsList.innerHTML = '';
+      [...sessions].reverse().forEach(s => {
+        const f = formatHMS(s.duration);
+        const durText = f.h > 0 ? `${f.h}h ${f.m}m` : `${f.m}m ${f.s}s`;
+        const row = document.createElement('div');
+        row.className = 'session-row';
+        row.innerHTML = `
+          <span class="s-meta">${s.time}</span>
+          <span class="s-dur">${durText}</span>
+          <span class="s-slips ${s.slips === 0 ? 'clean' : ''}">${s.slips === 0 ? 'Locked in' : s.slips + ' slip' + (s.slips > 1 ? 's' : '')}</span>
+        `;
+        sessionsList.appendChild(row);
+      });
     }
 
     function renderTime(ms) {
-      const p = formatParts(ms);
-      mainTimeEl.textContent = p.main;
-      msTimeEl.textContent = p.ms;
-      const progress = (ms % 60000) / 60000;
-      ringProgress.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
+      const displayMs = isBreak ? Math.max(0, breakDuration - ms) : ms;
+      const f = formatHMS(displayMs);
+
+      hrsEl.textContent = f.hStr;
+      minsEl.textContent = f.mStr;
+      secsEl.textContent = f.sStr;
+
+      hrsEl.classList.toggle('lit', f.h > 0);
+      colonH.classList.toggle('lit', f.h > 0);
+
+      // Ring progress: 1 full loop = 60 mins in focus, or full break countdown
+      const progress = isBreak
+        ? (breakDuration > 0 ? displayMs / breakDuration : 0)
+        : ((ms % 3600000) / 3600000);
+
+      ringProgress.style.strokeDashoffset = CIRC * (1 - progress);
+      const angle = (progress * 360 - 90) * (Math.PI / 180);
+      orbLive.setAttribute('cx', 142 + R * Math.cos(angle));
+      orbLive.setAttribute('cy', 142 + R * Math.sin(angle));
+
+      if (!isBreak) {
+        const earnedMins = Math.floor((ms / 60000) / 5);
+        earnedBadge.innerHTML = `Earned break: <span>${earnedMins}m</span>`;
+        if (earnedMins >= 1 && !running) {
+          breakBtn.style.display = 'inline-block';
+          breakBtn.textContent = `Take ${earnedMins}m Break`;
+          breakBtn.classList.add('highlight');
+        } else {
+          breakBtn.style.display = 'none';
+        }
+      } else {
+        earnedBadge.innerHTML = `<span>Rest & recharge</span>`;
+        if (displayMs <= 0 && running) {
+          finishBreak();
+        }
+      }
     }
 
     function tick() {
@@ -319,84 +620,103 @@
     }
 
     function toggle() {
-      vibrate(14);
+      if (navigator.vibrate) navigator.vibrate(12);
       if (!running) {
         running = true;
         startTime = performance.now() - elapsed;
-        document.body.classList.add('running');
-        statusTextEl.textContent = 'Running';
-        hintTextEl.textContent = 'Tap to pause';
+        document.body.classList.add('running', 'started');
         primaryBtn.textContent = 'Pause';
-        secondaryBtn.textContent = 'Lap';
         secondaryBtn.disabled = false;
+        breakBtn.style.display = 'none';
         setWakeLock(true);
         tick();
       } else {
         running = false;
         cancelAnimationFrame(rafId);
         document.body.classList.remove('running');
-        statusTextEl.textContent = 'Paused';
-        hintTextEl.textContent = 'Tap to resume';
         primaryBtn.textContent = 'Resume';
-        secondaryBtn.textContent = 'Reset';
         setWakeLock(false);
+        renderTime(elapsed);
       }
     }
 
-    function renderLaps() {
-      lapsList.innerHTML = '';
-      if (laps.length === 0) return;
-
-      let minDelta = Infinity, maxDelta = -Infinity;
-      if (laps.length >= 2) {
-        laps.forEach(l => {
-          if (l.delta < minDelta) minDelta = l.delta;
-          if (l.delta > maxDelta) maxDelta = l.delta;
-        });
+    function saveAndReset() {
+      if (isBreak) {
+        finishBreak();
+        return;
       }
-
-      [...laps].reverse().forEach((lap, idx) => {
-        const num = laps.length - idx;
-        const row = document.createElement('div');
-        row.className = 'lap-row';
-        if (laps.length >= 2) {
-          if (lap.delta === minDelta) row.classList.add('fastest');
-          else if (lap.delta === maxDelta) row.classList.add('slowest');
-        }
-        row.innerHTML = `
-          <span class="lap-num">Lap ${String(num).padStart(2, '0')}</span>
-          <span class="lap-delta">+${formatFull(lap.delta)}</span>
-          <span class="lap-total">${formatFull(lap.total)}</span>
-        `;
-        lapsList.appendChild(row);
-      });
+      if (elapsed >= 5000) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        sessions.push({ duration: elapsed, slips, time: timeStr });
+        localStorage.setItem(TODAY_KEY, JSON.stringify(sessions));
+        updateTodayUI();
+      }
+      running = false;
+      cancelAnimationFrame(rafId);
+      elapsed = 0;
+      slips = 0;
+      slipBtn.textContent = '+ Distraction (0)';
+      slipBtn.classList.remove('warn');
+      document.body.classList.remove('running', 'started');
+      primaryBtn.textContent = 'Start';
+      secondaryBtn.disabled = true;
+      breakBtn.style.display = 'none';
+      setWakeLock(false);
+      renderTime(0);
+      if (navigator.vibrate) navigator.vibrate([12, 30, 12]);
     }
 
-    function handleSecondary() {
-      if (running) {
-        vibrate(10);
-        const delta = elapsed - lastLapTotal;
-        lastLapTotal = elapsed;
-        laps.push({ delta, total: elapsed });
-        renderLaps();
-      } else {
-        vibrate([10, 30, 10]);
-        elapsed = 0;
-        lastLapTotal = 0;
-        laps = [];
-        renderTime(0);
-        renderLaps();
-        statusTextEl.textContent = 'Ready';
-        hintTextEl.textContent = 'Tap to start';
-        primaryBtn.textContent = 'Start';
-        secondaryBtn.textContent = 'Reset';
-        secondaryBtn.disabled = true;
-      }
+    function startBreak() {
+      const earnedMins = Math.floor((elapsed / 60000) / 5);
+      if (earnedMins < 1) return;
+      saveAndReset();
+      isBreak = true;
+      breakDuration = earnedMins * 60000;
+      document.body.classList.add('break-mode');
+      modeLabel.textContent = 'Break';
+      secondaryBtn.textContent = 'Skip Break';
+      slipBtn.style.display = 'none';
+      renderTime(0);
+      toggle();
     }
 
+    function finishBreak() {
+      running = false;
+      cancelAnimationFrame(rafId);
+      isBreak = false;
+      elapsed = 0;
+      document.body.classList.remove('break-mode', 'running', 'started');
+      modeLabel.textContent = 'Focus';
+      primaryBtn.textContent = 'Start';
+      secondaryBtn.textContent = 'Save & Reset';
+      secondaryBtn.disabled = true;
+      slipBtn.style.display = 'inline-block';
+      setWakeLock(false);
+      renderTime(0);
+      if (navigator.vibrate) navigator.vibrate([30, 60, 30]);
+    }
+
+    slipBtn.addEventListener('click', () => {
+      slips++;
+      slipBtn.textContent = `+ Distraction (${slips})`;
+      slipBtn.classList.add('warn');
+      if (navigator.vibrate) navigator.vibrate(15);
+    });
+
+    breakBtn.addEventListener('click', startBreak);
     dial.addEventListener('click', toggle);
     primaryBtn.addEventListener('click', toggle);
-    secondaryBtn.addEventListener('click', handleSecondary);
+    secondaryBtn.addEventListener('click', saveAndReset);
+    noiseBtn.addEventListener('click', toggleBrownNoise);
+    zenBtn.addEventListener('click', () => {
+      document.body.classList.toggle('zen');
+      zenBtn.classList.toggle('active', document.body.classList.contains('zen'));
+      if (navigator.vibrate) navigator.vibrate(8);
+    });
+
+    updateTodayUI();
+    renderTime(0);
   </script>
 </body>
 </html>
