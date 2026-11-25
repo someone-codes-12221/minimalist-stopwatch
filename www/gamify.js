@@ -525,7 +525,7 @@
   }
 
   // ---------- UI Rendering ----------
-  let activeTab = 'map', selectedSlot = null, activeConst = 'endurance';
+  let activeTab = 'map', activeJournalTab = 'missions', selectedSlot = null, activeConst = 'endurance';
 
   function injectRealmDOM() {
     if (document.getElementById('realmOverlay')) return;
@@ -539,12 +539,10 @@
       </div>
       <div class="realm-res-bar" id="realmResBar"></div>
       <div class="realm-tabs">
-        <button class="realm-tab active" data-rtab="map">Map & Battle</button>
+        <button class="realm-tab active" data-rtab="map">Map</button>
         <button class="realm-tab" data-rtab="grid">3×3 Grid</button>
         <button class="realm-tab" data-rtab="stars">Constellations</button>
-        <button class="realm-tab" data-rtab="missions">Missions</button>
-        <button class="realm-tab" data-rtab="quests">Weekly Quests</button>
-      <button class="realm-tab" data-rtab="achievements">Achievements</button>
+        <button class="realm-tab" data-rtab="journal">Journal</button>
       </div>
       <div class="realm-body" id="realmBody"></div>
     `;
@@ -633,9 +631,24 @@
     const body = document.getElementById('realmBody');
     if (activeTab === 'map') renderMapTab(body);
     else if (activeTab === 'grid') renderGridTab(body);
-    else if (activeTab === 'missions') renderMissionsTab(body);
-    else if (activeTab === 'quests') renderWeeklyQuestsTab(body);
-    else if (activeTab === 'achievements') renderAchievementsTab(body);
+    else if (activeTab === 'journal') {
+      body.innerHTML = `
+        <div class="journal-tabs" role="tablist" aria-label="Journal sections">
+          <button class="journal-tab ${activeJournalTab === 'missions' ? 'active' : ''}" data-jtab="missions" role="tab" aria-selected="${activeJournalTab === 'missions'}">Daily</button>
+          <button class="journal-tab ${activeJournalTab === 'quests' ? 'active' : ''}" data-jtab="quests" role="tab" aria-selected="${activeJournalTab === 'quests'}">Weekly</button>
+          <button class="journal-tab ${activeJournalTab === 'achievements' ? 'active' : ''}" data-jtab="achievements" role="tab" aria-selected="${activeJournalTab === 'achievements'}">Achievements</button>
+        </div>
+        <div class="journal-content" id="journalContent"></div>`;
+      const journalContent = document.getElementById('journalContent');
+      if (activeJournalTab === 'missions') renderMissionsTab(journalContent);
+      else if (activeJournalTab === 'quests') renderWeeklyQuestsTab(journalContent);
+      else renderAchievementsTab(journalContent);
+      body.querySelectorAll('[data-jtab]').forEach(btn => btn.addEventListener('click', () => {
+        if (isClashing) return;
+        activeJournalTab = btn.dataset.jtab;
+        renderRealm();
+      }));
+    }
     else renderConstTab(body);
   }
 

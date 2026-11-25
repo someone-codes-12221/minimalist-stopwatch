@@ -564,3 +564,15 @@
 .achievement-meta { display: flex; justify-content: space-between; color: var(--muted); font: 9px var(--font-clock); margin-top: 4px; }
 .achievement-meta span:last-child { color: var(--amber); }
 .achievement-action { flex: 0 0 auto; color: var(--muted); font: 9px var(--font-clock); }
+
+
+/* Compact Journal sub-navigation */
+.journal-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin:0 0 4px; padding:4px; border:1px solid var(--glass-border); border-radius:13px; background:rgba(255,255,255,.025); flex-shrink:0; }
+.journal-tab { min-width:0; padding:9px 5px; border:1px solid transparent; border-radius:9px; background:transparent; color:var(--muted); font:10px var(--font-ui); letter-spacing:.04em; cursor:pointer; white-space:nowrap; }
+.journal-tab.active { color:var(--text); background:var(--glass-strong); border-color:var(--glass-border); font-weight:600; }
+.journal-content { min-width:0; }
+
+/* Keep four Realm destinations on one horizontally scrollable row on narrow phones */
+.realm-tabs { display:flex; overflow-x:auto; scrollbar-width:none; }
+.realm-tabs::-webkit-scrollbar { display:none; }
+.realm-tab { flex:0 0 auto; }
