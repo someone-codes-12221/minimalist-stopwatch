@@ -238,6 +238,7 @@
   if (!Number.isFinite(R.combatWins)) R.combatWins = 0;
   if (!Number.isFinite(R.bossWins)) R.bossWins = 0;
   if (!Number.isFinite(R.cubesDrafted)) R.cubesDrafted = 0;
+  if (!Array.isArray(R.equippedRelics)) R.equippedRelics = [];
 
   function hasPerk(id) { return !!R.perks[id]; }
   function getMaxHp() { return 100 + (hasPerk('e1') ? 20 : 0) + (hasPerk('e3') ? 30 : 0); }
@@ -382,11 +383,12 @@
     };
     if (logEl) logEl.innerHTML = '';
 
+    const relicBonuses = getEquippedRelicBonuses();
     const overMult = 1 + (R.overcharge || 0) + (R.overcharge > 0 && hasPerk('d2') ? 0.15 : 0);
-    const powerMult = getBasePowerMult() * overMult;
-    const strikeMult = 1 + (hasPerk('d1') ? 0.18 : 0) + (hasPerk('d4') ? 0.30 : 0);
-    const wardMult = 1 + (hasPerk('m1') ? 0.20 : 0);
-    const critChance = (hasPerk('o1') ? 0.15 : 0) + (hasPerk('o3') ? 0.20 : 0);
+    const powerMult = getBasePowerMult() * overMult * (1 + relicBonuses.power);
+    const strikeMult = (1 + (hasPerk('d1') ? 0.18 : 0) + (hasPerk('d4') ? 0.30 : 0)) * (1 + relicBonuses.strike);
+    const wardMult = (1 + (hasPerk('m1') ? 0.20 : 0)) * (1 + relicBonuses.ward);
+    const critChance = Math.min(0.6, (hasPerk('o1') ? 0.15 : 0) + (hasPerk('o3') ? 0.20 : 0) + relicBonuses.crit);
 
     let totalDmg = 0, totalBurn = 0, totalShield = hasPerk('m4') ? 12 : 0, totalHeal = 0, hasReflect = false;
     const updateTallies = () => {
@@ -463,7 +465,7 @@
         appendLog(`${labelPrefix}<span class="hl">${def.name}</span> → <span class="shd">+${sh} Shield</span>`);
         lastFired = { type: c.type, tier: c.tier, idx };
       } else if (c.type === 'mend') {
-        const h = Math.round(def.base * mult * (hasPerk('m3') ? 1.35 : 1));
+        const h = Math.round(def.base * mult * (hasPerk('m3') ? 1.35 : 1) * (1 + relicBonuses.heal));
         totalHeal += h;
         playSfx('ward'); vibrate(8);
         spawnFloat(miniGrid || slotEl, `+${h} HP`, 'heal');
@@ -655,6 +657,7 @@
         <button class="realm-tab" data-rtab="stars">Constellations</button>
         <button class="realm-tab" data-rtab="journal">Journal</button>
         <button class="realm-tab" data-rtab="profile">Profile</button>
+        <button class="realm-tab" data-rtab="relics">Relics</button>
       </div>
       <div class="realm-body" id="realmBody"></div>
     `;
@@ -762,6 +765,7 @@
       }));
     }
     else if (activeTab === 'profile') renderProfileTab(body);
+    else if (activeTab === 'relics') renderRelicsTab(body);
     else renderConstTab(body);
   }
 
@@ -1060,6 +1064,37 @@
     }));
   }
 
+  const RELIC_DEFS = [
+    {id:'ember',name:'Ember Sigil',glyph:'✹',rarity:'Uncommon',desc:'+8% strike damage',unlock:s=>s.minutes>=60,requirement:'Study 1 hour',stat:'strike',value:0.08},
+    {id:'aegis',name:'Aegis Crest',glyph:'⬡',rarity:'Uncommon',desc:'+10% shield strength',unlock:s=>s.wins>=3,requirement:'Win 3 battles',stat:'ward',value:0.10},
+    {id:'hourglass',name:'Scholar’s Hourglass',glyph:'⌛',rarity:'Rare',desc:'+6% overall cube power',unlock:s=>s.minutes>=300,requirement:'Study 5 hours',stat:'power',value:0.06},
+    {id:'star_lens',name:'Star Lens',glyph:'✧',rarity:'Rare',desc:'+5% critical chance',unlock:s=>s.zone>=2,requirement:'Reach Zone 2',stat:'crit',value:0.05},
+    {id:'phoenix',name:'Phoenix Thread',glyph:'♨',rarity:'Epic',desc:'+12% healing from Mend cubes',unlock:s=>s.bosses>=1,requirement:'Defeat a boss',stat:'heal',value:0.12}
+  ];
+  function getUnlockedRelics() { const stats=getAchievementStats(); return RELIC_DEFS.filter(relic=>relic.unlock(stats)); }
+  function getEquippedRelicBonuses() {
+    const bonuses={strike:0,ward:0,power:0,crit:0,heal:0};
+    const unlocked=getUnlockedRelics();
+    R.equippedRelics=(Array.isArray(R.equippedRelics)?R.equippedRelics:[]).filter((id,i,a)=>a.indexOf(id)===i&&unlocked.some(r=>r.id===id)).slice(0,2);
+    R.equippedRelics.forEach(id=>{const relic=RELIC_DEFS.find(r=>r.id===id);if(relic)bonuses[relic.stat]+=relic.value;});
+    return bonuses;
+  }
+  function renderRelicsTab(body) {
+    const unlocked=getUnlockedRelics(), stats=getAchievementStats();
+    getEquippedRelicBonuses();
+    body.innerHTML=`<section class="relic-workshop">
+      <div class="relic-hero"><div class="relic-hero-mark">✧</div><div class="relic-hero-title">RELIC VAULT</div><div class="relic-hero-copy">Ancient keepsakes. Small advantages. Your build, your choice.</div>
+      <div class="relic-slot-row">${[0,1].map(i=>{const relic=RELIC_DEFS.find(r=>r.id===R.equippedRelics[i]);return `<div class="relic-slot ${relic?'filled':''}"><span>${relic?relic.glyph:'◇'}</span><small>${relic?relic.name:'EMPTY SLOT'}</small></div>`;}).join('')}</div><div class="relic-slot-note">${R.equippedRelics.length}/2 RELICS EQUIPPED</div></div>
+      <div class="relic-list-head"><span>RELIC COLLECTION</span><span>${unlocked.length}/${RELIC_DEFS.length} FOUND</span></div>
+      <div class="relic-list">${RELIC_DEFS.map(relic=>{const open=relic.unlock(stats),active=R.equippedRelics.includes(relic.id);return `<article class="relic-card ${open?'':'locked'} ${active?'equipped':''}"><div class="relic-icon">${open?relic.glyph:'?'}</div><div class="relic-info"><strong>${open?relic.name:'Unknown Relic'}</strong><span class="relic-rarity">${open?relic.rarity:'UNDISCOVERED'}</span><p>${open?relic.desc:'Unlock: '+relic.requirement}</p></div><button class="mini-btn relic-action" data-relic="${relic.id}" ${!open||(!active&&R.equippedRelics.length>=2)?'disabled':''}>${active?'Unequip':open?'Equip':'Locked'}</button></article>`;}).join('')}</div>
+      <div class="relic-footnote">Relics only change battle calculations. They do not affect study rewards, shard costs, or saved progress.</div></section>`;
+    body.querySelectorAll('[data-relic]').forEach(btn=>btn.addEventListener('click',()=>{
+      const id=btn.dataset.relic;if(!getUnlockedRelics().some(r=>r.id===id))return;
+      if(R.equippedRelics.includes(id))R.equippedRelics=R.equippedRelics.filter(x=>x!==id);
+      else if(R.equippedRelics.length<2)R.equippedRelics.push(id);else{showToast('Both relic slots are full. Unequip one first.');return;}
+      saveR();renderRealm();showToast(RELIC_DEFS.find(r=>r.id===id).name+(R.equippedRelics.includes(id)?' equipped':' unequipped'));
+    }));
+  }
   function renderAchievementsTab(body) {
     const stats = getAchievementStats();
     const claimed = R.achievementClaims;
