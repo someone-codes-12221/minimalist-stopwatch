@@ -2789,14 +2789,18 @@
         const parsed = JSON.parse(backupText.value);
         if (parsed && parsed.format === 'chrono-obsidian-backup' && parsed.version === 2 &&
             parsed.storage && typeof parsed.storage === 'object' && !Array.isArray(parsed.storage) &&
-            typeof parsed.storage[STORE_KEY] === 'string') {
+            typeof parsed.storage[STORE_KEY] === 'string' &&
+            typeof parsed.storage['chrono_realm_v1'] === 'string') {
           const restoredStore = JSON.parse(parsed.storage[STORE_KEY]);
+          JSON.parse(parsed.storage['chrono_realm_v1']);
+          if (typeof parsed.storage['chrono_active_v3'] === 'string') JSON.parse(parsed.storage['chrono_active_v3']);
           if (!restoredStore || typeof restoredStore !== 'object' ||
               !restoredStore.days || typeof restoredStore.days !== 'object' ||
               !Array.isArray(restoredStore.subjects)) throw new Error('Invalid study data');
           Object.entries(parsed.storage).forEach(([key, value]) => {
             if (typeof key !== 'string' || typeof value !== 'string') throw new Error('Invalid storage entry');
           });
+          localStorage.clear();
           Object.entries(parsed.storage).forEach(([key, value]) => localStorage.setItem(key, value));
           alert('Backup restored. Chrono Obsidian will reload.');
           window.location.reload();
