@@ -1745,9 +1745,9 @@
 
     body.innerHTML = `
       <div class="grid-3x3">${gridHtml}</div>
-      <div class="synergy-summary">${synergy.labels.length ? synergy.labels.map(label => `<span class="synergy-chip">${label}</span>`).join('') : 'Match cube roles side-by-side or complete a row, column, or diagonal to activate combos.'}</div>
+      <div class="synergy-summary">${synergy.labels.length ? synergy.labels.map(label => `<span class="synergy-chip">${label}</span>`).join('') : 'Match roles for adjacent links, make a same-role line, or use three different roles in a full line for a Tactical Triad.'}</div>
       ${detailHtml}
-      <div class="clash-log" id="clashLog"><div>Tap Test Grid anytime (0 Charges) to watch your synergy chain fire.</div></div>
+      <div class="clash-log" id="clashLog"><div>Tap Test Grid anytime (0 Surge) to check your formation and cube effects.</div></div>
       <div class="modal-btns">
         <button class="btn btn-secondary" id="testDummyBtn">Test Grid (Free)</button>
         <button class="btn btn-primary" id="draftFromGridBtn">Draft Cube (${R.drafts})</button>
