@@ -667,3 +667,10 @@
 .map-zone-rule{top:44px;padding:5px 7px;font-size:8px}
 .map-svg{top:88px;height:calc(100% - 88px)}
 }
+
+/* Grid formations and combo feedback */
+.cube-slot.synergy-linked{box-shadow:inset 0 0 0 1px rgba(255,214,10,.26),0 0 9px rgba(255,214,10,.09)}
+.cube-slot.synergy-boosted{border-color:rgba(255,214,10,.82)!important;box-shadow:inset 0 0 12px rgba(255,214,10,.12),0 0 12px rgba(255,214,10,.15)}
+.cube-bonus{position:absolute;left:6px;top:5px;font-size:8px;line-height:1.3;padding:2px 4px;border-radius:5px;background:rgba(255,214,10,.14);color:#f5d76e;font-family:var(--font-clock)}
+.synergy-summary{display:flex;flex-wrap:wrap;align-items:center;gap:5px;color:var(--muted);font-size:10px;line-height:1.4;padding:2px 1px}
+.synergy-chip{display:inline-flex;align-items:center;border:1px solid rgba(255,214,10,.25);background:rgba(255,214,10,.07);color:#e9d17a;padding:5px 7px;border-radius:8px}
