@@ -55,7 +55,7 @@ jobs:
           artifact_name: github-pages
 
       - name: Final deployment retry
-        if: steps.deployment_retry.outcome == 'failure'
+        if: steps.deployment_retry.conclusion == 'failure'
         uses: actions/deploy-pages@v4
         with:
           artifact_name: github-pages
