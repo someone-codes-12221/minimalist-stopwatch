@@ -1459,7 +1459,7 @@
     // Shared validation for every path that creates or edits a study record.
     // Keep the existing 16-hour per-entry limit and prevent a day's total
     // from exceeding 24 hours. Existing over-limit days may still be reduced.
-    function validateStudyMinutes(input, dayKey, excludeSessionId = null) {
+    function validateStudyMinutes(input, dayKey, excludeSessionId = null, proposedDurationMs = null) {
       const raw = String(input.value || '').trim();
       const mins = Number(raw);
       let error = '';
@@ -1478,7 +1478,8 @@
           const duration = Number(session.duration);
           return total + (Number.isFinite(duration) && duration > 0 ? duration : 0);
         }, 0);
-        const proposedDayMs = dayTotalMs + mins * 60000;
+        const durationMs = Number.isFinite(proposedDurationMs) && proposedDurationMs > 0 ? proposedDurationMs : mins * 60000;
+        const proposedDayMs = dayTotalMs + durationMs;
 
         if (proposedDayMs > 24 * 60 * 60000 && proposedDayMs > currentDayMs) {
           error = 'Daily study time cannot exceed 1,440 minutes.';
@@ -2163,7 +2164,9 @@
 
     function commitSession(noteText, customMins) {
       const tk = dateKey();
-      const validatedMins = validateStudyMinutes(trimMinsInput, tk);
+      const enteredMins = Number(trimMinsInput.value);
+      const candidateMs = enteredMins === pendingDefaultMins ? pendingRawMs : enteredMins * 60000;
+      const validatedMins = validateStudyMinutes(trimMinsInput, tk, null, candidateMs);
       if (validatedMins === null) return;
       if (!store.days[tk]) store.days[tk] = [];
       const sub = getActiveSubject();
