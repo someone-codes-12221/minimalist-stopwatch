@@ -743,8 +743,14 @@
 
   function openRealm() {
     injectRealmDOM();
+    const overlay = document.getElementById('realmOverlay');
     renderRealm();
-    document.getElementById('realmOverlay').classList.add('open');
+    overlay.classList.remove('realm-arriving');
+    overlay.classList.add('open');
+    // Restart the portal sequence on every entry, including re-entry after closing.
+    void overlay.offsetWidth;
+    overlay.classList.add('realm-arriving');
+    window.setTimeout(() => overlay.classList.remove('realm-arriving'), 1500);
   }
 
   function closeRealm() {
