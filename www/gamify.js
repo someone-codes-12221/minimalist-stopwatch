@@ -143,36 +143,71 @@
     setTimeout(() => wrap.remove(), 320);
   }
 
+  const ZONE_THEMES = [
+    { name: 'Ashen March', subtitle: 'A scorched frontier of broken fortresses', boss: 'Cinder Tyrant', bossGimmick: 'Heavy armor · Burning counterstrike' },
+    { name: 'Drowned Archive', subtitle: 'A sunken library guarded by restless echoes', boss: 'The Drowned Scribe', bossGimmick: 'High vitality · Leeching tide' },
+    { name: 'Thornwild', subtitle: 'An overgrown maze that fights back', boss: 'Briar Colossus', bossGimmick: 'Rapid attacks · Regrows between volleys' },
+    { name: 'Hollow Crown', subtitle: 'A fallen kingdom under a watchful curse', boss: 'The Hollow Regent', bossGimmick: 'Escalating attack · Royal guard' },
+    { name: 'Starfall Citadel', subtitle: 'A fortress carved from fallen stars', boss: 'Astral Devourer', bossGimmick: 'Balanced elite · Heavy final blow' }
+  ];
+
+  function getZoneTheme(zone) { return ZONE_THEMES[(Math.max(1, zone) - 1) % ZONE_THEMES.length]; }
+
   function buildZoneMap(zone) {
-    const s = 1 + (zone - 1) * 0.45;
+    const s = 1 + (zone - 1) * 0.32;
+    const cycle = (zone - 1) % 5;
+    const packs = [
+      ['phantom', 'monolith', 'swarm', 'monolith', 'phantom'],
+      ['leech', 'wraith', 'swarm', 'leech', 'wraith'],
+      ['swarm', 'reaver', 'thorn', 'reaver', 'thorn'],
+      ['hexcaller', 'monolith', 'wraith', 'hexcaller', 'reaver'],
+      ['wraith', 'reaver', 'hexcaller', 'thorn', 'monolith']
+    ][cycle];
+    const theme = getZoneTheme(zone);
     return [
       { id: 0, x: 14, y: 50, type: 'start', name: 'Camp', cleared: true, edges: [1, 2] },
-      { id: 1, x: 34, y: 26, type: 'hostile', enemy: makeEnemy('phantom', s), cleared: false, edges: [0, 3, 4] },
-      { id: 2, x: 34, y: 74, type: 'hostile', enemy: makeEnemy('monolith', s), cleared: false, edges: [0, 4, 5] },
-      { id: 3, x: 56, y: 20, type: 'shrine', name: 'Obsidian Shrine', buff: '+12% Grid Power (Zone)', cleared: false, edges: [1, 6] },
-      { id: 4, x: 56, y: 50, type: 'hostile', enemy: makeEnemy('swarm', s), cleared: false, edges: [1, 2, 6, 7] },
-      { id: 5, x: 56, y: 80, type: 'vault', name: 'Cube Vault', cleared: false, edges: [2, 7] },
-      { id: 6, x: 75, y: 34, type: 'hostile', enemy: makeEnemy('monolith', s * 1.25), cleared: false, edges: [3, 4, 8] },
-      { id: 7, x: 75, y: 66, type: 'hostile', enemy: makeEnemy('phantom', s * 1.25), cleared: false, edges: [4, 5, 8] },
-      { id: 8, x: 90, y: 50, type: 'boss', enemy: makeEnemy('boss', s * 1.6), cleared: false, edges: [6, 7] }
+      { id: 1, x: 34, y: 26, type: 'hostile', enemy: makeEnemy(packs[0], s), cleared: false, edges: [0, 3, 4] },
+      { id: 2, x: 34, y: 74, type: 'hostile', enemy: makeEnemy(packs[1], s), cleared: false, edges: [0, 4, 5] },
+      { id: 3, x: 56, y: 20, type: 'shrine', name: 'Waystone', buff: '+12% Grid Power (Zone)', cleared: false, edges: [1, 6] },
+      { id: 4, x: 56, y: 50, type: 'hostile', enemy: makeEnemy(packs[2], s * 1.08), cleared: false, edges: [1, 2, 6, 7] },
+      { id: 5, x: 56, y: 80, type: 'vault', name: 'Relic Vault', cleared: false, edges: [2, 7] },
+      { id: 6, x: 75, y: 34, type: 'hostile', enemy: makeEnemy(packs[3], s * 1.25), cleared: false, edges: [3, 4, 8] },
+      { id: 7, x: 75, y: 66, type: 'hostile', enemy: makeEnemy(packs[4], s * 1.25), cleared: false, edges: [4, 5, 8] },
+      { id: 8, x: 90, y: 50, type: 'boss', enemy: makeEnemy('boss', s * 1.6, zone), cleared: false, edges: [6, 7] }
     ];
   }
 
-  function makeEnemy(kind, scale) {
-    if (kind === 'monolith') {
-      const hp = Math.round(70 * scale);
-      return { kind, name: 'Monolith', hp, maxHp: hp, atk: Math.round(12 * scale), armor: Math.round(8 * scale), burn: 0, gimmick: `Heavy Armor (${Math.round(8 * scale)} blocked)` };
+  function makeEnemy(kind, scale, zone = R && R.zone || 1) {
+    const stats = {
+      monolith: ['Monolith', 70, 12, 8, 'Heavy armor · Slow, powerful hits'],
+      phantom: ['Phantom', 52, 20, 0, 'High attack · No armor'],
+      swarm: ['Swarm', 64, 8, 0, 'Strikes twice every turn'],
+      wraith: ['Wraith', 58, 15, 2, 'A relentless spirit with balanced stats'],
+      reaver: ['Reaver', 62, 11, 3, 'Two quick strikes every turn'],
+      thorn: ['Thorn Stalker', 82, 10, 5, 'Regains a little health after striking'],
+      hexcaller: ['Hexcaller', 66, 12, 2, 'Attack grows after every counterstrike'],
+      leech: ['Tide Leech', 76, 9, 2, 'Steals back health after striking']
+    };
+    if (kind === 'boss') {
+      const bosses = [
+        ['Cinder Tyrant', 150, 20, 8, 'Heavy armor · Burning counterstrike'],
+        ['The Drowned Scribe', 172, 18, 5, 'High vitality · Leeching tide'],
+        ['Briar Colossus', 185, 17, 7, 'Regrows between volleys'],
+        ['The Hollow Regent', 165, 21, 9, 'Attack escalates after each turn'],
+        ['Astral Devourer', 195, 22, 8, 'Elite guardian · Heavy final blow']
+      ];
+      const b = bosses[(Math.max(1, zone) - 1) % bosses.length];
+      const hp = Math.round(b[1] * scale);
+      return { kind: 'boss', name: b[0], hp, maxHp: hp, atk: Math.round(b[2] * scale), armor: Math.round(b[3] * scale), burn: 0, gimmick: b[4], bossStyle: (zone - 1) % 5 };
     }
-    if (kind === 'phantom') {
-      const hp = Math.round(52 * scale);
-      return { kind, name: 'Phantom', hp, maxHp: hp, atk: Math.round(20 * scale), armor: 0, burn: 0, gimmick: 'High Attack · Bring Ward/Reflect' };
-    }
-    if (kind === 'swarm') {
-      const hp = Math.round(64 * scale);
-      return { kind, name: 'Swarm', hp, maxHp: hp, atk: Math.round(8 * scale), hits: 2, armor: 0, burn: 0, gimmick: 'Strikes twice every turn' };
-    }
-    const hp = Math.round(135 * scale);
-    return { kind: 'boss', name: 'Stronghold Warden', hp, maxHp: hp, atk: Math.round(19 * scale), armor: Math.round(6 * scale), burn: 0, gimmick: 'Multi-session Boss · Vault loot' };
+    const d = stats[kind] || stats.monolith;
+    const hp = Math.round(d[1] * scale);
+    return {
+      kind, name: d[0], hp, maxHp: hp, atk: Math.round(d[2] * scale),
+      armor: Math.round(d[3] * scale), burn: 0,
+      hits: kind === 'swarm' || kind === 'reaver' ? 2 : 1,
+      gimmick: d[4]
+    };
   }
 
   function defaultRealm() {
@@ -503,6 +538,21 @@
         if (miniGrid) { miniGrid.classList.add('shield-flash'); spawnFloat(miniGrid, 'BLOCKED', 'shd'); }
       }
       appendLog(`${en.name} strikes (${totalIncoming}) → <span class="shd">${blocked} blocked</span>, <span class="dmg">-${hpLoss} HP</span>.`);
+
+      if (en.kind === 'hexcaller' || (node.type === 'boss' && en.bossStyle === 3)) {
+        en.atk = Math.round(en.atk * 1.12);
+        appendLog(`<span class="syn">${en.name} gathers power. Next attack: ${en.atk}.</span>`);
+      }
+      if (en.kind === 'thorn' || (node.type === 'boss' && en.bossStyle === 2)) {
+        const regrow = Math.min(Math.ceil(en.maxHp * 0.04), en.maxHp - en.hp);
+        en.hp += regrow;
+        if (regrow) appendLog(`<span class="win">${en.name} regrows ${regrow} HP.</span>`);
+      }
+      if (en.kind === 'leech' || (node.type === 'boss' && en.bossStyle === 1)) {
+        const stolen = Math.min(Math.ceil(en.maxHp * 0.035), en.maxHp - en.hp);
+        en.hp += stolen;
+        if (stolen) appendLog(`<span class="syn">${en.name} restores ${stolen} HP.</span>`);
+      }
 
       if (hasReflect && blocked > 0) {
         await wait(240);
@@ -929,8 +979,10 @@
 
   function enemySvg(kind) {
     if (kind === 'monolith') return `<svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="#f5f5f7" stroke-width="1.6"><rect x="8" y="5" width="20" height="26" rx="2"/><line x1="8" y1="14" x2="28" y2="14"/><line x1="8" y1="22" x2="28" y2="22"/></svg>`;
-    if (kind === 'phantom') return `<svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="#64d2ff" stroke-width="1.6"><polygon points="18,4 32,18 18,32 4,18"/><circle cx="18" cy="18" r="4"/></svg>`;
-    if (kind === 'swarm') return `<svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="#ffd60a" stroke-width="1.6"><polygon points="12,8 18,18 6,18"/><polygon points="24,8 30,18 18,18"/><polygon points="18,19 24,29 12,29"/></svg>`;
+    if (kind === 'phantom' || kind === 'wraith') return `<svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="#64d2ff" stroke-width="1.6"><polygon points="18,4 32,18 18,32 4,18"/><circle cx="18" cy="18" r="4"/></svg>`;
+    if (kind === 'swarm' || kind === 'reaver') return `<svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="#ffd60a" stroke-width="1.6"><polygon points="12,8 18,18 6,18"/><polygon points="24,8 30,18 18,18"/><polygon points="18,19 24,29 12,29"/></svg>`;
+    if (kind === 'thorn' || kind === 'leech') return `<svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="#30d158" stroke-width="1.6"><path d="M18 3 L23 13 L33 18 L23 23 L18 33 L13 23 L3 18 L13 13 Z"/></svg>`;
+    if (kind === 'hexcaller') return `<svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="#bf8cff" stroke-width="1.6"><path d="M18 3 L31 11 L31 25 L18 33 L5 25 L5 11 Z"/><circle cx="18" cy="18" r="5"/></svg>`;
     return `<svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="#ff453a" stroke-width="1.7"><polygon points="18,3 33,12 28,31 8,31 3,12"/><polygon points="18,10 25,18 18,26 11,18"/></svg>`;
   }
 
@@ -1010,9 +1062,11 @@
       </div>`;
     }
 
+    const theme = getZoneTheme(R.zone);
     body.innerHTML = `
       <div class="map-canvas-wrap">
-        <div class="map-zone-tag">Zone ${R.zone} · Power ×${getBasePowerMult().toFixed(2)}</div>
+        <div class="map-zone-tag">Zone ${R.zone} · ${theme.name} · Power ×${getBasePowerMult().toFixed(2)}</div>
+        <div class="map-zone-subtitle">${theme.subtitle}</div>
         <svg class="map-svg">${edgesHtml.join('')}${nodesHtml}</svg>
       </div>
       ${actionHtml}
