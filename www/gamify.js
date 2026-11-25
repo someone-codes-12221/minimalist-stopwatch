@@ -870,7 +870,7 @@
   function renderRealm() {
     const resBar = document.getElementById('realmResBar');
     resBar.innerHTML = `
-      <div class="res-pill"><div class="res-val">${R.charges}</div><div class="res-lbl">Charges</div></div>
+      <div class="res-pill"><div class="res-val">${R.charges}</div><div class="res-lbl">Surge</div></div>
       <div class="res-pill clickable" id="openDraftPill"><div class="res-val">${R.drafts}</div><div class="res-lbl">Drafts</div></div>
       <div class="res-pill"><div class="res-val">${R.shards}</div><div class="res-lbl">Shards</div></div>
       <div class="res-pill"><div class="res-val">${R.runHp}/${getMaxHp()}</div><div class="res-lbl">Run HP</div></div>
@@ -1332,10 +1332,10 @@
       <div class="world-event-hero"><div class="world-event-kicker">THE REALM · DAILY ROTATION</div><div class="world-event-emblem">✧</div><h2>${event.name}</h2><p>${event.rule}</p><div class="world-event-reward"><span>✦ ${event.rewardShards} SHARDS</span><span>◇ ${event.rewardDrafts} DRAFT</span></div><div class="world-event-refresh">A new encounter arrives tomorrow.</div></div>
       <div class="world-event-enemy"><div><small>FEATURED ENCOUNTER</small><strong>${enemy.name}</strong><span>${enemy.hp}/${enemy.maxHp} HP · ${enemy.atk} ATK · ${enemy.armor} ARMOR</span></div><div class="world-event-status ${completed?'complete':''}">${completed?'CLEARED':'ACTIVE'}</div></div>
       <div class="world-event-note">${completed?'You have claimed today’s event rewards. Come back for the next rotation.':'A special encounter with its own enemy setup and bonus rewards. Your normal map progress is safe.'}</div>
-      <button class="btn btn-primary world-event-enter" id="enterWorldEventBtn" ${completed?'disabled':''}>${completed?'Event Cleared':'Enter Encounter · 1 Charge'}</button>
+      <button class="btn btn-primary world-event-enter" id="enterWorldEventBtn" ${completed?'disabled':''}>${completed?'Event Cleared':'Enter Encounter · Free'}</button>
     </section>`;
     const enter=document.getElementById('enterWorldEventBtn');
-    if(enter)enter.addEventListener('click',()=>{if(isClashing||event.completed)return;if(R.charges<1){showToast('Need 1 Battle Charge (Study 15m)');return;}R.selectedNode=-1;activeTab='map';document.querySelectorAll('.realm-tab').forEach(b=>b.classList.toggle('active',b.dataset.rtab==='map'));saveR();renderRealm();});
+    if(enter)enter.addEventListener('click',()=>{if(isClashing||event.completed)return;R.selectedNode=-1;activeTab='map';document.querySelectorAll('.realm-tab').forEach(b=>b.classList.toggle('active',b.dataset.rtab==='map'));saveR();renderRealm();});
   }
   function renderAchievementsTab(body) {
     const stats = getAchievementStats();
@@ -1459,7 +1459,7 @@
     let actionHtml = '';
 
     if (node.type === 'start') {
-      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Tap any lit node on the map to explore or fight.</div></div>`;
+      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Every encounter is free. Spend a Surge Charge to empower one volley.</div><div class="camp-recovery">RUN HP · ${R.runHp}/${getMaxHp()}</div>${R.runHp < getMaxHp() ? `<button class="btn btn-secondary" id="restCampBtn" ${R.shards < 18 ? 'disabled' : ''}>Rest · 18 Shards</button>` : '<div class="enemy-gimmick">You are fully rested.</div>'}</div>`;
     } else if (node.type === 'shrine') {
       actionHtml = `<div class="battle-card">
         <div class="enemy-name">${node.name}</div>
@@ -1494,11 +1494,13 @@
               <div class="enemy-info">
                 <div class="enemy-name">${en.name} ${R.overcharge > 0 ? `<span class="milestone-pill" style="color:var(--amber)">+${Math.round(R.overcharge*100)}% OC</span>` : ''}</div>
                 <div class="enemy-gimmick">${en.gimmick}</div>
+                ${node.type === 'boss' ? `<div class="enemy-phase" id="enemyPhase">PHASE ${en.phase || 1}</div>` : ''}
+                <div class="enemy-intent">${getEnemyIntent(en)}</div>
                 ${tactic ? `<div class="enemy-tactic">${tactic.label}</div>` : ''}
               </div>
             </div>
             <div class="hp-track"><div class="hp-fill" id="enemyHpFill" style="width:${pct}%"></div></div>
-            <div class="hp-meta"><span id="enemyHpText">HP ${en.hp}/${en.maxHp}</span><span>ATK ${en.atk}${en.hits ? '×' + en.hits : ''}</span></div>
+            <div class="hp-meta"><span id="enemyHpText">HP ${en.hp}/${en.maxHp}</span><span>ATK ${en.atk}${en.hits ? '×' + en.hits : ''} · ARMOR ${en.armor || 0}</span></div>
           </div>
         </div>
         <div class="live-tallies">
@@ -1507,9 +1509,10 @@
           <span style="color:var(--green)" id="tallyHeal">✚ 0</span>
         </div>
         <div class="clash-log" id="clashLog"><div>Tap Strike to fire your 3×3 Grid in an Auto-Clash.</div></div>
-        <div class="modal-btns">
-          <button class="btn btn-secondary" id="editGridQuickBtn">3×3 Grid</button>
-          <button class="btn btn-primary" id="strikeBtn" ${node.cleared ? 'disabled' : ''}>${node.cleared ? 'Cleared' : 'Strike (1 Charge)'}</button>
+        <div class="combat-action-row">
+          <button class="btn btn-secondary" id="editGridQuickBtn">Edit Grid</button>
+          <button class="btn btn-secondary" id="surgeBtn" ${R.charges < 1 && !R.surgeArmed ? 'disabled' : ''}>${R.surgeArmed ? 'Surge Armed · Cancel' : 'Arm Surge · 1 Charge'}</button>
+          <button class="btn btn-primary" id="strikeBtn" ${node.cleared ? 'disabled' : ''}>${node.cleared ? 'Cleared' : 'Fight · Free'}</button>
         </div>
       </div>`;
     }
@@ -1552,6 +1555,13 @@
       });
     });
 
+    const restCampBtn = document.getElementById('restCampBtn');
+    if (restCampBtn) restCampBtn.addEventListener('click', () => {
+      if (R.runHp >= getMaxHp()) return;
+      if (R.shards < 18) { showToast('Need 18 Shards to rest'); return; }
+      R.shards -= 18; R.runHp = getMaxHp(); saveR(); renderRealm(); showToast('Camp rest complete · Run HP restored');
+    });
+
     const claimBtn = document.getElementById('claimNodeBtn');
     if (claimBtn) {
       claimBtn.addEventListener('click', () => {
@@ -1563,6 +1573,12 @@
     }
     const strikeBtn = document.getElementById('strikeBtn');
     if (strikeBtn) strikeBtn.addEventListener('click', () => runGridClash(false));
+    const surgeBtn = document.getElementById('surgeBtn');
+    if (surgeBtn) surgeBtn.addEventListener('click', () => {
+      if (R.surgeArmed) { R.surgeArmed = false; R.charges++; saveR(); renderRealm(); showToast('Surge cancelled · Charge refunded'); return; }
+      if (R.charges < 1) { showToast('Earn a Surge Charge with 15 minutes of study'); return; }
+      R.charges--; R.surgeArmed = true; saveR(); renderRealm(); showToast('Surge armed · Next volley deals +30% power');
+    });
     const quickGrid = document.getElementById('editGridQuickBtn');
     if (quickGrid) quickGrid.addEventListener('click', () => {
       if (isClashing) return;
@@ -1674,14 +1690,14 @@
       <div class="sec-head"><span>Shard Forge</span><span>${R.shards} ◈ available</span></div>
       <div class="shard-forge">
         <div class="cube-detail-bar">
-          <div><strong>Battle Charge</strong><div style="color:var(--muted);font-size:10.5px;">Enter one additional battle</div></div>
+          <div><strong>Surge Charge</strong><div style="color:var(--muted);font-size:10.5px;">Empower one volley by +30%. Battles themselves are always free.</div></div>
           <button class="mini-btn" id="buyChargeBtn" ${R.shards < 18 ? 'disabled' : ''}>18 ◈</button>
         </div>
         <div class="cube-detail-bar">
           <div><strong>Cube Draft</strong><div style="color:var(--muted);font-size:10.5px;">Choose one of three random Cubes</div></div>
           <button class="mini-btn" id="buyDraftBtn" ${R.shards < 45 ? 'disabled' : ''}>45 ◈</button>
         </div>
-        <div style="color:var(--muted);font-size:10px;line-height:1.45;">Repeatable purchases. Study still earns Charges and Drafts for free; the Forge is an optional shortcut when you have spare Shards.</div>
+        <div style="color:var(--muted);font-size:10px;line-height:1.45;">Study earns optional Surge Charges every 15 minutes and Cube Drafts every 30 minutes. Encounters never require a charge.</div>
       </div>
     `;
 
