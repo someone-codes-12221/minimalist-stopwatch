@@ -322,3 +322,11 @@ This pass is deliberately presentation-only:
 - The Pages deployment environment now uses the canonical live-site URL directly, so each deployment is associated with a stable clickable URL even if the deploy action's page_url output is missing.
 - Every successful deployment also writes a direct live-site link into the GitHub Actions job summary.
 - Canonical URL: https://someone-codes-12221.github.io/minimalist-stopwatch/
+
+
+## 16. Enemy-selection transition fix
+
+- The Realm tab entrance animation in visual-polish.css is scoped to .realm-body.tab-enter, matching the renderRealm() one-shot transition flag.
+- Map-node selection sets skipNextRealmEntrance before rerendering, so selecting an enemy no longer triggers the content stagger from the global visual-polish stylesheet.
+- The visual-polish stylesheet cache key is bumped so deployed browsers fetch the corrected selector rules.
+- Ordinary Realm tab changes retain their entrance animation; the selected-node highlight remains a static visual state.
