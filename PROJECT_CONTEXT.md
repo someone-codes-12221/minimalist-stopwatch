@@ -301,3 +301,10 @@ This pass is deliberately presentation-only:
 - Opening ChronoRealm now plays a short portal-style reveal: an expanding atmospheric bloom, a vertical scan/light pass, and staggered entrance of the header, resources, tabs, and main content.
 - The sequence restarts on each open and removes its temporary animation class after completion; it does not change Realm state or timer behavior.
 - The effect is CSS-only, uses no external assets, and is disabled under `prefers-reduced-motion`.
+
+
+## 13. Realm arrival visibility fix (in progress)
+
+- Replaced pseudo-element-only portal effects with a dedicated, absolute VFX layer injected into the overlay. This keeps the bloom and scan visibly above the overlay background and below the Realm UI.
+- Opening now reveals the overlay before restarting the animation, with a stronger bloom, scan sweep, and staggered content entrance.
+- No game state, combat, timer, or persistence behavior is changed. Reduced-motion preferences remain respected.
