@@ -294,3 +294,10 @@ This pass is deliberately presentation-only:
 - The existing combat sound engine is extended; no new audio files or network assets are required.
 - Timer controls, study records, reward amounts, claim ledgers, Realm state, and storage keys are not changed.
 - Reduced-motion preferences disable the added decorative animations.
+
+
+## 12. Cinematic Realm arrival (in progress)
+
+- Opening ChronoRealm now plays a short portal-style reveal: an expanding atmospheric bloom, a vertical scan/light pass, and staggered entrance of the header, resources, tabs, and main content.
+- The sequence restarts on each open and removes its temporary animation class after completion; it does not change Realm state or timer behavior.
+- The effect is CSS-only, uses no external assets, and is disabled under `prefers-reduced-motion`.
