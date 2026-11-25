@@ -244,3 +244,27 @@ body.running .quick-strip:focus-within,body.running .sessions:focus-within {opac
 .profile-title-desc{color:var(--muted);font-size:9px}
 .profile-title-equipped{position:absolute;top:12px;right:11px;color:#c9b7ff;font:8px var(--font-clock);letter-spacing:.08em}
 @media(max-width:380px){.profile-card{padding:22px 13px 15px}.profile-stat{padding:10px}.profile-stat strong{font-size:15px}}
+/* Relic vault and equipment */
+.relic-workshop{display:flex;flex-direction:column;gap:12px;padding-bottom:18px}
+.relic-hero{padding:20px 16px 15px;text-align:center;border:1px solid rgba(190,170,255,.22);border-radius:17px;background:radial-gradient(ellipse at 50% 0%,rgba(150,120,225,.19),transparent 68%),linear-gradient(155deg,#191827,#0c0d14)}
+.relic-hero-mark{color:#d9caff;font-size:28px;text-shadow:0 0 20px rgba(180,150,255,.35)}
+.relic-hero-title{margin-top:5px;color:#e8e0ff;font:11px var(--font-label);letter-spacing:.2em}
+.relic-hero-copy{margin:7px auto 14px;max-width:280px;color:var(--muted);font-size:10px;line-height:1.5}
+.relic-slot-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.relic-slot{min-height:65px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px dashed rgba(190,180,220,.22);border-radius:11px;background:rgba(0,0,0,.13);color:rgba(200,190,220,.45)}
+.relic-slot.filled{border-style:solid;border-color:rgba(185,155,255,.38);background:rgba(155,125,235,.09);color:#e6d9ff}
+.relic-slot>span{font-size:19px}.relic-slot small{font-size:8px;letter-spacing:.08em}
+.relic-slot-note{margin-top:9px;color:rgba(200,190,220,.55);font:8px var(--font-clock);letter-spacing:.12em}
+.relic-list-head{display:flex;justify-content:space-between;color:#ad9ed2;font:9px var(--font-label);letter-spacing:.14em}
+.relic-list{display:flex;flex-direction:column;gap:7px}
+.relic-card{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--glass-border);border-radius:12px;background:rgba(255,255,255,.035)}
+.relic-card.equipped{border-color:rgba(185,155,255,.42);background:rgba(155,125,235,.08)}
+.relic-card.locked{opacity:.55}
+.relic-icon{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;border:1px solid rgba(190,170,255,.2);border-radius:10px;background:rgba(155,125,235,.08);color:#d9caff;font-size:19px}
+.relic-info{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px}
+.relic-info strong{color:var(--text);font-size:10px}
+.relic-rarity{color:#b7a5e5;font:8px var(--font-clock);letter-spacing:.1em;text-transform:uppercase}
+.relic-info p{margin:0;color:var(--muted);font-size:9px;line-height:1.35}
+.relic-action{flex:0 0 auto;min-width:60px;padding:7px 9px;font-size:9px}.relic-action:disabled{opacity:.42}
+.relic-footnote{padding:10px 11px;border-radius:10px;background:rgba(255,255,255,.025);color:var(--muted);font-size:9px;line-height:1.5}
+@media(max-width:360px){.relic-card{gap:7px;padding:8px}.relic-icon{width:32px;height:32px;flex-basis:32px}.relic-info strong{font-size:9px}.relic-action{min-width:54px;padding:6px}}
