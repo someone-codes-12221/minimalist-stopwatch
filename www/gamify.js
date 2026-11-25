@@ -241,7 +241,7 @@
         momentum: { xp: 0, lvl: 1 }, versatility: { xp: 0, lvl: 1 }, overclock: { xp: 0, lvl: 1 }
       },
       perkPoints: 1, perks: {},
-      bestiary: {}, studyCubeClaims: {}, studySessionCount: 0, surgeArmed: false, combatRulesVersion: 2
+      bestiary: {}, bossRelics: [], studyCubeClaims: {}, studySessionCount: 0, surgeArmed: false, combatRulesVersion: 2
     };
   }
 
@@ -255,6 +255,7 @@
   if (!Number.isFinite(R.cubesDrafted)) R.cubesDrafted = 0;
   if (!Array.isArray(R.equippedRelics)) R.equippedRelics = [];
   if (!R.bestiary || typeof R.bestiary !== 'object' || Array.isArray(R.bestiary)) R.bestiary = {};
+  if (!Array.isArray(R.bossRelics)) R.bossRelics = [];
   if (!R.studyCubeClaims || typeof R.studyCubeClaims !== 'object' || Array.isArray(R.studyCubeClaims)) R.studyCubeClaims = {};
   if (!Number.isFinite(R.studySessionCount)) R.studySessionCount = 0;
   if (typeof R.surgeArmed !== 'boolean') R.surgeArmed = false;
@@ -645,6 +646,12 @@
       R.bestiary[trophyKey] = previousKills + 1;
       const firstTrophy = previousKills === 0;
       if (firstTrophy) R.drafts += 1;
+      let bossRelicDrop = null;
+      if (node.type === 'boss' && !node.isSecretBoss) {
+        const bossRelicIds = ['cinder_core', 'drowned_quill', 'briar_heart', 'hollow_signet', 'astral_lens'];
+        const bossRelicId = bossRelicIds[(en.bossStyle || 0) % bossRelicIds.length];
+        if (!R.bossRelics.includes(bossRelicId)) { R.bossRelics.push(bossRelicId); bossRelicDrop = bossRelicId; }
+      }
       const shardDrop = node.type === 'boss' ? 35 : 12;
       if (node.isWorldEvent) {
         R.worldEvent.completed = true;
@@ -670,6 +677,8 @@
         showToast(`${en.name} Defeated! +${shardDrop} Shards${firstTrophy ? ' · Trophy +1 Draft' : ''}`);
       }
       if (firstTrophy) appendLog(`<span class="win">BESTIARY TROPHY RECORDED · ${en.name} · +1 Cube Draft</span>`);
+      if (bossRelicDrop) appendLog(`<span class="win">GUARDIAN RELIC DISCOVERED · ${bossRelicDrop.replace(/_/g, ' ').toUpperCase()} · Equip it in the Relic Vault.</span>`);
+      if (bossRelicDrop) showToast('Guardian Relic discovered · ' + bossRelicDrop.replace(/_/g, ' '));
     } else {
       // Enemy Counterattack Lunge
       if (enemyVis) { enemyVis.classList.remove('lunge'); void enemyVis.offsetWidth; enemyVis.classList.add('lunge'); }
@@ -1284,12 +1293,23 @@
     {id:'star_lens',name:'Star Lens',glyph:'✧',rarity:'Rare',desc:'+5% critical chance',unlock:s=>s.zone>=2,requirement:'Reach Zone 2',stat:'crit',value:0.05},
     {id:'phoenix',name:'Phoenix Thread',glyph:'♨',rarity:'Epic',desc:'+12% healing from Mend cubes',unlock:s=>s.bosses>=1,requirement:'Defeat a boss',stat:'heal',value:0.12}
   ];
-  function getUnlockedRelics() { const stats=getAchievementStats(); return RELIC_DEFS.filter(relic=>relic.unlock(stats)); }
+  const BOSS_RELIC_DEFS = [
+    {id:'cinder_core',name:'Cinder Tyrant’s Core',glyph:'♨',rarity:'Legendary',desc:'+10% Strike damage. A fragment of the Tyrant’s furnace.',requirement:'Defeat the Cinder Tyrant',stat:'strike',value:0.10},
+    {id:'drowned_quill',name:'Scribe’s Last Quill',glyph:'⌁',rarity:'Legendary',desc:'+12% Ward strength. Ink that remembers every blow.',requirement:'Defeat the Drowned Scribe',stat:'ward',value:0.12},
+    {id:'briar_heart',name:'Briar Heart',glyph:'❧',rarity:'Legendary',desc:'+12% healing. It keeps growing after the battle.',requirement:'Defeat the Briar Colossus',stat:'heal',value:0.12},
+    {id:'hollow_signet',name:'Hollow Signet',glyph:'♛',rarity:'Legendary',desc:'+8% overall cube power. The crown still commands.',requirement:'Defeat the Hollow Regent',stat:'power',value:0.08},
+    {id:'astral_lens',name:'Astral Lens',glyph:'✧',rarity:'Legendary',desc:'+7% critical chance. A shard of the Devourer’s sight.',requirement:'Defeat the Astral Devourer',stat:'crit',value:0.07}
+  ];
+  function getAllRelicDefs() { return RELIC_DEFS.concat(BOSS_RELIC_DEFS); }
+  function getUnlockedRelics() {
+    const stats=getAchievementStats();
+    return RELIC_DEFS.filter(relic=>relic.unlock(stats)).concat(BOSS_RELIC_DEFS.filter(relic=>R.bossRelics.includes(relic.id)));
+  }
   function getEquippedRelicBonuses() {
     const bonuses={strike:0,ward:0,power:0,crit:0,heal:0};
     const unlocked=getUnlockedRelics();
     R.equippedRelics=(Array.isArray(R.equippedRelics)?R.equippedRelics:[]).filter((id,i,a)=>a.indexOf(id)===i&&unlocked.some(r=>r.id===id)).slice(0,2);
-    R.equippedRelics.forEach(id=>{const relic=RELIC_DEFS.find(r=>r.id===id);if(relic)bonuses[relic.stat]+=relic.value;});
+    R.equippedRelics.forEach(id=>{const relic=getAllRelicDefs().find(r=>r.id===id);if(relic)bonuses[relic.stat]+=relic.value;});
     return bonuses;
   }
   function renderRelicsTab(body) {
@@ -1297,15 +1317,15 @@
     getEquippedRelicBonuses();
     body.innerHTML=`<section class="relic-workshop">
       <div class="relic-hero"><div class="relic-hero-mark">✧</div><div class="relic-hero-title">RELIC VAULT</div><div class="relic-hero-copy">Ancient keepsakes. Small advantages. Your build, your choice.</div>
-      <div class="relic-slot-row">${[0,1].map(i=>{const relic=RELIC_DEFS.find(r=>r.id===R.equippedRelics[i]);return `<div class="relic-slot ${relic?'filled':''}"><span>${relic?relic.glyph:'◇'}</span><small>${relic?relic.name:'EMPTY SLOT'}</small></div>`;}).join('')}</div><div class="relic-slot-note">${R.equippedRelics.length}/2 RELICS EQUIPPED</div></div>
-      <div class="relic-list-head"><span>RELIC COLLECTION</span><span>${unlocked.length}/${RELIC_DEFS.length} FOUND</span></div>
-      <div class="relic-list">${RELIC_DEFS.map(relic=>{const open=relic.unlock(stats),active=R.equippedRelics.includes(relic.id);return `<article class="relic-card ${open?'':'locked'} ${active?'equipped':''}"><div class="relic-icon">${open?relic.glyph:'?'}</div><div class="relic-info"><strong>${open?relic.name:'Unknown Relic'}</strong><span class="relic-rarity">${open?relic.rarity:'UNDISCOVERED'}</span><p>${open?relic.desc:'Unlock: '+relic.requirement}</p></div><button class="mini-btn relic-action" data-relic="${relic.id}" ${!open||(!active&&R.equippedRelics.length>=2)?'disabled':''}>${active?'Unequip':open?'Equip':'Locked'}</button></article>`;}).join('')}</div>
+      <div class="relic-slot-row">${[0,1].map(i=>{const relic=getAllRelicDefs().find(r=>r.id===R.equippedRelics[i]);return `<div class="relic-slot ${relic?'filled':''}"><span>${relic?relic.glyph:'◇'}</span><small>${relic?relic.name:'EMPTY SLOT'}</small></div>`;}).join('')}</div><div class="relic-slot-note">${R.equippedRelics.length}/2 RELICS EQUIPPED</div></div>
+      <div class="relic-list-head"><span>RELIC COLLECTION</span><span>${unlocked.length}/${getAllRelicDefs().length} FOUND</span></div>
+      <div class="relic-list">${getAllRelicDefs().map(relic=>{const open=relic.unlock ? relic.unlock(stats) : R.bossRelics.includes(relic.id),active=R.equippedRelics.includes(relic.id);return `<article class="relic-card ${open?'':'locked'} ${active?'equipped':''}"><div class="relic-icon">${open?relic.glyph:'?'}</div><div class="relic-info"><strong>${open?relic.name:'Unknown Relic'}</strong><span class="relic-rarity">${open?relic.rarity:'UNDISCOVERED'}</span><p>${open?relic.desc:'Unlock: '+relic.requirement}</p></div><button class="mini-btn relic-action" data-relic="${relic.id}" ${!open||(!active&&R.equippedRelics.length>=2)?'disabled':''}>${active?'Unequip':open?'Equip':'Locked'}</button></article>`;}).join('')}</div>
       <div class="relic-footnote">Relics only change battle calculations. They do not affect study rewards, shard costs, or saved progress.</div></section>`;
     body.querySelectorAll('[data-relic]').forEach(btn=>btn.addEventListener('click',()=>{
       const id=btn.dataset.relic;if(!getUnlockedRelics().some(r=>r.id===id))return;
       if(R.equippedRelics.includes(id))R.equippedRelics=R.equippedRelics.filter(x=>x!==id);
       else if(R.equippedRelics.length<2)R.equippedRelics.push(id);else{showToast('Both relic slots are full. Unequip one first.');return;}
-      saveR();renderRealm();showToast(RELIC_DEFS.find(r=>r.id===id).name+(R.equippedRelics.includes(id)?' equipped':' unequipped'));
+      saveR();renderRealm();showToast(getAllRelicDefs().find(r=>r.id===id).name+(R.equippedRelics.includes(id)?' equipped':' unequipped'));
     }));
   }
   const WORLD_EVENT_DEFS = [
@@ -1458,7 +1478,7 @@
       phantom: turn % 2 === 0 ? 'PHASE SURGE · 20% stronger this turn' : 'PHASE SHIFT · guard changes each turn',
       swarm: 'FLURRY · two strikes each turn',
       wraith: turn % 3 === 0 ? 'RESONANT DRAIN · 6% of max HP bypasses Shield' : 'RELENTLESS STRIKE · balanced pressure',
-      reaver: turn % 2 === 0 ? 'ARMOR-PIERCING LUNGE · bypasses 25% Shield' : 'DUAL LUNGE · two quick strikes',
+      reaver: turn % 2 === 0 ? 'DUAL LUNGE · two hits; second bypasses 25% Shield' : 'DUAL LUNGE · two hits',
       thorn: 'ROOT REGEN · restores HP after striking',
       leech: 'TIDAL DRAIN · steals HP after striking',
       hexcaller: 'HEX GROWTH · attack rises after each counter'
