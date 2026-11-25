@@ -533,6 +533,7 @@
         <button class="realm-tab active" data-rtab="map">Map & Battle</button>
         <button class="realm-tab" data-rtab="grid">3×3 Grid</button>
         <button class="realm-tab" data-rtab="stars">Constellations</button>
+        <button class="realm-tab" data-rtab="missions">Missions</button>
       </div>
       <div class="realm-body" id="realmBody"></div>
     `;
@@ -620,7 +621,71 @@
     const body = document.getElementById('realmBody');
     if (activeTab === 'map') renderMapTab(body);
     else if (activeTab === 'grid') renderGridTab(body);
+    else if (activeTab === 'missions') renderMissionsTab(body);
     else renderConstTab(body);
+  }
+
+  // Daily mission progress is derived from the stopwatch's saved records.
+  // It is never incremented from timer events, so edits/deletions stay accurate.
+  function getDailyMissionProgress() {
+    const today = (window.ChronoStudyData && window.ChronoStudyData.dateKey) || dateKey();
+    const sessions = window.ChronoStudyData && window.ChronoStudyData.dateKey === today
+      ? window.ChronoStudyData.sessions : [];
+    const safeSessions = Array.isArray(sessions) ? sessions : [];
+    return {
+      date: today,
+      minutes: safeSessions.reduce((sum, s) => sum + Math.max(0, Number(s.duration) || 0), 0) / 60000,
+      sessionCount: safeSessions.length,
+      subjectCount: new Set(safeSessions.map(s => String(s.subject || 'General').trim()).filter(Boolean)).size
+    };
+  }
+
+  function getMissionClaims(day) {
+    if (!R.dailyMissionClaims || typeof R.dailyMissionClaims !== 'object') R.dailyMissionClaims = {};
+    if (!Array.isArray(R.dailyMissionClaims[day])) R.dailyMissionClaims[day] = [];
+    return R.dailyMissionClaims[day];
+  }
+
+  function renderMissionsTab(body) {
+    const progress = getDailyMissionProgress();
+    const claims = getMissionClaims(progress.date);
+    const missions = [
+      { id: 'focus', title: 'Deep Focus', detail: 'Record 45 minutes of study', current: progress.minutes, target: 45, unit: 'min', shards: 12, skill: 'endurance', xp: 12 },
+      { id: 'sessions', title: 'Build Momentum', detail: 'Complete 2 study sessions', current: progress.sessionCount, target: 2, unit: 'sessions', shards: 10, skill: 'momentum', xp: 12 },
+      { id: 'subjects', title: 'Scholar of Many Arts', detail: 'Study 2 different subjects', current: progress.subjectCount, target: 2, unit: 'subjects', shards: 10, skill: 'versatility', xp: 12 },
+      { id: 'bonus', title: 'Beyond the Threshold', detail: 'Record 90 minutes today · Bonus', current: progress.minutes, target: 90, unit: 'min', shards: 20, skill: 'endurance', xp: 20, bonus: true }
+    ];
+    const cards = missions.map(m => {
+      const done = m.current >= m.target;
+      const claimed = claims.includes(m.id);
+      const pct = Math.min(100, Math.round((m.current / m.target) * 100));
+      const amount = m.unit === 'min' ? Math.floor(m.current) : m.current;
+      return `<div class="mission-card ${m.bonus ? 'bonus' : ''}">
+        <div class="mission-top"><div><div class="mission-title">${m.title}</div><div class="mission-detail">${m.detail}</div></div><div class="mission-reward">+${m.shards} ◈</div></div>
+        <div class="mission-track"><div class="mission-fill" style="width:${pct}%"></div></div>
+        <div class="mission-bottom"><span>${amount}/${m.target} ${m.unit}</span>
+          ${claimed ? '<span class="mission-status">CLAIMED</span>' : done ? `<button class="mission-claim" data-mission-claim="${m.id}">Claim reward</button>` : '<span class="mission-status">IN PROGRESS</span>'}
+        </div>
+      </div>`;
+    }).join('');
+    body.innerHTML = `<div class="missions-heading"><div class="section-label">DAILY QUEST BOARD</div><div class="mission-date">${progress.date}</div><p>Progress comes from saved study sessions. Editing or deleting a session updates these goals.</p></div><div class="mission-list">${cards}</div>`;
+    body.querySelectorAll('[data-mission-claim]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.missionClaim;
+        const latest = getDailyMissionProgress();
+        const mission = missions.find(m => m.id === id);
+        if (!mission || latest.date !== progress.date || latest[mission.unit === 'min' ? 'minutes' : mission.unit === 'sessions' ? 'sessionCount' : 'subjectCount'] < mission.target) {
+          showToast('Mission is not complete yet'); renderRealm(); return;
+        }
+        const ledger = getMissionClaims(latest.date);
+        if (ledger.includes(id)) return;
+        ledger.push(id);
+        R.shards += mission.shards;
+        addSkillXp(mission.skill, mission.xp);
+        saveR(); updateRealmBadge(); renderRealm();
+        showToast(`Mission claimed · +${mission.shards} Shards · +${mission.xp} Skill XP`);
+      });
+    });
   }
 
   function enemySvg(kind) {
@@ -892,10 +957,14 @@
     });
   }
 
-  window.ChronoRealm = { open: openRealm, onSessionSaved, updateBadge: updateRealmBadge };
+  window.ChronoRealm = { open: openRealm, onSessionSaved, updateBadge: updateRealmBadge, syncDailyStudySnapshot: (snapshot) => { window.ChronoStudyData = snapshot; } };
   document.addEventListener('DOMContentLoaded', () => {
+    if (!R.dailyMissionClaims || typeof R.dailyMissionClaims !== 'object') R.dailyMissionClaims = {};
+    const claimDays = Object.keys(R.dailyMissionClaims).sort();
+    claimDays.slice(0, Math.max(0, claimDays.length - 45)).forEach(day => delete R.dailyMissionClaims[day]);
     const btn = document.getElementById('realmBtn');
     if (btn) btn.addEventListener('click', openRealm);
     updateRealmBadge();
+    saveR();
   });
 })();
