@@ -169,7 +169,7 @@
       { id: 1, x: 34, y: 26, type: 'hostile', enemy: makeEnemy(packs[0], s), cleared: false, edges: [0, 3, 4] },
       { id: 2, x: 34, y: 74, type: 'hostile', enemy: makeEnemy(packs[1], s), cleared: false, edges: [0, 4, 5] },
       { id: 3, x: 56, y: 20, type: 'shrine', name: 'Waystone', buff: '+12% Grid Power (Zone)', cleared: false, edges: [1, 6] },
-      { id: 4, x: 56, y: 50, type: 'hostile', enemy: makeEnemy(packs[2], s * 1.08), cleared: false, edges: [1, 2, 6, 7] },
+      { id: 4, x: 56, y: 50, type: 'hostile', enemy: makeEnemy(packs[2], s * 1.08), cleared: false, edges: [1, 2, 6, 7, 9] },
       { id: 5, x: 56, y: 80, type: 'vault', name: 'Relic Vault', cleared: false, edges: [2, 7] },
       { id: 6, x: 75, y: 34, type: 'hostile', enemy: makeEnemy(packs[3], s * 1.25), cleared: false, edges: [3, 4, 8] },
       { id: 7, x: 75, y: 66, type: 'hostile', enemy: makeEnemy(packs[4], s * 1.25), cleared: false, edges: [4, 5, 8] },
@@ -240,6 +240,16 @@
   if (!Number.isFinite(R.bossWins)) R.bossWins = 0;
   if (!Number.isFinite(R.cubesDrafted)) R.cubesDrafted = 0;
   if (!Array.isArray(R.equippedRelics)) R.equippedRelics = [];
+  // Add the optional side-route to existing saves without replacing their current map.
+  if ((R.zone || 1) >= 2 && Array.isArray(R.map) && !R.map.some(n => n.isSecretBoss)) {
+    const scale = 1 + ((R.zone || 1) - 1) * 0.32;
+    R.map.push({ id: R.map.length, x: 70, y: 92, type: 'boss', isSecretBoss: true,
+      name: 'The Veilbound Warden', enemy: makeEnemy('boss', scale * 1.9, R.zone || 1),
+      cleared: false, edges: [4] });
+    const central = R.map.find(n => n.id === 4);
+    if (central && !central.edges.includes(R.map.length - 1)) central.edges.push(R.map.length - 1);
+    saveR();
+  }
 
   function hasPerk(id) { return !!R.perks[id]; }
   function getMaxHp() { return 100 + (hasPerk('e1') ? 20 : 0) + (hasPerk('e3') ? 30 : 0); }
