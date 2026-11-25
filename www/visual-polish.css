@@ -313,3 +313,133 @@ body.running .quick-strip:focus-within,body.running .sessions:focus-within {opac
 .atlas-secret.sealed{opacity:.68}
 .atlas-secret>div:nth-child(2){flex:1;min-width:0}
 @media(max-width:360px){.atlas-hero{padding:15px}.atlas-region,.atlas-secret{gap:8px;padding:10px}.atlas-region-emblem,.atlas-secret-icon{width:30px;height:30px;flex-basis:30px}}
+
+
+/* === CHRONO OBSIDIAN: CINEMATIC OBSIDIAN PASS === */
+:root {
+  --bg: #07080b;
+  --glass: rgba(18, 20, 27, .72);
+  --glass-strong: rgba(27, 29, 39, .88);
+  --glass-border: rgba(205, 190, 150, .16);
+  --text: #f3f0e8;
+  --muted: #92908a;
+  --dim: #393a40;
+  --accent: #d6bd82;
+  --subject-rgb: 214, 189, 130;
+  --obsidian-gold: 214, 189, 130;
+}
+html { background: #07080b; }
+body {
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(145,119,72,.17), transparent 42%),
+    radial-gradient(ellipse at 100% 80%, rgba(74,83,112,.10), transparent 36%),
+    linear-gradient(155deg,#0c0d12 0%,#07080b 48%,#0a0b10 100%);
+}
+body::after {
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  opacity:.22;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:linear-gradient(to bottom,black,transparent 82%);
+}
+body::before {
+  content:"";
+  position:fixed;
+  inset:-30%;
+  z-index:0;
+  pointer-events:none;
+  opacity:.48;
+  background:
+    radial-gradient(ellipse at 25% 30%,rgba(194,157,91,.10),transparent 26%),
+    radial-gradient(ellipse at 75% 62%,rgba(99,111,148,.10),transparent 30%);
+  animation: obsidian-drift 28s ease-in-out infinite alternate;
+}
+@keyframes obsidian-drift {
+  from { transform:translate3d(-1.5%, -1%, 0) scale(1); }
+  to { transform:translate3d(1.5%, 1%, 0) scale(1.06); }
+}
+.topbar,.subjects-wrap,.dial-wrap,.quick-strip,.sessions {
+  position:relative;
+  z-index:2;
+}
+.topbar { max-width:440px; }
+.icon-btn,.today-pill,.subj-pill,.chip {
+  backdrop-filter:blur(18px) saturate(125%);
+  -webkit-backdrop-filter:blur(18px) saturate(125%);
+}
+.icon-btn {
+  border-color:rgba(214,189,130,.18);
+  background:linear-gradient(145deg,rgba(255,255,255,.085),rgba(255,255,255,.018));
+  box-shadow:0 5px 20px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.09);
+}
+.icon-btn.active {
+  color:#f4dfad;
+  border-color:rgba(var(--subject-rgb),.58);
+  background:linear-gradient(145deg,rgba(var(--subject-rgb),.22),rgba(var(--subject-rgb),.055));
+  box-shadow:0 0 24px rgba(var(--subject-rgb),.13),inset 0 1px 0 rgba(255,255,255,.12);
+}
+.today-pill,.subj-pill,.chip {
+  border-color:rgba(214,189,130,.15);
+  background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  box-shadow:0 5px 18px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.06);
+}
+.today-pill strong { color:#f0dfb7; }
+.subj-pill.active {
+  background:linear-gradient(135deg,rgba(var(--subject-rgb),.24),rgba(var(--subject-rgb),.055));
+  border-color:rgba(var(--subject-rgb),.55);
+  box-shadow:0 0 22px rgba(var(--subject-rgb),.13),inset 0 1px 0 rgba(255,255,255,.09);
+}
+.ambient-aura {
+  width:min(88vw,520px);
+  height:min(88vw,520px);
+  filter:blur(8px);
+  mix-blend-mode:screen;
+}
+body.running .ambient-aura { opacity:.92; }
+.goal-bar-track { height:2px; background:rgba(255,255,255,.045); }
+.goal-bar-fill { box-shadow:0 0 14px rgba(var(--subject-rgb),.7); }
+.realm-overlay {
+  background:
+    radial-gradient(ellipse at 50% -10%,rgba(154,126,76,.14),transparent 46%),
+    linear-gradient(160deg,#0c0d12,#07080b 62%,#0a0b10);
+}
+.realm-title { color:#e7d6ad; text-shadow:0 0 22px rgba(214,189,130,.16); }
+.res-pill,.realm-card,.realm-panel,.realm-section,.realm-modal,.realm-toast {
+  box-shadow:0 12px 34px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.055);
+}
+.realm-toast {
+  border-color:rgba(214,189,130,.24);
+  background:rgba(13,14,18,.94);
+}
+button,.icon-btn,.subj-pill,.chip,.today-pill {
+  transition:
+    transform .22s cubic-bezier(.2,.8,.2,1),
+    border-color .22s ease,
+    background .22s ease,
+    box-shadow .22s ease,
+    color .22s ease;
+}
+button:active,.icon-btn:active,.subj-pill:active,.chip:active {
+  transform:scale(.965);
+}
+@media (hover:hover) {
+  .icon-btn:hover,.subj-pill:hover,.chip:hover,.today-pill:hover {
+    border-color:rgba(214,189,130,.38);
+    box-shadow:0 7px 24px rgba(0,0,0,.28),0 0 18px rgba(214,189,130,.07);
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after {
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;
+    transition-duration:.01ms !important;
+  }
+}
