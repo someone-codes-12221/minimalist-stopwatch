@@ -204,3 +204,16 @@ body.running .quick-strip:focus-within,body.running .sessions:focus-within {opac
 @media(prefers-reduced-motion:reduce) {
   body.running .dial-wrap::before,body.running .dial-wrap::after {animation:none}
 }
+
+/* Legendary Moments — rare milestone celebration */
+.legendary-moment{position:fixed;inset:0;z-index:220;display:grid;place-items:center;padding:22px;background:rgba(3,4,10,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .28s ease,visibility .28s ease}
+.legendary-moment.open{opacity:1;visibility:visible;pointer-events:auto}
+.legendary-card{position:relative;width:min(100%,360px);padding:30px 24px 22px;text-align:center;border:1px solid rgba(205,190,255,.28);border-radius:22px;background:radial-gradient(ellipse at 50% 0%,rgba(156,125,255,.2),transparent 58%),linear-gradient(155deg,#1a1927,#0b0c13 76%);box-shadow:0 24px 90px rgba(0,0,0,.6),0 0 45px rgba(150,120,255,.12);transform:translateY(14px) scale(.97);transition:transform .38s cubic-bezier(.2,.8,.2,1)}
+.legendary-moment.open .legendary-card{transform:translateY(0) scale(1)}
+.legendary-emblem{width:66px;height:66px;display:grid;place-items:center;margin:0 auto 18px;border:1px solid rgba(221,205,255,.36);border-radius:50%;background:radial-gradient(circle,rgba(181,151,255,.22),rgba(181,151,255,.035) 68%);color:#e6d8ff;font-size:30px;box-shadow:0 0 32px rgba(171,137,255,.2),inset 0 0 18px rgba(210,190,255,.08)}
+.legendary-kicker{color:#b6a3e8;font:9px var(--font-label);letter-spacing:.22em}
+.legendary-title{margin:10px 0 8px;color:#f2edff;font:clamp(22px,6vw,27px) var(--font-label);font-weight:600;line-height:1.15}
+.legendary-detail{max-width:270px;margin:0 auto;color:#a8a5b8;font-size:12px;line-height:1.6}
+.legendary-dismiss{margin-top:22px;min-width:132px;padding:10px 18px;border:1px solid rgba(205,190,255,.3);border-radius:999px;background:rgba(180,155,255,.12);color:#eee8ff;font:11px var(--font-ui);cursor:pointer}
+.legendary-dismiss:active{transform:scale(.97)}
+@media(prefers-reduced-motion:reduce){.legendary-card{transition:none}.legendary-moment{transition:none}}
