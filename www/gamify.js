@@ -199,6 +199,10 @@
   try { R = JSON.parse(localStorage.getItem(REALM_KEY)); } catch (_) {}
   if (!R || !R.map || !R.skills) R = defaultRealm();
   function saveR() { localStorage.setItem(REALM_KEY, JSON.stringify(R)); }
+  if (!R.achievementClaims || typeof R.achievementClaims !== 'object') R.achievementClaims = {};
+  if (!Number.isFinite(R.combatWins)) R.combatWins = 0;
+  if (!Number.isFinite(R.bossWins)) R.bossWins = 0;
+  if (!Number.isFinite(R.cubesDrafted)) R.cubesDrafted = 0;
 
   function hasPerk(id) { return !!R.perks[id]; }
   function getMaxHp() { return 100 + (hasPerk('e1') ? 20 : 0) + (hasPerk('e3') ? 30 : 0); }
@@ -470,6 +474,8 @@
       if (enemyVis) enemyVis.classList.add('shatter');
       await wait(520);
       node.cleared = true;
+      R.combatWins = (R.combatWins || 0) + 1;
+      if (node.type === 'boss') R.bossWins = (R.bossWins || 0) + 1;
       const shardDrop = node.type === 'boss' ? 35 : 12;
       R.shards += shardDrop;
       if (node.type === 'boss') {
@@ -538,6 +544,7 @@
         <button class="realm-tab" data-rtab="stars">Constellations</button>
         <button class="realm-tab" data-rtab="missions">Missions</button>
         <button class="realm-tab" data-rtab="quests">Weekly Quests</button>
+      <button class="realm-tab" data-rtab="achievements">Achievements</button>
       </div>
       <div class="realm-body" id="realmBody"></div>
     `;
@@ -601,6 +608,7 @@
       `;
       card.addEventListener('click', () => {
         R.drafts--;
+        R.cubesDrafted = (R.cubesDrafted || 0) + 1;
         R.inventory.push({ uid: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2,5), type: k, tier: 1 });
         saveR();
         document.getElementById('draftModal').classList.remove('open');
@@ -627,6 +635,7 @@
     else if (activeTab === 'grid') renderGridTab(body);
     else if (activeTab === 'missions') renderMissionsTab(body);
     else if (activeTab === 'quests') renderWeeklyQuestsTab(body);
+    else if (activeTab === 'achievements') renderAchievementsTab(body);
     else renderConstTab(body);
   }
 
@@ -786,6 +795,123 @@
       addSkillXp(reward.skill, reward.xp);
       saveR(); updateRealmBadge(); renderRealm();
       showToast(`Quest claimed · +${reward.shards} Shards · +${reward.xp} Skill XP`);
+    }));
+  }
+
+
+  // Permanent achievements. Progress is derived from saved study history plus
+  // lifetime Realm counters; claiming a reward never changes the requirement.
+  const ACHIEVEMENTS = [
+    {id:'study_1h',cat:'Scholarship',name:'First Light',desc:'Study for 1 hour in total',metric:'minutes',target:60,reward:10},
+    {id:'study_5h',cat:'Scholarship',name:'Kindled Mind',desc:'Study for 5 hours in total',metric:'minutes',target:300,reward:15},
+    {id:'study_10h',cat:'Scholarship',name:'The Long Vigil',desc:'Study for 10 hours in total',metric:'minutes',target:600,reward:20},
+    {id:'study_25h',cat:'Scholarship',name:'Keeper of Hours',desc:'Study for 25 hours in total',metric:'minutes',target:1500,reward:25},
+    {id:'study_50h',cat:'Scholarship',name:'Deep Scholar',desc:'Study for 50 hours in total',metric:'minutes',target:3000,reward:35},
+    {id:'study_100h',cat:'Scholarship',name:'Century of Focus',desc:'Study for 100 hours in total',metric:'minutes',target:6000,reward:50},
+    {id:'study_250h',cat:'Scholarship',name:'Archive Keeper',desc:'Study for 250 hours in total',metric:'minutes',target:15000,reward:75},
+    {id:'sessions_1',cat:'Scholarship',name:'The Beginning',desc:'Save your first study session',metric:'sessions',target:1,reward:10},
+    {id:'sessions_10',cat:'Scholarship',name:'Regular',desc:'Save 10 study sessions',metric:'sessions',target:10,reward:15},
+    {id:'sessions_25',cat:'Scholarship',name:'Practitioner',desc:'Save 25 study sessions',metric:'sessions',target:25,reward:20},
+    {id:'sessions_50',cat:'Scholarship',name:'Seasoned Student',desc:'Save 50 study sessions',metric:'sessions',target:50,reward:30},
+    {id:'sessions_100',cat:'Scholarship',name:'A Hundred Returns',desc:'Save 100 study sessions',metric:'sessions',target:100,reward:45},
+    {id:'sessions_250',cat:'Scholarship',name:'The Dedicated',desc:'Save 250 study sessions',metric:'sessions',target:250,reward:70},
+    {id:'long_30',cat:'Scholarship',name:'Settled In',desc:'Complete a session of 30 minutes',metric:'longest',target:30,reward:10},
+    {id:'long_45',cat:'Scholarship',name:'Beyond the Hourglass',desc:'Complete a session of 45 minutes',metric:'longest',target:45,reward:15},
+    {id:'long_60',cat:'Scholarship',name:'Deep Work',desc:'Complete a session of 60 minutes',metric:'longest',target:60,reward:20},
+    {id:'long_90',cat:'Scholarship',name:'Unbroken Hour',desc:'Complete a session of 90 minutes',metric:'longest',target:90,reward:25},
+    {id:'long_120',cat:'Scholarship',name:'Marathon Mind',desc:'Complete a session of 120 minutes',metric:'longest',target:120,reward:35},
+    {id:'days_3',cat:'Consistency',name:'Three Embers',desc:'Study on 3 different days',metric:'days',target:3,reward:15},
+    {id:'days_7',cat:'Consistency',name:'Week of Resolve',desc:'Study on 7 different days',metric:'days',target:7,reward:20},
+    {id:'days_14',cat:'Consistency',name:'Fortnight Flame',desc:'Study on 14 different days',metric:'days',target:14,reward:25},
+    {id:'days_30',cat:'Consistency',name:'Month of Momentum',desc:'Study on 30 different days',metric:'days',target:30,reward:40},
+    {id:'days_60',cat:'Consistency',name:'Steadfast',desc:'Study on 60 different days',metric:'days',target:60,reward:55},
+    {id:'days_100',cat:'Consistency',name:'Unyielding',desc:'Study on 100 different days',metric:'days',target:100,reward:75},
+    {id:'streak_3',cat:'Consistency',name:'Three-Day Spark',desc:'Reach a 3-day study streak',metric:'streak',target:3,reward:15},
+    {id:'streak_7',cat:'Consistency',name:'Seven-Day Oath',desc:'Reach a 7-day study streak',metric:'streak',target:7,reward:25},
+    {id:'streak_14',cat:'Consistency',name:'Two-Week Vow',desc:'Reach a 14-day study streak',metric:'streak',target:14,reward:40},
+    {id:'streak_30',cat:'Consistency',name:'Month Without Fade',desc:'Reach a 30-day study streak',metric:'streak',target:30,reward:65},
+    {id:'subjects_2',cat:'Mastery',name:'Two Paths',desc:'Study 2 different subjects',metric:'subjects',target:2,reward:10},
+    {id:'subjects_3',cat:'Mastery',name:'Scholar of Many Arts',desc:'Study 3 different subjects',metric:'subjects',target:3,reward:15},
+    {id:'subjects_5',cat:'Mastery',name:'Polymath',desc:'Study 5 different subjects',metric:'subjects',target:5,reward:25},
+    {id:'subjects_8',cat:'Mastery',name:'Wide Horizons',desc:'Study 8 different subjects',metric:'subjects',target:8,reward:40},
+    {id:'shards_100',cat:'Mastery',name:'Shard Collector',desc:'Hold 100 Obsidian Shards',metric:'shards',target:100,reward:10},
+    {id:'shards_250',cat:'Mastery',name:'Shard Hoard',desc:'Hold 250 Obsidian Shards',metric:'shards',target:250,reward:20},
+    {id:'shards_500',cat:'Mastery',name:'Obsidian Treasury',desc:'Hold 500 Obsidian Shards',metric:'shards',target:500,reward:35},
+    {id:'skill_5',cat:'Mastery',name:'Awakening',desc:'Reach level 5 in any skill',metric:'skill',target:5,reward:20},
+    {id:'skill_10',cat:'Mastery',name:'Adept',desc:'Reach level 10 in any skill',metric:'skill',target:10,reward:35},
+    {id:'perks_1',cat:'Mastery',name:'First Constellation',desc:'Unlock a constellation perk',metric:'perks',target:1,reward:15},
+    {id:'perks_5',cat:'Mastery',name:'Starbound',desc:'Unlock 5 constellation perks',metric:'perks',target:5,reward:30},
+    {id:'cubes_1',cat:'The Realm',name:'Cube Awakened',desc:'Draft your first cube',metric:'drafts',target:1,reward:10},
+    {id:'cubes_5',cat:'The Realm',name:'Growing Arsenal',desc:'Draft 5 cubes',metric:'drafts',target:5,reward:20},
+    {id:'cubes_10',cat:'The Realm',name:'Cube Curator',desc:'Draft 10 cubes',metric:'drafts',target:10,reward:30},
+    {id:'wins_1',cat:'The Realm',name:'First Blood',desc:'Win your first battle',metric:'wins',target:1,reward:15},
+    {id:'wins_5',cat:'The Realm',name:'Path Cleared',desc:'Win 5 battles',metric:'wins',target:5,reward:25},
+    {id:'wins_10',cat:'The Realm',name:'Veteran Delver',desc:'Win 10 battles',metric:'wins',target:10,reward:40},
+    {id:'wins_25',cat:'The Realm',name:'Warden Breaker',desc:'Win 25 battles',metric:'wins',target:25,reward:60},
+    {id:'boss_1',cat:'The Realm',name:'Warden Fall',desc:'Defeat your first zone boss',metric:'bosses',target:1,reward:25},
+    {id:'boss_3',cat:'The Realm',name:'Realm Conqueror',desc:'Defeat 3 zone bosses',metric:'bosses',target:3,reward:50},
+    {id:'zone_3',cat:'The Realm',name:'Beyond the First Gate',desc:'Reach zone 3',metric:'zone',target:3,reward:35},
+    {id:'zone_5',cat:'The Realm',name:'Far-Roaming',desc:'Reach zone 5',metric:'zone',target:5,reward:60},
+    {id:'grid_full',cat:'The Realm',name:'Perfect Formation',desc:'Fill all 9 cube grid slots',metric:'grid',target:9,reward:30}
+  ];
+
+  function getAchievementStats() {
+    const rows = window.ChronoStudyData && Array.isArray(window.ChronoStudyData.allTimeSessions)
+      ? window.ChronoStudyData.allTimeSessions : [];
+    const minutes = rows.reduce((sum, s) => sum + Math.max(0, Number(s.duration) || 0), 0) / 60000;
+    const days = [...new Set(rows.map(s => s.date).filter(Boolean))].sort();
+    const subjects = new Set(rows.map(s => String(s.subject || 'General').trim()).filter(Boolean));
+    let streak = 0, cursor = new Date();
+    while (days.includes(dateKey(cursor))) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    const skills = Object.values(R.skills || {}).map(s => Number(s.lvl) || 1);
+    return {
+      minutes, sessions: rows.length,
+      longest: rows.reduce((max, s) => Math.max(max, (Number(s.duration) || 0) / 60000), 0),
+      days: days.length, subjects: subjects.size, streak,
+      shards: Number(R.shards) || 0, skill: Math.max(1, ...skills),
+      perks: Object.keys(R.perks || {}).filter(k => R.perks[k]).length,
+      drafts: Number(R.cubesDrafted) || 0, wins: Number(R.combatWins) || 0,
+      bosses: Number(R.bossWins) || 0, zone: Number(R.zone) || 1,
+      grid: (R.grid || []).filter(Boolean).length
+    };
+  }
+
+  function renderAchievementsTab(body) {
+    const stats = getAchievementStats();
+    const claimed = R.achievementClaims;
+    const unlocked = ACHIEVEMENTS.filter(a => stats[a.metric] >= a.target);
+    const categories = ['Scholarship','Consistency','Mastery','The Realm'];
+    const cards = categories.map(category => {
+      const items = ACHIEVEMENTS.filter(a => a.cat === category).map(a => {
+        const value = stats[a.metric], done = value >= a.target, paid = claimed[a.id] === true;
+        const shown = a.metric === 'minutes' || a.metric === 'longest' ? Math.floor(value) : value;
+        const current = Math.min(a.target, shown);
+        const pct = Math.min(100, Math.round((value / a.target) * 100));
+        return `<div class="achievement-card ${done ? 'unlocked' : ''} ${paid ? 'claimed' : ''}">
+          <div class="achievement-icon">${paid ? '✦' : done ? '◇' : '◆'}</div>
+          <div class="achievement-copy"><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div>
+            <div class="achievement-track"><div class="achievement-fill" style="width:${pct}%"></div></div>
+            <div class="achievement-meta"><span>${current}/${a.target}</span><span>+${a.reward} ◈</span></div>
+          </div>
+          <div class="achievement-action">${paid ? '<span>CLAIMED</span>' : done ? `<button class="mission-claim" data-achievement-claim="${a.id}">Claim</button>` : '<span>LOCKED</span>'}</div>
+        </div>`;
+      }).join('');
+      const count = ACHIEVEMENTS.filter(a => a.cat === category && claimed[a.id]).length;
+      return `<section class="achievement-section"><div class="section-label">${category.toUpperCase()} · ${count}/${ACHIEVEMENTS.filter(a => a.cat === category).length} CLAIMED</div><div class="achievement-list">${items}</div></section>`;
+    }).join('');
+    body.innerHTML = `<div class="missions-heading"><div class="section-label">CHRONOREALM · ACHIEVEMENTS</div><div class="mission-date">${Object.keys(claimed).filter(k => claimed[k]).length} / ${ACHIEVEMENTS.length} CLAIMED</div><p>${unlocked.length} unlocked · Claim each milestone once for its shard reward. Your progress is based on saved study records and Realm milestones.</p></div>${cards}`;
+    body.querySelectorAll('[data-achievement-claim]').forEach(btn => btn.addEventListener('click', () => {
+      const achievement = ACHIEVEMENTS.find(a => a.id === btn.dataset.achievementClaim);
+      if (!achievement) return;
+      const latest = getAchievementStats();
+      if (latest[achievement.metric] < achievement.target || claimed[achievement.id]) { showToast('Achievement is not ready'); renderRealm(); return; }
+      claimed[achievement.id] = true;
+      R.shards += achievement.reward;
+      saveR(); updateRealmBadge(); renderRealm();
+      showToast(`Achievement claimed · +${achievement.reward} Shards`);
     }));
   }
 
