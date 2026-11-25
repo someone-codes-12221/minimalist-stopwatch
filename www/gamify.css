@@ -545,3 +545,22 @@
 .quest-section-label { margin: 18px 0 8px; }
 .quest-chain-note { color: var(--muted); font-size: 11px; margin: -2px 0 10px; }
 .quest-locked { opacity: .55; }
+
+
+/* ChronoRealm achievements */
+.achievement-section { margin-top: 14px; }
+.achievement-list { display: flex; flex-direction: column; gap: 8px; margin-top: 9px; }
+.achievement-card { display: flex; align-items: center; gap: 10px; padding: 11px; border: 1px solid var(--glass-border); border-radius: 13px; background: var(--glass); opacity: .72; }
+.achievement-card.unlocked { opacity: 1; border-color: rgba(255,214,10,.34); }
+.achievement-card.claimed { border-color: rgba(48,209,88,.28); }
+.achievement-icon { width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; border-radius: 10px; background: rgba(255,255,255,.06); color: var(--muted); font-size: 17px; }
+.achievement-card.unlocked .achievement-icon { color: var(--amber); background: rgba(255,214,10,.09); }
+.achievement-card.claimed .achievement-icon { color: var(--green); }
+.achievement-copy { flex: 1; min-width: 0; }
+.achievement-name { color: var(--text); font-size: 11.5px; font-weight: 600; }
+.achievement-desc { color: var(--muted); font-size: 10px; margin-top: 2px; }
+.achievement-track { height: 4px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; margin-top: 7px; }
+.achievement-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, rgba(100,210,255,.7), rgba(255,214,10,.9)); }
+.achievement-meta { display: flex; justify-content: space-between; color: var(--muted); font: 9px var(--font-clock); margin-top: 4px; }
+.achievement-meta span:last-child { color: var(--amber); }
+.achievement-action { flex: 0 0 auto; color: var(--muted); font: 9px var(--font-clock); }
