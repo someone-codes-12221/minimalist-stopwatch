@@ -576,3 +576,8 @@
 .realm-tabs { display:flex; overflow-x:auto; scrollbar-width:none; }
 .realm-tabs::-webkit-scrollbar { display:none; }
 .realm-tab { flex:0 0 auto; }
+
+
+/* Shard Forge */
+.shard-forge { display:flex; flex-direction:column; gap:7px; padding-bottom:12px; }
+.shard-forge .mini-btn:disabled { opacity:.35; cursor:not-allowed; }
