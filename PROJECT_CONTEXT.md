@@ -157,9 +157,10 @@ Already includes:
 - Core cubes: Spike, Ember, Shatter, Aegis, Reflect, Mend, Prism, Echo, and Catalyst.
 - Study-unlocked cubes: Frost (180 saved study minutes), Rupture (600 saved study minutes), Siphon (20 saved sessions), and Conduit (3 distinct saved subjects).
 - Inventory, placement, swapping, removal, tier upgrades, and grid synergy.
-- Free Test Grid action and Shard Forge purchases for Charges/Drafts.
+- Free Test Grid action and Shard Forge purchases for optional Surge Charges/Drafts.
 - Enemy-specific tactics with rotating guarded cells, telegraphed attack intent, and archetype-specific counterattacks.
 - Boss phase transitions at 55% HP, with phase-specific behavior.
+- Five boss-exclusive Legendary relics, each dropped by its matching zone guardian and equipable through the existing two relic slots.
 - Free real encounters; study-earned Charges are optional Surge fuel (+30% to one volley).
 - Branching zone maps with hostile nodes, shrines, vaults, bosses, and optional secret boss route.
 - Five region themes: Ashen March, Drowned Archive, Thornwild, Hollow Crown, Starfall Citadel.
@@ -370,4 +371,5 @@ This pass is deliberately presentation-only:
 - Defeat returns the player to camp at 65% HP and restores 15% enemy HP. Camp offers a full rest for 12 Shards or an emergency recovery to 75% HP when the player cannot afford it.
 - First victories against each enemy archetype or named boss add a Bestiary record and one bonus Cube Draft. Repeat victories increase the recorded count without repeating the first-trophy reward.
 - Study-derived cube unlocks read saved study snapshots and cumulative Realm study/session counters. Existing study save/import/session pathways remain unchanged.
+- One-time combat-rules migration raises remaining enemy HP/attack in saved maps and the current daily event while preserving current HP ratio, armor, node-cleared flags, zone, and inventory.
 - New combat UI uses static intent, phase, unlock-progress, Surge, and Bestiary panels. No ChronoRealm animation or transition was added.
