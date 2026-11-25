@@ -193,32 +193,32 @@
 
   function makeEnemy(kind, scale, zone = R && R.zone || 1) {
     const stats = {
-      monolith: ['Monolith', 70, 12, 8, 'Heavy armor · Slow, powerful hits'],
-      phantom: ['Phantom', 52, 20, 0, 'High attack · No armor'],
-      swarm: ['Swarm', 64, 8, 0, 'Strikes twice every turn'],
-      wraith: ['Wraith', 58, 15, 2, 'A relentless spirit with balanced stats'],
-      reaver: ['Reaver', 62, 11, 3, 'Two quick strikes every turn'],
-      thorn: ['Thorn Stalker', 82, 10, 5, 'Regains a little health after striking'],
-      hexcaller: ['Hexcaller', 66, 12, 2, 'Attack grows after every counterstrike'],
-      leech: ['Tide Leech', 76, 9, 2, 'Steals back health after striking']
+      monolith: ['Monolith', 84, 14, 8, 'Heavy armor · Crushing slam every third counterattack'],
+      phantom: ['Phantom', 60, 20, 0, 'Rotating phase guard · stronger every second counterattack'],
+      swarm: ['Swarm', 72, 10, 0, 'Strikes twice every turn · protects its corners'],
+      wraith: ['Wraith', 68, 16, 2, 'Balanced pressure · relentless counterattacks'],
+      reaver: ['Reaver', 72, 12, 3, 'Two quick strikes · bypasses 25% Shield every second turn'],
+      thorn: ['Thorn Stalker', 92, 12, 5, 'Regrows after striking · rotating root guard'],
+      hexcaller: ['Hexcaller', 74, 14, 2, 'Attack grows after every counterstrike · shifting columns'],
+      leech: ['Tide Leech', 84, 11, 2, 'Diagonal ward · steals back health after striking']
     };
     if (kind === 'boss') {
       const bosses = [
-        ['Cinder Tyrant', 150, 20, 8, 'Heavy armor · Burning counterstrike'],
-        ['The Drowned Scribe', 172, 18, 5, 'High vitality · Leeching tide'],
-        ['Briar Colossus', 185, 17, 7, 'Regrows between volleys'],
-        ['The Hollow Regent', 165, 21, 9, 'Attack escalates after each turn'],
-        ['Astral Devourer', 195, 22, 8, 'Elite guardian · Heavy final blow']
+        ['Cinder Tyrant', 178, 23, 9, 'Phase II: crushing cinder waves · heavy armor'],
+        ['The Drowned Scribe', 198, 20, 6, 'Phase II: stronger leeching tide · rotating veil'],
+        ['Briar Colossus', 210, 19, 8, 'Phase II: rapid regrowth · rotating root guard'],
+        ['The Hollow Regent', 190, 23, 10, 'Phase II: escalating attack and armor'],
+        ['Astral Devourer', 220, 24, 9, 'Phase II: double strikes · shield-piercing starfall']
       ];
       const b = bosses[(Math.max(1, zone) - 1) % bosses.length];
       const hp = Math.round(b[1] * scale);
-      return { kind: 'boss', name: b[0], hp, maxHp: hp, atk: Math.round(b[2] * scale), armor: Math.round(b[3] * scale), burn: 0, gimmick: b[4], bossStyle: (zone - 1) % 5 };
+      return { kind: 'boss', name: b[0], hp, maxHp: hp, atk: Math.round(b[2] * scale), armor: Math.round(b[3] * scale), baseArmor: Math.round(b[3] * scale), burn: 0, turns: 0, phase: 1, gimmick: b[4], bossStyle: (zone - 1) % 5 };
     }
     const d = stats[kind] || stats.monolith;
     const hp = Math.round(d[1] * scale);
     return {
       kind, name: d[0], hp, maxHp: hp, atk: Math.round(d[2] * scale),
-      armor: Math.round(d[3] * scale), burn: 0,
+      armor: Math.round(d[3] * scale), baseArmor: Math.round(d[3] * scale), burn: 0, turns: 0,
       hits: kind === 'swarm' || kind === 'reaver' ? 2 : 1,
       gimmick: d[4]
     };
@@ -1341,32 +1341,55 @@
     return `<svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="#ff453a" stroke-width="1.7"><polygon points="18,3 33,12 28,31 8,31 3,12"/><polygon points="18,10 25,18 18,26 11,18"/></svg>`;
   }
 
-  // Enemy tactics mark protected cells in the 3×3 board. Strike cubes
-  // placed in those cells deal 40% less damage, so grid placement matters.
+  // Enemy guards rotate on later turns, so the same static grid is not always safe.
   function getEnemyTactic(en) {
     if (!en) return null;
     const turn = Math.max(0, en.turns || 0);
-    const column = turn % 3;
+    const row = turn % 3, column = turn % 3;
+    const rowCells = r => [r * 3, r * 3 + 1, r * 3 + 2];
+    const colCells = c => [c, c + 3, c + 6];
     const tactics = {
       monolith: { label: 'Stoneguard · middle column weakens strikes by 40%', cells: [1, 4, 7] },
-      phantom: { label: 'Phase Veil · middle row weakens strikes by 40%', cells: [3, 4, 5] },
+      phantom: { label: `Phase Veil · row ${row + 1} weakens strikes by 40%`, cells: rowCells(row) },
       swarm: { label: 'Swarm Screen · corner cells weaken strikes by 40%', cells: [0, 2, 6, 8] },
-      reaver: { label: 'Duelist Guard · left column weakens strikes by 40%', cells: [0, 3, 6] },
-      thorn: { label: 'Root Snare · bottom row weakens strikes by 40%', cells: [6, 7, 8] },
-      leech: { label: 'Tidal Ward · diagonal cells weaken strikes by 40%', cells: [0, 4, 8] },
-      hexcaller: { label: `Shifting Hex · column ${column + 1} weakens strikes by 40%`, cells: [column, column + 3, column + 6] }
+      reaver: { label: `Duelist Guard · column ${column + 1} weakens strikes by 40%`, cells: colCells(column) },
+      thorn: { label: `Root Snare · row ${3 - row} weakens strikes by 40%`, cells: rowCells(2 - row) },
+      leech: { label: turn % 2 ? 'Tidal Ward · counter-diagonal weakens strikes by 40%' : 'Tidal Ward · main diagonal weakens strikes by 40%', cells: turn % 2 ? [2, 4, 6] : [0, 4, 8] },
+      hexcaller: { label: `Shifting Hex · column ${column + 1} weakens strikes by 40%`, cells: colCells(column) }
     };
     if (en.kind === 'boss') {
       const bosses = [
         { label: 'Tyrant Guard · middle column weakens strikes by 40%', cells: [1, 4, 7] },
-        { label: 'Scribe Veil · middle row weakens strikes by 40%', cells: [3, 4, 5] },
-        { label: 'Briar Roots · bottom row weakens strikes by 40%', cells: [6, 7, 8] },
-        { label: `Regent Hex · column ${column + 1} weakens strikes by 40%`, cells: [column, column + 3, column + 6] },
-        { label: 'Astral Ward · corners weaken strikes by 40%', cells: [0, 2, 6, 8] }
+        { label: `Scribe Veil · row ${((turn + 1) % 3) + 1} weakens strikes by 40%`, cells: rowCells((turn + 1) % 3) },
+        { label: `Briar Roots · row ${3 - row} weakens strikes by 40%`, cells: rowCells(2 - row) },
+        { label: `Regent Hex · column ${((column + (en.phase >= 2 ? 1 : 0)) % 3) + 1} weakens strikes by 40%`, cells: colCells((column + (en.phase >= 2 ? 1 : 0)) % 3) },
+        { label: en.phase >= 2 ? 'Astral Ward · cross and corners weaken strikes by 40%' : 'Astral Ward · corners weaken strikes by 40%', cells: en.phase >= 2 ? [0, 2, 4, 6, 8] : [0, 2, 6, 8] }
       ];
-      return bosses[(en.bossStyle || 0) % bosses.length];
+      return bosses[(en.bossStyle || 0) % 5];
     }
     return tactics[en.kind] || null;
+  }
+
+  function getEnemyIntent(en) {
+    if (!en) return 'NEXT: Unknown';
+    const turn = (en.turns || 0) + 1;
+    if (en.kind === 'boss') {
+      const intents = (en.phase || 1) >= 2
+        ? ['CINDER WAVE · heavy hit every second turn', 'LEECHING TIDE · restores more HP after striking', 'RAMPANT ROOTS · rapid regeneration', 'ROYAL DECREE · armor and attack escalate', 'STARFALL · double strike; every second turn pierces shields']
+        : ['ARMORED SLAM · heavy counter every second turn', 'DRAINING TIDE · restores HP after striking', 'ROOT GUARD · regenerates after striking', 'ROYAL GUARD · hardens after striking', 'ASTRAL WARD · protected corners'];
+      return 'PHASE ' + (en.phase || 1) + ' · ' + intents[(en.bossStyle || 0) % 5];
+    }
+    const intents = {
+      monolith: turn % 3 === 0 ? 'CRUSHING SLAM · 45% stronger this turn' : 'STONE HAMMER · heavy counterattack',
+      phantom: turn % 2 === 0 ? 'PHASE SURGE · 20% stronger this turn' : 'PHASE SHIFT · guard changes each turn',
+      swarm: 'FLURRY · two strikes each turn',
+      wraith: 'RELENTLESS STRIKE · balanced pressure',
+      reaver: turn % 2 === 0 ? 'ARMOR-PIERCING LUNGE · bypasses 25% Shield' : 'DUAL LUNGE · two quick strikes',
+      thorn: 'ROOT REGEN · restores HP after striking',
+      leech: 'TIDAL DRAIN · steals HP after striking',
+      hexcaller: 'HEX GROWTH · attack rises after each counter'
+    };
+    return 'NEXT: ' + (intents[en.kind] || 'COUNTERATTACK');
   }
 
   function renderMapTab(body) {
