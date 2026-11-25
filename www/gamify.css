@@ -727,3 +727,18 @@
 @keyframes atlasNodePulse{0%,100%{filter:drop-shadow(0 0 1px var(--map-accent))}50%{filter:drop-shadow(0 0 7px var(--map-accent))}}
 @media(max-width:380px){.map-canvas-wrap{height:clamp(320px,46dvh,380px)!important;min-height:320px!important}.map-zone-title{font-size:23px}}
 @media(prefers-reduced-motion:reduce){.map-node.selected{animation:none}}
+
+/* Soft page transition for Realm tab changes */
+.realm-body.tab-enter > * {
+  animation: realmTabEnter .34s cubic-bezier(.2,.75,.25,1) both;
+}
+.realm-body.tab-enter > *:nth-child(2) { animation-delay: .035s; }
+.realm-body.tab-enter > *:nth-child(3) { animation-delay: .07s; }
+.realm-body.tab-enter > *:nth-child(4) { animation-delay: .105s; }
+@keyframes realmTabEnter {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); filter: blur(2px); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .realm-body.tab-enter > * { animation: none; }
+}
