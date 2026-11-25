@@ -315,3 +315,10 @@ This pass is deliberately presentation-only:
 - Selecting a map node now updates the selected encounter immediately without replaying the Realm content entrance/stagger animation.
 - Tab switches and other Realm content transitions retain their existing entrance motion.
 - The selected-node atlas highlight and all combat hit/shake effects remain unchanged.
+
+
+## 15. GitHub Pages deployment link
+
+- The Pages deployment environment now uses the canonical live-site URL directly, so each deployment is associated with a stable clickable URL even if the deploy action's page_url output is missing.
+- Every successful deployment also writes a direct live-site link into the GitHub Actions job summary.
+- Canonical URL: https://someone-codes-12221.github.io/minimalist-stopwatch/
