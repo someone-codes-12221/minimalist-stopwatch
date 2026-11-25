@@ -15,7 +15,7 @@
     frost: { id: 'frost', name: 'Frost', cls: 'strike', glyph: '❄', desc: 'Deals damage and chills the enemy, reducing its next counterattack by 25%.', base: 11, unlock: { metric: 'minutes', target: 180, label: 'Study 3 hours total' } },
     rupture: { id: 'rupture', name: 'Rupture', cls: 'strike', glyph: '⌁', desc: 'Deals damage and permanently strips 2 enemy Armor this fight.', base: 10, unlock: { metric: 'minutes', target: 600, label: 'Study 10 hours total' } },
     siphon: { id: 'siphon', name: 'Siphon', cls: 'strike', glyph: '⟡', desc: 'Deals damage and restores HP equal to 30% of its damage.', base: 8, unlock: { metric: 'sessions', target: 20, label: 'Complete 20 saved sessions' } },
-    conduit: { id: 'conduit', name: 'Conduit', cls: 'synergy', glyph: '⌘', desc: 'Empowers the next Strike or Ward cube by 25%.', base: 0, unlock: { metric: 'subjects', target: 3, label: 'Study 3 different subjects' } }
+    conduit: { id: 'conduit', name: 'Conduit', cls: 'synergy', glyph: '⌘', desc: 'Empowers the next Strike or Ward cube after it in left-to-right, top-to-bottom firing order by 25%.', base: 0, unlock: { metric: 'subjects', target: 3, label: 'Study 3 different subjects' } }
   };
 
   const CONSTELLATIONS = {
@@ -397,7 +397,7 @@
     }
 
     const parts = [];
-    if (newCharges > 0) parts.push(`+${newCharges} Charge`);
+    if (newCharges > 0) parts.push(`+${newCharges} Surge`);
     if (newDrafts > 0) parts.push(`+${newDrafts} Draft`);
     if (newShards > 0) parts.push(`+${newShards} Shards`);
     if (mins >= 45) parts.push('Overcharged');
@@ -1511,7 +1511,7 @@
     let actionHtml = '';
 
     if (node.type === 'start') {
-      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Every encounter is free. Spend a Surge Charge to empower one volley.</div><div class="camp-recovery">RUN HP · ${R.runHp}/${getMaxHp()}</div>${R.runHp < getMaxHp() ? `<button class="btn btn-secondary" id="restCampBtn" >${R.shards >= 12 ? 'Rest · 12 Shards' : 'Emergency Rest · 75% HP'}</button>` : '<div class="enemy-gimmick">You are fully rested.</div>'}</div>`;
+      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Every encounter is free. Spend a Surge Charge to empower one volley.</div><div class="camp-recovery">RUN HP · ${R.runHp}/${getMaxHp()}</div>${R.runHp < getMaxHp() ? `<button class="btn btn-secondary" id="restCampBtn" ${R.shards < 12 && R.runHp >= Math.ceil(getMaxHp() * 0.75) ? 'disabled' : ''}>${R.shards >= 12 ? 'Rest · 12 Shards' : R.runHp < Math.ceil(getMaxHp() * 0.75) ? 'Emergency Rest · 75% HP' : 'Need 12 Shards · 75% HP reached'}</button>` : '<div class="enemy-gimmick">You are fully rested.</div>'}</div>`;
     } else if (node.type === 'shrine') {
       actionHtml = `<div class="battle-card">
         <div class="enemy-name">${node.name}</div>
