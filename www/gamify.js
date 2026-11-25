@@ -276,6 +276,9 @@
   }
 
   function updateRealmBadge() {
+    if (!R.weeklyQuestClaims || typeof R.weeklyQuestClaims !== 'object') R.weeklyQuestClaims = {};
+    const weeklyKeys = Object.keys(R.weeklyQuestClaims).sort();
+    weeklyKeys.slice(0, Math.max(0, weeklyKeys.length - 12)).forEach(week => delete R.weeklyQuestClaims[week]);
     const btn = document.getElementById('realmBtn');
     if (btn) btn.classList.toggle('has-badge', R.drafts > 0 || R.perkPoints > 0);
   }
@@ -534,6 +537,7 @@
         <button class="realm-tab" data-rtab="grid">3×3 Grid</button>
         <button class="realm-tab" data-rtab="stars">Constellations</button>
         <button class="realm-tab" data-rtab="missions">Missions</button>
+        <button class="realm-tab" data-rtab="quests">Weekly Quests</button>
       </div>
       <div class="realm-body" id="realmBody"></div>
     `;
@@ -622,6 +626,7 @@
     if (activeTab === 'map') renderMapTab(body);
     else if (activeTab === 'grid') renderGridTab(body);
     else if (activeTab === 'missions') renderMissionsTab(body);
+    else if (activeTab === 'quests') renderWeeklyQuestsTab(body);
     else renderConstTab(body);
   }
 
@@ -686,6 +691,102 @@
         showToast(`Mission claimed · +${mission.shards} Shards · +${mission.xp} Skill XP`);
       });
     });
+  }
+
+
+  // Weekly quests use a Monday-to-Sunday window in the device's local timezone.
+  function getWeeklyQuestProgress() {
+    const snapshot = window.ChronoStudyData || {};
+    const today = dateKey();
+    const todayDate = new Date(today + 'T12:00:00');
+    const monday = new Date(todayDate);
+    monday.setDate(monday.getDate() - ((todayDate.getDay() + 6) % 7));
+    const sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+    const weekStart = dateKey(monday), weekEnd = dateKey(sunday);
+    const rows = Array.isArray(snapshot.weekSessions) ? snapshot.weekSessions : [];
+    const sessions = rows.filter(s => s && typeof s.date === 'string' && s.date >= weekStart && s.date <= weekEnd);
+    return {
+      weekStart, weekEnd,
+      minutes: sessions.reduce((sum, s) => sum + Math.max(0, Number(s.duration) || 0), 0) / 60000,
+      sessionCount: sessions.length,
+      studyDays: new Set(sessions.map(s => s.date)).size,
+      subjectCount: new Set(sessions.map(s => String(s.subject || 'General').trim()).filter(Boolean)).size
+    };
+  }
+
+  function getWeeklyClaims(weekStart) {
+    if (!R.weeklyQuestClaims || typeof R.weeklyQuestClaims !== 'object') R.weeklyQuestClaims = {};
+    if (!Array.isArray(R.weeklyQuestClaims[weekStart])) R.weeklyQuestClaims[weekStart] = [];
+    return R.weeklyQuestClaims[weekStart];
+  }
+
+  function renderWeeklyQuestsTab(body) {
+    const p = getWeeklyQuestProgress();
+    const claims = getWeeklyClaims(p.weekStart);
+    const objectives = [
+      { id: 'weekly_focus', title: 'The Long Vigil', detail: 'Study for 300 minutes this week', current: p.minutes, target: 300, unit: 'minutes', shards: 35, skill: 'endurance', xp: 30 },
+      { id: 'weekly_sessions', title: 'Consistent Practice', detail: 'Complete 5 study sessions this week', current: p.sessionCount, target: 5, unit: 'sessions', shards: 25, skill: 'momentum', xp: 28 },
+      { id: 'weekly_days', title: 'Return to the Realm', detail: 'Study on 3 different days', current: p.studyDays, target: 3, unit: 'days', shards: 30, skill: 'versatility', xp: 28 },
+      { id: 'weekly_subjects', title: 'Well-Rounded Scholar', detail: 'Study 3 different subjects', current: p.subjectCount, target: 3, unit: 'subjects', shards: 25, skill: 'depth', xp: 25 }
+    ];
+    const objectiveCards = objectives.map(q => {
+      const done = q.current >= q.target, claimed = claims.includes(q.id);
+      const amount = q.unit === 'minutes' ? Math.floor(q.current) : q.current;
+      const pct = Math.min(100, Math.round((q.current / q.target) * 100));
+      return \`<div class="mission-card">
+        <div class="mission-top"><div><div class="mission-title">\${q.title}</div><div class="mission-detail">\${q.detail}</div></div><div class="mission-reward">+\${q.shards} ◈</div></div>
+        <div class="mission-track"><div class="mission-fill" style="width:\${pct}%"></div></div>
+        <div class="mission-bottom"><span>\${amount}/\${q.target} \${q.unit}</span>
+          \${claimed ? '<span class="mission-status">CLAIMED</span>' : done ? \`<button class="mission-claim" data-week-claim="\${q.id}">Claim reward</button>\` : '<span class="mission-status">IN PROGRESS</span>'}
+        </div>
+      </div>\`;
+    }).join('');
+
+    const chain = [
+      { id: 'chain_2', title: 'First Steps', detail: 'Study on 2 different days', target: 2, shards: 15, xp: 15, skill: 'momentum' },
+      { id: 'chain_4', title: 'Steady Hand', detail: 'Study on 4 different days', target: 4, shards: 25, xp: 22, skill: 'endurance' },
+      { id: 'chain_6', title: 'Week’s Resolve', detail: 'Study on 6 different days', target: 6, shards: 40, xp: 35, skill: 'versatility' }
+    ];
+    let chainUnlocked = true;
+    const chainCards = chain.map(q => {
+      const claimed = claims.includes(q.id), unlocked = chainUnlocked, done = p.studyDays >= q.target;
+      if (!claimed) chainUnlocked = false;
+      const pct = Math.min(100, Math.round((p.studyDays / q.target) * 100));
+      return \`<div class="mission-card \${unlocked ? '' : 'quest-locked'}">
+        <div class="mission-top"><div><div class="mission-title">\${q.title}</div><div class="mission-detail">\${q.detail}\${unlocked ? '' : ' · Complete the previous step first'}</div></div><div class="mission-reward">+\${q.shards} ◈</div></div>
+        <div class="mission-track"><div class="mission-fill" style="width:\${pct}%"></div></div>
+        <div class="mission-bottom"><span>\${Math.min(p.studyDays, q.target)}/\${q.target} days</span>
+          \${claimed ? '<span class="mission-status">CLAIMED</span>' : !unlocked ? '<span class="mission-status">LOCKED</span>' : done ? \`<button class="mission-claim" data-week-claim="\${q.id}">Claim reward</button>\` : '<span class="mission-status">IN PROGRESS</span>'}
+        </div>
+      </div>\`;
+    }).join('');
+
+    body.innerHTML = \`<div class="missions-heading"><div class="section-label">WEEKLY QUEST BOARD</div><div class="mission-date">\${p.weekStart} — \${p.weekEnd}</div><p>Resets every Monday. Progress comes from saved sessions across this week.</p></div>
+      <div class="section-label quest-section-label">WEEKLY OBJECTIVES</div><div class="mission-list">\${objectiveCards}</div>
+      <div class="section-label quest-section-label">QUEST CHAIN · THE SCHOLAR’S PATH</div><p class="quest-chain-note">Claim each step to unlock the next.</p><div class="mission-list">\${chainCards}</div>\`;
+
+    body.querySelectorAll('[data-week-claim]').forEach(btn => btn.addEventListener('click', () => {
+      const id = btn.dataset.weekClaim, latest = getWeeklyQuestProgress();
+      if (latest.weekStart !== p.weekStart) { showToast('A new week has begun'); renderRealm(); return; }
+      const ledger = getWeeklyClaims(latest.weekStart);
+      if (ledger.includes(id)) return;
+      const objective = objectives.find(q => q.id === id);
+      const chainIndex = chain.findIndex(q => q.id === id);
+      let reward = objective;
+      if (chainIndex >= 0) {
+        const previousClaimed = chainIndex === 0 || ledger.includes(chain[chainIndex - 1].id);
+        if (!previousClaimed || latest.studyDays < chain[chainIndex].target) { showToast('Quest step is still locked'); return; }
+        reward = chain[chainIndex];
+      } else if (!objective || latest[objective.unit === 'minutes' ? 'minutes' : objective.unit === 'sessions' ? 'sessionCount' : objective.unit === 'days' ? 'studyDays' : 'subjectCount'] < objective.target) {
+        showToast('Weekly quest is not complete yet'); return;
+      }
+      if (!reward) return;
+      ledger.push(id); R.shards += reward.shards;
+      addSkillXp(reward.skill, reward.xp);
+      saveR(); updateRealmBadge(); renderRealm();
+      showToast(\`Quest claimed · +\${reward.shards} Shards · +\${reward.xp} Skill XP\`);
+    }));
   }
 
   function enemySvg(kind) {
