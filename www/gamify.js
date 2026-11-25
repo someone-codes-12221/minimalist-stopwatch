@@ -808,7 +808,6 @@
     {id:'study_25h',cat:'Scholarship',name:'Keeper of Hours',desc:'Study for 25 hours in total',metric:'minutes',target:1500,reward:25},
     {id:'study_50h',cat:'Scholarship',name:'Deep Scholar',desc:'Study for 50 hours in total',metric:'minutes',target:3000,reward:35},
     {id:'study_100h',cat:'Scholarship',name:'Century of Focus',desc:'Study for 100 hours in total',metric:'minutes',target:6000,reward:50},
-    {id:'study_250h',cat:'Scholarship',name:'Archive Keeper',desc:'Study for 250 hours in total',metric:'minutes',target:15000,reward:75},
     {id:'sessions_1',cat:'Scholarship',name:'The Beginning',desc:'Save your first study session',metric:'sessions',target:1,reward:10},
     {id:'sessions_10',cat:'Scholarship',name:'Regular',desc:'Save 10 study sessions',metric:'sessions',target:10,reward:15},
     {id:'sessions_25',cat:'Scholarship',name:'Practitioner',desc:'Save 25 study sessions',metric:'sessions',target:25,reward:20},
