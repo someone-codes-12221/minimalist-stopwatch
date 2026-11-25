@@ -643,3 +643,27 @@
 .cube-glyph{font-size:16px}.cube-name{font-size:9px}.cube-stat{font-size:8px}
 .star-canvas-wrap{height:clamp(110px,24dvh,150px)}
 }
+
+/* Map canvas fix: keep the biome header out of SVG layout flow */
+.map-canvas-wrap{position:relative;display:block;height:clamp(245px,36dvh,310px);min-height:245px;overflow:hidden}
+.map-zone-tag{position:absolute;top:10px;left:12px;right:12px;max-width:none;line-height:1.35;white-space:normal;overflow-wrap:anywhere}
+.map-zone-subtitle{position:absolute;top:34px;left:12px;right:12px;max-width:none;line-height:1.35;white-space:normal;overflow-wrap:anywhere}
+.map-zone-rule{position:absolute;top:54px;left:10px;right:10px;margin:0;max-width:none;z-index:2;line-height:1.35;overflow-wrap:anywhere}
+.map-svg{position:absolute;left:0;right:0;top:100px;bottom:0;width:100%;height:calc(100% - 100px);display:block;overflow:visible}
+.realm-overlay{display:flex;min-height:0;height:100dvh}
+.realm-head,.realm-res-bar,.realm-tabs{flex:0 0 auto}
+.realm-body{flex:1 1 0%;min-height:0;max-height:none;overscroll-behavior-y:contain;touch-action:pan-y;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.realm-body>*{flex-shrink:0}
+@media(max-width:380px) and (orientation:portrait){.map-canvas-wrap{height:clamp(245px,38dvh,300px);min-height:245px}}
+@media(orientation:landscape) and (max-height:600px){
+.realm-overlay{padding-top:calc(env(safe-area-inset-top) + 5px);padding-bottom:calc(env(safe-area-inset-bottom) + 5px);gap:0}
+.realm-head{margin-bottom:4px;min-height:30px}
+.realm-res-bar{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:5px}
+.res-pill{padding:4px 3px}.res-val{font-size:11px}.res-lbl{font-size:7px;margin-top:1px}
+.realm-tabs{margin-bottom:5px;gap:4px}.realm-tab{padding:6px 8px;font-size:9px}
+.realm-body{padding-bottom:12px;gap:8px}
+.map-canvas-wrap{height:clamp(210px,48dvh,280px);min-height:210px}
+.map-zone-tag{top:7px;font-size:9px}.map-zone-subtitle{top:27px;font-size:8px}
+.map-zone-rule{top:44px;padding:5px 7px;font-size:8px}
+.map-svg{top:88px;height:calc(100% - 88px)}
+}
