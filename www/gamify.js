@@ -267,6 +267,25 @@
     t._timer = setTimeout(() => t.classList.remove('show'), 3200);
   }
 
+  // Rare, dismissible celebrations for genuinely notable milestones.
+  function showLegendaryMoment(title, detail, emblem) {
+    let layer = document.getElementById('legendaryMoment');
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.id = 'legendaryMoment';
+      layer.className = 'legendary-moment';
+      layer.innerHTML = '<div class="legendary-card" role="dialog" aria-modal="true" aria-labelledby="legendaryTitle"><div class="legendary-emblem" aria-hidden="true"></div><div class="legendary-kicker">A MOMENT WORTH REMEMBERING</div><div class="legendary-title" id="legendaryTitle"></div><div class="legendary-detail"></div><button class="legendary-dismiss" type="button">Continue</button></div>';
+      document.body.appendChild(layer);
+      layer.querySelector('.legendary-dismiss').addEventListener('click', () => layer.classList.remove('open'));
+      layer.addEventListener('click', e => { if (e.target === layer) layer.classList.remove('open'); });
+    }
+    layer.querySelector('.legendary-emblem').textContent = emblem || '✦';
+    layer.querySelector('.legendary-title').textContent = title;
+    layer.querySelector('.legendary-detail').textContent = detail;
+    layer.classList.remove('open');
+    void layer.offsetWidth;
+    layer.classList.add('open');
+  }
   function addSkillXp(key, amount) {
     if (amount <= 0) return;
     const sk = R.skills[key];
@@ -305,6 +324,15 @@
     R.lastSessionTs = Date.now();
     saveR();
     updateRealmBadge();
+
+    const milestoneSession = mins >= 120 ? ['Marathon Mind', 'A two-hour study session. That took real commitment.', '✧']
+      : mins >= 90 ? ['Deep Focus', 'Ninety minutes of focused work. A serious effort.', '◇']
+      : mins >= 45 ? ['The Long Vigil', 'Forty-five minutes of focused study. Keep building on it.', '✦'] : null;
+    if (milestoneSession) showLegendaryMoment(milestoneSession[0], milestoneSession[1], milestoneSession[2]);
+    else {
+      const streak = getAchievementStats().streak;
+      if ([3, 7, 14, 30].includes(streak)) showLegendaryMoment(streak + '-Day Study Streak', 'You showed up on consecutive days. Consistency is becoming a habit.', '✧');
+    }
 
     const parts = [];
     if (newCharges > 0) parts.push(`+${newCharges} Charge`);
@@ -525,6 +553,7 @@
         R.drafts += 2; R.zone++; R.zoneBuff = 0; R.runHp = getMaxHp();
         R.map = buildZoneMap(R.zone); R.selectedNode = 1;
         showToast(`ZONE ${R.zone} UNLOCKED! +${shardDrop} Shards · +2 Drafts`);
+        showLegendaryMoment('A New Realm Awaits', `The boss has fallen. Zone ${R.zone} is now open.`, '♛');
       } else {
         showToast(`${en.name} Defeated! +${shardDrop} Shards`);
       }
@@ -1005,6 +1034,7 @@
       claimed[achievement.id] = true;
       R.shards += achievement.reward;
       saveR(); updateRealmBadge(); renderRealm();
+      showLegendaryMoment(achievement.name, `Milestone claimed · +${achievement.reward} Shards added to your stash.`, '✦');
       showToast(`Achievement claimed · +${achievement.reward} Shards`);
     }));
   }
