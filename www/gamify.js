@@ -803,6 +803,11 @@
     else if (activeTab === 'events') renderWorldEventsTab(body);
     else if (activeTab === 'atlas') renderWorldAtlasTab(body);
     else renderConstTab(body);
+
+    // Re-trigger a lightweight entrance transition whenever Realm content changes.
+    body.classList.remove('tab-enter');
+    void body.offsetWidth;
+    body.classList.add('tab-enter');
   }
 
   // Daily mission progress is derived from the stopwatch's saved records.
