@@ -692,7 +692,6 @@
         <button class="realm-tab" data-rtab="relics">Relics</button>
         <button class="realm-tab" data-rtab="events">Events</button>
         <button class="realm-tab" data-rtab="atlas">Atlas</button>
-        <button class="realm-tab" data-rtab="exam">Exam Board</button>
       </div>
       <div class="realm-body" id="realmBody"></div>
     `;
@@ -803,7 +802,6 @@
     else if (activeTab === 'relics') renderRelicsTab(body);
     else if (activeTab === 'events') renderWorldEventsTab(body);
     else if (activeTab === 'atlas') renderWorldAtlasTab(body);
-    else if (activeTab === 'exam') window.ChronoExamBoard.render(body, renderRealm, showToast);
     else renderConstTab(body);
   }
 
