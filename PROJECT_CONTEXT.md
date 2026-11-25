@@ -281,3 +281,16 @@ At the start of every Chrono task:
 4. If it already exists, explain where/how instead of rebuilding it.
 5. For new work, document new state fields, integration points, migration behavior, and validation here.
 
+
+
+## 11. Realm feedback polish (in progress)
+
+Branch: `feat/realm-feedback-polish`.
+
+This pass is deliberately presentation-only:
+- Delegated pointer feedback and short synthesized UI tones are attached only to controls inside the Realm overlay.
+- Rare milestone/reward reveals use a distinct synthesized chime and a brief haptic pulse.
+- Visual refinements add responsive hover/press states, keyboard focus rings, restrained content entrance, reward-card sheen/aura, and toast arrival.
+- The existing combat sound engine is extended; no new audio files or network assets are required.
+- Timer controls, study records, reward amounts, claim ledgers, Realm state, and storage keys are not changed.
+- Reduced-motion preferences disable the added decorative animations.
