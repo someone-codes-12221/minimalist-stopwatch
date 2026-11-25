@@ -1,0 +1,342 @@
+/* === THE REALM: OBSIDIAN GAMIFICATION LAYER === */
+.realm-toast {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 60px);
+  left: 50%;
+  transform: translate(-50%, -14px);
+  background: rgba(16, 16, 20, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text);
+  font-family: var(--font-clock);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 9px 16px;
+  border-radius: 999px;
+  z-index: 120;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  white-space: nowrap;
+}
+.realm-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.realm-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000000;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 14px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(16px);
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.realm-overlay.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+.realm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.realm-title {
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.realm-res-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.res-pill {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 7px 6px;
+  text-align: center;
+}
+.res-val {
+  font-family: var(--font-clock);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.res-lbl {
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.res-pill.clickable { cursor: pointer; border-color: rgba(100, 210, 255, 0.4); }
+.res-pill.clickable .res-val { color: var(--blue); }
+
+.realm-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.realm-tab {
+  padding: 9px 6px;
+  border-radius: 12px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.realm-tab.active {
+  background: var(--accent);
+  color: #000000;
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.realm-body {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 14px;
+}
+.realm-body::-webkit-scrollbar { display: none; }
+
+/* === TAB 1: FOG-OF-WAR MAP & AUTO-CLASH === */
+.map-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 225px;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03), transparent 75%);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.map-zone-tag {
+  position: absolute;
+  top: 10px; left: 12px;
+  font-family: var(--font-clock);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  text-transform: uppercase;
+  z-index: 2;
+}
+.map-svg { width: 100%; height: 100%; }
+.map-edge { stroke: rgba(255,255,255,0.1); stroke-width: 1.4; }
+.map-edge.open { stroke: rgba(255,255,255,0.34); }
+.map-node { cursor: pointer; transition: transform 0.2s ease; }
+.map-node circle.node-bg { fill: #0c0c10; stroke: rgba(255,255,255,0.22); stroke-width: 1.5; }
+.map-node.cleared circle.node-bg { fill: rgba(48, 209, 88, 0.18); stroke: var(--green); }
+.map-node.selected circle.node-bg { stroke: #ffffff; stroke-width: 2.5; filter: drop-shadow(0 0 8px rgba(255,255,255,0.65)); }
+.map-node.boss circle.node-bg { stroke: var(--red); }
+.map-node.shrine circle.node-bg { stroke: var(--blue); }
+.map-node.vault circle.node-bg { stroke: var(--amber); }
+.map-node.fog { opacity: 0.16; pointer-events: none; }
+.map-node text { fill: var(--text); font-size: 9px; font-family: var(--font-clock); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+
+.battle-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.battle-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.enemy-visual {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.09);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.enemy-visual.hit { animation: enemyShake 0.3s ease; }
+@keyframes enemyShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); border-color: var(--red); }
+  75% { transform: translateX(6px); border-color: var(--red); }
+}
+.enemy-info { flex: 1; }
+.enemy-name { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.enemy-gimmick { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.hp-track {
+  width: 100%; height: 6px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.hp-fill { height: 100%; background: var(--red); transition: width 0.35s ease; }
+.hp-fill.player { background: var(--green); }
+.hp-meta {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-clock); font-size: 10.5px; color: var(--muted);
+  margin-top: 4px;
+}
+
+.clash-log {
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 9px 11px;
+  font-family: var(--font-clock);
+  font-size: 11px;
+  color: var(--muted);
+  min-height: 54px;
+  max-height: 92px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.clash-log .hl { color: var(--text); }
+.clash-log .dmg { color: var(--red); }
+.clash-log .shd { color: var(--blue); }
+.clash-log .syn { color: var(--amber); }
+.clash-log .win { color: var(--green); font-weight: 500; }
+
+/* === TAB 2: 3x3 SYNERGY CUBE GRID === */
+.grid-3x3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 310px;
+  margin: 0 auto;
+}
+.cube-slot {
+  aspect-ratio: 1;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px dashed rgba(255,255,255,0.14);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.cube-slot.filled { border-style: solid; background: rgba(255,255,255,0.06); }
+.cube-slot.strike { border-color: rgba(255, 69, 58, 0.5); }
+.cube-slot.ward { border-color: rgba(100, 210, 255, 0.5); }
+.cube-slot.synergy { border-color: rgba(255, 214, 10, 0.5); }
+.cube-slot.selected { border-color: #ffffff !important; box-shadow: 0 0 14px rgba(255,255,255,0.35); transform: scale(1.03); }
+.cube-slot.firing {
+  transform: scale(1.08);
+  border-color: #ffffff !important;
+  background: rgba(255,255,255,0.18) !important;
+  box-shadow: 0 0 18px rgba(255,255,255,0.65);
+}
+.cube-glyph { font-size: 20px; line-height: 1; margin-bottom: 4px; }
+.cube-name { font-size: 10.5px; font-weight: 500; color: var(--text); }
+.cube-tier {
+  position: absolute; top: 6px; right: 7px;
+  font-family: var(--font-clock); font-size: 9px; color: var(--muted);
+}
+.cube-stat { font-family: var(--font-clock); font-size: 9.5px; color: var(--muted); margin-top: 2px; }
+
+.cube-detail-bar {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+.inv-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 8px 6px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+}
+.inv-card.strike { border-color: rgba(255, 69, 58, 0.32); }
+.inv-card.ward { border-color: rgba(100, 210, 255, 0.32); }
+.inv-card.synergy { border-color: rgba(255, 214, 10, 0.32); }
+.inv-card.equipped { opacity: 0.38; }
+
+/* === TAB 3: SKYRIM CONSTELLATIONS === */
+.const-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.const-tabs::-webkit-scrollbar { display: none; }
+.const-pill {
+  flex-shrink: 0;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.const-pill.active { color: var(--text); border-color: rgba(255,255,255,0.45); background: var(--glass-strong); }
+
+.star-canvas-wrap {
+  width: 100%;
+  height: 220px;
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 45%, rgba(100, 210, 255, 0.08), #020204 75%);
+  border: 1px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.star-svg { width: 100%; height: 100%; }
+.star-line { stroke: rgba(255,255,255,0.14); stroke-width: 1.4; }
+.star-line.lit { stroke: rgba(100, 210, 255, 0.7); filter: drop-shadow(0 0 4px rgba(100,210,255,0.6)); }
+.star-node { cursor: pointer; }
+.star-node circle { fill: #121218; stroke: rgba(255,255,255,0.28); stroke-width: 1.5; }
+.star-node.avail circle { stroke: var(--amber); }
+.star-node.lit circle { fill: #ffffff; stroke: var(--blue); filter: drop-shadow(0 0 8px rgba(100,210,255,0.9)); }
+.star-node text { fill: var(--muted); font-size: 9.5px; text-anchor: middle; }
+.star-node.lit text { fill: var(--text); }
+
+/* === DRAFT MODAL === */
+.draft-choices { display: flex; flex-direction: column; gap: 8px; }
+.draft-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  text-align: left;
+}
+.draft-card:active { transform: scale(0.97); background: var(--glass-strong); }
+.draft-card.strike { border-color: rgba(255, 69, 58, 0.45); }
+.draft-card.ward { border-color: rgba(100, 210, 255, 0.45); }
+.draft-card.synergy { border-color: rgba(255, 214, 10, 0.45); }
