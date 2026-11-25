@@ -654,6 +654,7 @@
         <button class="realm-tab" data-rtab="grid">3×3 Grid</button>
         <button class="realm-tab" data-rtab="stars">Constellations</button>
         <button class="realm-tab" data-rtab="journal">Journal</button>
+        <button class="realm-tab" data-rtab="profile">Profile</button>
       </div>
       <div class="realm-body" id="realmBody"></div>
     `;
@@ -760,6 +761,7 @@
         renderRealm();
       }));
     }
+    else if (activeTab === 'profile') renderProfileTab(body);
     else renderConstTab(body);
   }
 
@@ -1000,6 +1002,62 @@
       bosses: Number(R.bossWins) || 0, zone: Number(R.zone) || 1,
       grid: (R.grid || []).filter(Boolean).length
     };
+  }
+
+  const PROFILE_TITLES = [
+    {id:'newcomer',name:'The Initiate',desc:'Your journey begins here',unlock:s=>true},
+    {id:'focused',name:'The Focused',desc:'Study for 5 total hours',unlock:s=>s.minutes>=300},
+    {id:'scholar',name:'The Scholar',desc:'Study for 25 total hours',unlock:s=>s.minutes>=1500},
+    {id:'vigilant',name:'The Vigilant',desc:'Build a 7-day study streak',unlock:s=>s.streak>=7},
+    {id:'veteran',name:'Realm Veteran',desc:'Win 10 battles',unlock:s=>s.wins>=10},
+    {id:'slayer',name:'Boss Slayer',desc:'Defeat 3 bosses',unlock:s=>s.bosses>=3},
+    {id:'architect',name:'Grid Architect',desc:'Fill all 9 grid slots',unlock:s=>s.grid>=9},
+    {id:'legend',name:'The Unyielding',desc:'Study for 100 total hours',unlock:s=>s.minutes>=6000}
+  ];
+
+  function getPlayerProgress(stats) {
+    const xp = Math.floor(stats.minutes / 5) + stats.wins * 15 + stats.bosses * 50 + Object.values(R.achievementClaims || {}).filter(Boolean).length * 20;
+    let level = 1, remaining = xp, needed = 100;
+    while (remaining >= needed && level < 99) { remaining -= needed; level++; needed = 100 + (level - 1) * 50; }
+    return {xp,level,remaining,needed};
+  }
+
+  function renderProfileTab(body) {
+    const stats = getAchievementStats();
+    const progress = getPlayerProgress(stats);
+    const unlocked = PROFILE_TITLES.filter(t => t.unlock(stats));
+    const selected = unlocked.find(t => t.id === R.selectedTitle) || unlocked[0];
+    R.selectedTitle = selected.id;
+    const frame = stats.bosses >= 5 ? 'ECLIPSE FRAME' : stats.minutes >= 1500 ? 'VIOLET FRAME' : stats.minutes >= 300 ? 'EMBER FRAME' : 'INITIATE FRAME';
+    const pct = Math.min(100, Math.round(progress.remaining / progress.needed * 100));
+    body.innerHTML = `
+      <section class="player-profile">
+        <div class="profile-card ${frame.toLowerCase().replace(/ /g,'-')}">
+          <div class="profile-frame-label">${frame}</div>
+          <div class="profile-avatar">✦</div>
+          <div class="profile-kicker">CHRONOREALM ADVENTURER</div>
+          <div class="profile-level">LEVEL ${progress.level}</div>
+          <div class="profile-title">${selected.name}</div>
+          <div class="profile-xp-track"><div style="width:${pct}%"></div></div>
+          <div class="profile-xp-meta"><span>${progress.remaining} XP</span><span>${progress.needed} XP TO NEXT LEVEL</span></div>
+        </div>
+        <div class="profile-section-label">YOUR RECORD</div>
+        <div class="profile-stat-grid">
+          <div class="profile-stat"><strong>${Math.floor(stats.minutes/60)}h ${Math.floor(stats.minutes%60)}m</strong><span>STUDY TIME</span></div>
+          <div class="profile-stat"><strong>${stats.sessions}</strong><span>SESSIONS</span></div>
+          <div class="profile-stat"><strong>${stats.wins}</strong><span>BATTLES WON</span></div>
+          <div class="profile-stat"><strong>${stats.bosses}</strong><span>BOSSES DEFEATED</span></div>
+          <div class="profile-stat"><strong>${stats.streak}</strong><span>CURRENT STREAK</span></div>
+          <div class="profile-stat"><strong>${stats.zone}</strong><span>HIGHEST ZONE</span></div>
+        </div>
+        <div class="profile-section-label">TITLE COLLECTION · ${unlocked.length}/${PROFILE_TITLES.length} UNLOCKED</div>
+        <div class="profile-title-list">${PROFILE_TITLES.map(t => { const open=t.unlock(stats), active=t.id===selected.id; return `<button class="profile-title-option ${open?'':'locked'} ${active?'selected':''}" data-profile-title="${t.id}" ${open?'':'disabled'}><span class="profile-title-name">${open?'✦':'◇'} ${t.name}</span><span class="profile-title-desc">${open?t.desc:'LOCKED · '+t.desc}</span>${active?'<span class="profile-title-equipped">EQUIPPED</span>':''}</button>`; }).join('')}</div>
+      </section>`;
+    body.querySelectorAll('[data-profile-title]').forEach(btn => btn.addEventListener('click', () => {
+      const choice = unlocked.find(t => t.id === btn.dataset.profileTitle);
+      if (!choice) return;
+      R.selectedTitle = choice.id; saveR(); renderRealm(); showToast(choice.name + ' equipped');
+    }));
   }
 
   function renderAchievementsTab(body) {
