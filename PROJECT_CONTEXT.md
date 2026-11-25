@@ -373,3 +373,13 @@ This pass is deliberately presentation-only:
 - Study-derived cube unlocks read saved study snapshots and cumulative Realm study/session counters. Existing study save/import/session pathways remain unchanged.
 - One-time combat-rules migration raises remaining enemy HP/attack in saved maps and the current daily event while preserving current HP ratio, armor, node-cleared flags, zone, and inventory.
 - New combat UI uses static intent, phase, unlock-progress, Battle Charge, and Bestiary panels. No ChronoRealm animation or transition was added.
+
+
+## 21. Modular smooth motion system
+
+- Added `www/motion-system.css` as a separate motion layer, loaded after `visual-polish.css` from the main HTML shell.
+- Selectively re-enables smooth Realm overlay/tab transitions, content entrances, enemy idle/combat feedback, reward reveals, and toast motion. This intentionally supersedes the earlier blanket Realm motion-off rule because smooth motion was explicitly requested.
+- Adds short transform/opacity-led interaction transitions to the timer UI and Realm controls.
+- Keeps effects scoped to known UI elements, avoids broad layout-property animation, and respects `prefers-reduced-motion`.
+- Uses a lighter mobile profile for Android WebView; no JavaScript timing loops, external libraries, or network assets were added.
+- Android compatibility is covered by the same local CSS file packaged with `www`; a successful APK build is still required before considering the change validated for app distribution.

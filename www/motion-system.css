@@ -1,0 +1,134 @@
+/* Chrono Obsidian — smooth motion layer
+   Loaded after visual-polish.css so the Realm's former motion-off safety
+   override can be selectively replaced without editing legacy styles.
+   Keep effects short, transform/opacity-led, and comfortable on Android WebView.
+*/
+:root {
+  --chrono-ease: cubic-bezier(.2,.8,.2,1);
+  --chrono-spring: cubic-bezier(.16,1,.3,1);
+  --chrono-fast: 160ms;
+  --chrono-mid: 240ms;
+  --chrono-slow: 340ms;
+}
+
+/* Main timer surface */
+.icon-btn,
+.today-pill,
+.subj-pill,
+.chip,
+.session-row,
+.btn-primary,
+.btn-secondary,
+.modal-card,
+.modal-wrap,
+.goal-bar-fill,
+.ring-progress {
+  transition:
+    transform var(--chrono-mid) var(--chrono-ease),
+    opacity var(--chrono-mid) var(--chrono-ease),
+    color var(--chrono-fast) ease,
+    background-color var(--chrono-mid) ease,
+    border-color var(--chrono-mid) ease,
+    box-shadow var(--chrono-mid) ease,
+    filter var(--chrono-mid) ease !important;
+}
+.icon-btn:active,
+.subj-pill:active,
+.chip:active,
+.btn-primary:active,
+.btn-secondary:active { transform:scale(.965); }
+.session-row:active { transform:translateY(-1px) scale(.992); }
+.modal-wrap { transition:opacity 220ms ease, visibility 220ms ease !important; }
+.modal-card { transition:transform 300ms var(--chrono-spring), opacity 220ms ease !important; }
+
+/* Re-enable motion only inside the Realm, replacing the old blanket stop. */
+html body .realm-overlay {
+  transition:opacity 300ms ease, transform 380ms var(--chrono-spring) !important;
+}
+html body .realm-overlay * ,
+html body .realm-overlay *::before,
+html body .realm-overlay *::after {
+  transition:
+    transform 220ms var(--chrono-ease),
+    opacity 220ms ease,
+    color 180ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 240ms ease,
+    filter 220ms ease !important;
+  scroll-behavior:smooth !important;
+}
+html body .realm-overlay .realm-tab {
+  transition:
+    transform 200ms var(--chrono-ease),
+    color 180ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 240ms ease !important;
+}
+html body .realm-overlay .realm-tab:active,
+html body .realm-overlay button:not(:disabled):active,
+html body .realm-overlay .cube-slot:active,
+html body .realm-overlay .inv-card:active,
+html body .realm-overlay .map-node:active {
+  transform:scale(.97);
+}
+html body .realm-overlay .realm-body.tab-enter > * {
+  animation:realm-content-arrive 360ms var(--chrono-spring) both !important;
+}
+html body .realm-overlay .realm-body.tab-enter > *:nth-child(2) { animation-delay:35ms !important; }
+html body .realm-overlay .realm-body.tab-enter > *:nth-child(3) { animation-delay:65ms !important; }
+html body .realm-overlay .realm-body.tab-enter > *:nth-child(4) { animation-delay:95ms !important; }
+
+/* Combat feedback: short and readable, without making the board jitter constantly. */
+html body .realm-overlay .enemy-visual.idle svg {
+  animation:enemyFloat 3.4s ease-in-out infinite !important;
+}
+html body .realm-overlay .enemy-visual.hit { animation:enemyHitAnim 280ms ease-out !important; }
+html body .realm-overlay .enemy-visual.lunge { animation:enemyLungeAnim 360ms var(--chrono-spring) !important; }
+html body .realm-overlay .enemy-visual.shatter { animation:enemyShatterAnim 520ms ease-out forwards !important; }
+html body .realm-overlay .battle-card.shake { animation:cardShake 300ms ease-out !important; }
+html body .realm-overlay .battle-card.crit-flash {
+  animation:critBorder 420ms ease, cardShake 340ms ease !important;
+}
+html body .realm-overlay .slash-vfx .slash-line {
+  animation:slashSwipe 280ms var(--chrono-spring) forwards !important;
+}
+html body .realm-overlay .float-pop {
+  animation:floatUpPop 760ms var(--chrono-spring) forwards !important;
+}
+html body .realm-overlay .star-node.avail circle {
+  animation:starPulse 2.4s ease-in-out infinite !important;
+}
+
+/* Reward moments and feedback */
+html body .realm-overlay .legendary-moment.open::before {
+  animation:reward-aura 1.05s var(--chrono-spring) both !important;
+}
+html body .realm-overlay .legendary-moment.open .legendary-card::before {
+  animation:reward-sheen 950ms 120ms ease-out both !important;
+}
+html body .realm-overlay .legendary-emblem {
+  animation:reward-emblem-in 520ms var(--chrono-spring) both !important;
+}
+html body .realm-overlay .realm-toast.show {
+  animation:toast-arrive 300ms var(--chrono-spring) both !important;
+}
+
+/* Respect the OS accessibility preference and avoid expensive effects on small devices. */
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after {
+    scroll-behavior:auto !important;
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+}
+@media (max-width:600px) {
+  html body .realm-overlay .realm-body.tab-enter > * {
+    filter:none !important;
+  }
+  html body .realm-overlay .enemy-visual.idle svg {
+    animation-duration:4.2s !important;
+  }
+}
