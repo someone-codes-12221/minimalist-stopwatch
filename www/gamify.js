@@ -108,15 +108,24 @@
         g.gain.setValueAtTime(0.09, now);
         g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
         osc.start(now); osc.stop(now + 0.19);
-      } else if (type === 'kill') {
-        [440, 554, 659, 880].forEach((f, idx) => {
+      } else if (type === 'kill' || type === 'reward') {
+        const notes = type === 'reward' ? [523, 659, 784, 1047] : [440, 554, 659, 880];
+        notes.forEach((f, idx) => {
           const o = sfxCtx.createOscillator(), gn = sfxCtx.createGain();
-          o.type = 'triangle'; o.frequency.setValueAtTime(f, now + idx * 0.06);
-          gn.gain.setValueAtTime(0.08, now + idx * 0.06);
-          gn.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.28);
+          o.type = 'triangle'; o.frequency.setValueAtTime(f, now + idx * (type === 'reward' ? 0.085 : 0.06));
+          const start = now + idx * (type === 'reward' ? 0.085 : 0.06);
+          gn.gain.setValueAtTime(type === 'reward' ? 0.055 : 0.08, start);
+          gn.gain.exponentialRampToValueAtTime(0.001, start + (type === 'reward' ? 0.38 : 0.28));
           o.connect(gn); gn.connect(sfxCtx.destination);
-          o.start(now + idx * 0.06); o.stop(now + idx * 0.06 + 0.3);
+          o.start(start); o.stop(start + (type === 'reward' ? 0.4 : 0.3));
         });
+      } else if (type === 'tap' || type === 'tab') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(type === 'tab' ? 620 : 430, now);
+        osc.frequency.exponentialRampToValueAtTime(type === 'tab' ? 820 : 360, now + 0.045);
+        g.gain.setValueAtTime(0.022, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+        osc.start(now); osc.stop(now + 0.06);
       }
     } catch (_) {}
   }
@@ -301,6 +310,8 @@
     layer.querySelector('.legendary-emblem').textContent = emblem || '✦';
     layer.querySelector('.legendary-title').textContent = title;
     layer.querySelector('.legendary-detail').textContent = detail;
+    playSfx('reward');
+    vibrate([18, 35, 24]);
     layer.classList.remove('open');
     void layer.offsetWidth;
     layer.classList.add('open');
@@ -711,6 +722,15 @@
 
     document.getElementById('realmCloseBtn').addEventListener('click', closeRealm);
     document.getElementById('draftCancelBtn').addEventListener('click', () => draftModal.classList.remove('open'));
+
+    // One delegated listener covers dynamically-rendered Realm controls without
+    // touching the timer's separate interaction or session-saving paths.
+    overlay.addEventListener('pointerdown', (event) => {
+      const control = event.target.closest('button, .cube-slot, .inv-card, .map-node, .star-node, .relic-card, .atlas-region, .atlas-secret');
+      if (!control || control.disabled || control.getAttribute('aria-disabled') === 'true') return;
+      playSfx(control.classList.contains('realm-tab') ? 'tab' : 'tap');
+    }, { passive: true });
+
     overlay.querySelectorAll('.realm-tab').forEach(btn => {
       btn.addEventListener('click', () => {
         if (isClashing) return;
