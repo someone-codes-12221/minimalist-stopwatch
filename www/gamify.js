@@ -1216,6 +1216,12 @@
     R.selectedTitle = selected.id;
     const frame = stats.bosses >= 5 ? 'ECLIPSE FRAME' : stats.minutes >= 1500 ? 'VIOLET FRAME' : stats.minutes >= 300 ? 'EMBER FRAME' : 'INITIATE FRAME';
     const pct = Math.min(100, Math.round(progress.remaining / progress.needed * 100));
+    const bestiaryEntries = Object.entries(R.bestiary || {}).filter(([, kills]) => Number(kills) > 0).sort((a, b) => a[0].localeCompare(b[0]));
+    const bestiaryTotal = bestiaryEntries.reduce((sum, [, kills]) => sum + Number(kills || 0), 0);
+    const bestiaryHtml = bestiaryEntries.length ? bestiaryEntries.map(([key, kills]) => {
+      const title = key.startsWith('boss:') ? key.slice(5) : key.replace(/^enemy:/, '').replace(/^./, ch => ch.toUpperCase());
+      return `<div class="bestiary-card"><strong>${title}</strong><span>${kills} ${Number(kills) === 1 ? 'victory' : 'victories'}</span></div>`;
+    }).join('') : '<div class="bestiary-empty">No trophies yet. Defeat an enemy for its first-record bounty.</div>';
     body.innerHTML = `
       <section class="player-profile">
         <div class="profile-card ${frame.toLowerCase().replace(/ /g,'-')}">
@@ -1236,6 +1242,8 @@
           <div class="profile-stat"><strong>${stats.streak}</strong><span>CURRENT STREAK</span></div>
           <div class="profile-stat"><strong>${stats.zone}</strong><span>HIGHEST ZONE</span></div>
         </div>
+        <div class="profile-section-label">BESTIARY · ${bestiaryEntries.length} SPECIES · ${bestiaryTotal} VICTORIES</div>
+        <div class="bestiary-grid">${bestiaryHtml}</div>
         <div class="profile-section-label">TITLE COLLECTION · ${unlocked.length}/${PROFILE_TITLES.length} UNLOCKED</div>
         <div class="profile-title-list">${PROFILE_TITLES.map(t => { const open=t.unlock(stats), active=t.id===selected.id; return `<button class="profile-title-option ${open?'':'locked'} ${active?'selected':''}" data-profile-title="${t.id}" ${open?'':'disabled'}><span class="profile-title-name">${open?'✦':'◇'} ${t.name}</span><span class="profile-title-desc">${open?t.desc:'LOCKED · '+t.desc}</span>${active?'<span class="profile-title-equipped">EQUIPPED</span>':''}</button>`; }).join('')}</div>
       </section>`;
@@ -1615,9 +1623,13 @@
     ];
     lines.forEach(line => {
       const role = roleAt(line.cells[0]);
+      const roles = new Set(line.cells.map(roleAt));
       if (role && line.cells.every(idx => roleAt(idx) === role)) {
         line.cells.forEach(idx => bonuses[idx] += 0.18);
         labels.push(line.name + ' ' + role + ' formation (+18%)');
+      } else if (line.cells.every(idx => roleAt(idx)) && roles.size === 3) {
+        line.cells.forEach(idx => bonuses[idx] += 0.12);
+        labels.push(line.name + ' tactical triad (+12%)');
       }
     });
     [[0,4,8],[2,4,6]].forEach((cells, i) => {
@@ -1634,6 +1646,15 @@
 
   function renderGridTab(body) {
     const synergy = getGridSynergyInfo();
+    const studyMetrics = getCombatStudyMetrics();
+    const unlockCardsHtml = Object.values(CUBE_DEFS).filter(def => def.unlock).map(def => {
+      const value = Number(studyMetrics[def.unlock.metric]) || 0;
+      const done = isCubeUnlocked(def, studyMetrics);
+      const current = def.unlock.metric === 'minutes' ? Math.floor(value) + ' / ' + def.unlock.target + ' min'
+        : Math.floor(value) + ' / ' + def.unlock.target + (def.unlock.metric === 'sessions' ? ' sessions' : ' subjects');
+      const pct = Math.min(100, Math.round(value / def.unlock.target * 100));
+      return `<article class="cube-unlock-card ${done ? 'unlocked' : 'locked'}"><div class="cube-unlock-head"><strong>${def.glyph} ${def.name}</strong><span>${done ? 'UNLOCKED' : 'LOCKED'}</span></div><p>${def.desc}</p><div class="cube-unlock-track"><i style="width:${pct}%"></i></div><small>${done ? 'Added to your collection' : def.unlock.label + ' · ' + current}</small></article>`;
+    }).join('');
     const linkedSlots = new Set(synergy.links.flat());
     const gridHtml = R.grid.map((uid, idx) => {
       const c = getCubeByUid(uid);
@@ -1687,6 +1708,8 @@
       </div>
       <div class="sec-head"><span>Cube Inventory</span><span>Tap slot, then cube</span></div>
       <div class="inv-grid">${invHtml}</div>
+      <div class="sec-head"><span>STUDY DISCOVERIES</span><span>Permanent cube unlocks</span></div>
+      <div class="cube-unlock-grid">${unlockCardsHtml}</div>
       <div class="sec-head"><span>Shard Forge</span><span>${R.shards} ◈ available</span></div>
       <div class="shard-forge">
         <div class="cube-detail-bar">
