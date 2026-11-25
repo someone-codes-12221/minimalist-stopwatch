@@ -1097,6 +1097,18 @@
       </div>
       <div class="sec-head"><span>Cube Inventory</span><span>Tap slot, then cube</span></div>
       <div class="inv-grid">${invHtml}</div>
+      <div class="sec-head"><span>Shard Forge</span><span>${R.shards} ◈ available</span></div>
+      <div class="shard-forge">
+        <div class="cube-detail-bar">
+          <div><strong>Battle Charge</strong><div style="color:var(--muted);font-size:10.5px;">Enter one additional battle</div></div>
+          <button class="mini-btn" id="buyChargeBtn" ${R.shards < 18 ? 'disabled' : ''}>18 ◈</button>
+        </div>
+        <div class="cube-detail-bar">
+          <div><strong>Cube Draft</strong><div style="color:var(--muted);font-size:10.5px;">Choose one of three random Cubes</div></div>
+          <button class="mini-btn" id="buyDraftBtn" ${R.shards < 45 ? 'disabled' : ''}>45 ◈</button>
+        </div>
+        <div style="color:var(--muted);font-size:10px;line-height:1.45;">Repeatable purchases. Study still earns Charges and Drafts for free; the Forge is an optional shortcut when you have spare Shards.</div>
+      </div>
     `;
 
     body.querySelectorAll('.cube-slot').forEach(el => {
@@ -1137,6 +1149,16 @@
     });
     document.getElementById('testDummyBtn').addEventListener('click', () => runGridClash(true));
     document.getElementById('draftFromGridBtn').addEventListener('click', openDraftModal);
+    document.getElementById('buyChargeBtn').addEventListener('click', () => {
+      if (R.shards < 18) { showToast('Need 18 Shards'); return; }
+      R.shards -= 18; R.charges++; saveR(); renderRealm();
+      showToast('Battle Charge forged · −18 Shards');
+    });
+    document.getElementById('buyDraftBtn').addEventListener('click', () => {
+      if (R.shards < 45) { showToast('Need 45 Shards'); return; }
+      R.shards -= 45; R.drafts++; saveR(); renderRealm();
+      showToast('Cube Draft forged · −45 Shards');
+    });
   }
 
   function renderConstTab(body) {
