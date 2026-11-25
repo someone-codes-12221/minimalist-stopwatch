@@ -539,3 +539,9 @@
 .mission-status { font-size: 9px; letter-spacing: 0.08em; }
 .mission-claim { padding: 6px 10px; border: 1px solid rgba(255,214,10,0.45); border-radius: 8px; background: rgba(255,214,10,0.08); color: var(--text); font-size: 10px; cursor: pointer; }
 .mission-claim:active { transform: scale(0.97); }
+
+
+/* Weekly quest board */
+.quest-section-label { margin: 18px 0 8px; }
+.quest-chain-note { color: var(--muted); font-size: 11px; margin: -2px 0 10px; }
+.quest-locked { opacity: .55; }
