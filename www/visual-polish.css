@@ -290,3 +290,26 @@ body.running .quick-strip:focus-within,body.running .sessions:focus-within {opac
 .event-battle-tag{margin-bottom:12px;color:#c9b8f3;font:8px var(--font-clock);letter-spacing:.16em}
 .world-event-battle{border-color:rgba(180,150,255,.3)}
 @media(max-width:360px){.world-event-hero{padding:18px 12px}.world-event-enemy{padding:10px}}
+
+/* World Atlas */
+.world-atlas{display:flex;flex-direction:column;gap:12px;padding-bottom:12px}
+.atlas-hero{padding:20px;border:1px solid rgba(170,145,255,.22);border-radius:16px;background:radial-gradient(ellipse at 85% 0%,rgba(129,92,210,.2),transparent 55%),linear-gradient(145deg,rgba(30,25,43,.96),rgba(12,12,19,.96))}
+.atlas-kicker,.atlas-region-kicker{font-size:9px;letter-spacing:1.8px;color:var(--muted);font-weight:700}
+.atlas-hero h2{font-size:24px;margin:8px 0 6px;color:var(--text)}
+.atlas-hero p,.atlas-region p,.atlas-secret p{font-size:11px;line-height:1.55;color:var(--muted);margin:0}
+.atlas-progress{display:flex;justify-content:space-between;align-items:center;margin-top:18px;font-size:9px;letter-spacing:1px;color:var(--muted)}
+.atlas-progress strong{font-size:13px;color:var(--text)}
+.atlas-progress-track{height:5px;background:rgba(255,255,255,.08);border-radius:9px;margin-top:8px;overflow:hidden}
+.atlas-progress-track i{display:block;height:100%;background:linear-gradient(90deg,#8062bd,#d3b7ff);border-radius:9px}
+.atlas-region-list{display:grid;gap:8px}
+.atlas-region,.atlas-secret{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:13px;background:rgba(255,255,255,.025)}
+.atlas-region.locked{opacity:.48}
+.atlas-region.current{border-color:rgba(178,145,255,.55);background:rgba(117,83,176,.12)}
+.atlas-region-emblem,.atlas-secret-icon{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border-radius:11px;background:rgba(154,121,220,.13);color:#d6c1ff;font-size:20px}
+.atlas-region-copy{min-width:0;flex:1}
+.atlas-region h3,.atlas-secret h3{font-size:13px;margin:4px 0;color:var(--text)}
+.atlas-region-state,.atlas-secret-state{font-size:8px;letter-spacing:1px;color:var(--muted);font-weight:700;white-space:nowrap}
+.atlas-secret{border-color:rgba(190,155,255,.25);background:rgba(93,66,139,.09)}
+.atlas-secret.sealed{opacity:.68}
+.atlas-secret>div:nth-child(2){flex:1;min-width:0}
+@media(max-width:360px){.atlas-hero{padding:15px}.atlas-region,.atlas-secret{gap:8px;padding:10px}.atlas-region-emblem,.atlas-secret-icon{width:30px;height:30px;flex-basis:30px}}
