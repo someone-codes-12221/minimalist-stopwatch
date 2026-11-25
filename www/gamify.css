@@ -815,3 +815,59 @@
 .realm-body.enemy-selection-static .enemy-visual.idle svg {
   animation: none !important;
 }
+
+
+/* === CHRONOREALM CUBE COMBAT OVERHAUL === */
+.enemy-phase {
+  display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 7px;
+  border:1px solid rgba(214,173,105,.42);border-radius:5px;
+  color:#e6c58c;background:rgba(149,103,45,.12);
+  font-size:9px;font-weight:800;letter-spacing:.12em;
+}
+.enemy-intent {
+  margin-top:6px;padding:7px 9px;border-left:2px solid rgba(194,157,101,.72);
+  background:rgba(194,157,101,.075);color:#e8d6b6;
+  font-size:10px;line-height:1.4;font-weight:700;letter-spacing:.035em;
+}
+.combat-action-row {
+  display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:7px;margin-top:10px;
+}
+.combat-action-row .btn { min-width:0;padding-left:7px;padding-right:7px;font-size:10px; }
+.camp-recovery {
+  margin:10px 0 7px;color:var(--muted);font-size:10px;
+  font-family:var(--font-clock);letter-spacing:.12em;
+}
+.cube-unlock-grid {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 16px;
+}
+.cube-unlock-card {
+  min-width:0;padding:11px;border:1px solid var(--line);border-radius:10px;
+  background:rgba(255,255,255,.025);
+}
+.cube-unlock-card.unlocked { border-color:rgba(105,186,148,.35);background:rgba(67,142,105,.075); }
+.cube-unlock-head { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+.cube-unlock-head strong { color:var(--text);font-size:12px; }
+.cube-unlock-head span { flex-shrink:0;color:var(--muted);font-size:8px;font-weight:800;letter-spacing:.1em; }
+.cube-unlock-card.unlocked .cube-unlock-head span { color:#8fd2ad; }
+.cube-unlock-card p { min-height:32px;margin:7px 0;color:var(--muted);font-size:10px;line-height:1.4; }
+.cube-unlock-card small { display:block;margin-top:6px;color:var(--muted);font-size:9px;line-height:1.35; }
+.cube-unlock-track { height:4px;overflow:hidden;border-radius:9px;background:rgba(255,255,255,.08); }
+.cube-unlock-track i { display:block;height:100%;background:#9a83c8; }
+.cube-unlock-card.unlocked .cube-unlock-track i { background:#78b997; }
+.bestiary-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:8px 0 18px; }
+.bestiary-card {
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:8px;
+  background:rgba(255,255,255,.025);
+}
+.bestiary-card strong { overflow:hidden;color:var(--text);font-size:10px;text-overflow:ellipsis;white-space:nowrap; }
+.bestiary-card span { flex-shrink:0;color:var(--muted);font-size:9px; }
+.bestiary-empty {
+  grid-column:1/-1;padding:13px;border:1px dashed var(--line);border-radius:8px;
+  color:var(--muted);font-size:10px;line-height:1.45;
+}
+@media(max-width:380px) {
+  .combat-action-row { grid-template-columns:1fr 1fr; }
+  .combat-action-row #strikeBtn { grid-column:1/-1; }
+  .cube-unlock-grid,.bestiary-grid { grid-template-columns:1fr; }
+}
