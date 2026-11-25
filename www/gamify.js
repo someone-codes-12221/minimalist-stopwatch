@@ -194,7 +194,7 @@
   function makeEnemy(kind, scale, zone = R && R.zone || 1) {
     const stats = {
       monolith: ['Monolith', 84, 14, 8, 'Heavy armor · Crushing slam every third counterattack'],
-      phantom: ['Phantom', 60, 20, 0, 'Rotating phase guard · stronger every second counterattack'],
+      phantom: ['Phantom', 60, 20, 0, 'Rotating phase guard · changes each turn'],
       swarm: ['Swarm', 72, 10, 0, 'Strikes twice every turn · protects its corners'],
       wraith: ['Wraith', 68, 16, 2, 'Balanced pressure · relentless counterattacks'],
       reaver: ['Reaver', 72, 12, 3, 'Two quick strikes · bypasses 25% Shield every second turn'],
@@ -241,7 +241,7 @@
         momentum: { xp: 0, lvl: 1 }, versatility: { xp: 0, lvl: 1 }, overclock: { xp: 0, lvl: 1 }
       },
       perkPoints: 1, perks: {},
-      bestiary: {}, bossRelics: [], studyCubeClaims: {}, studySessionCount: 0, surgeArmed: false, combatRulesVersion: 2
+      bestiary: {}, bossRelics: [], studyCubeClaims: {}, studySessionCount: 0, combatRulesVersion: 2
     };
   }
 
@@ -258,7 +258,6 @@
   if (!Array.isArray(R.bossRelics)) R.bossRelics = [];
   if (!R.studyCubeClaims || typeof R.studyCubeClaims !== 'object' || Array.isArray(R.studyCubeClaims)) R.studyCubeClaims = {};
   if (!Number.isFinite(R.studySessionCount)) R.studySessionCount = 0;
-  if (typeof R.surgeArmed !== 'boolean') R.surgeArmed = false;
   if (!Number.isFinite(R.combatRulesVersion)) R.combatRulesVersion = 0;
   if (R.combatRulesVersion < 2) {
     const tuneSavedEnemy = enemy => {
@@ -692,7 +691,6 @@
       const attackTurn = (en.turns || 0) + 1;
       let totalIncoming = en.atk * (en.hits || 1);
       if (en.kind === 'monolith' && attackTurn % 3 === 0) totalIncoming = Math.round(totalIncoming * 1.45);
-      if (en.kind === 'phantom' && attackTurn % 2 === 0) totalIncoming = Math.round(totalIncoming * 1.2);
       if (node.type === 'boss' && en.bossStyle === 0 && attackTurn % 2 === 0) totalIncoming = Math.round(totalIncoming * (en.phase >= 2 ? 1.35 : 1.2));
       const chillReduction = Math.min(0.5, chilledPower);
       const chilledIncoming = Math.max(0, Math.round(totalIncoming * (1 - chillReduction)));
@@ -1481,7 +1479,7 @@
     }
     const intents = {
       monolith: turn % 3 === 0 ? 'CRUSHING SLAM · 45% stronger this turn' : 'STONE HAMMER · heavy counterattack',
-      phantom: turn % 2 === 0 ? 'PHASE SURGE · 20% stronger this turn' : 'PHASE SHIFT · guard changes each turn',
+      phantom: 'PHASE SHIFT · guard changes each turn',
       swarm: 'FLURRY · two strikes each turn',
       wraith: turn % 3 === 0 ? 'RESONANT DRAIN · 6% of max HP bypasses Shield' : 'RELENTLESS STRIKE · balanced pressure',
       reaver: turn % 2 === 0 ? 'DUAL LUNGE · two hits; second bypasses 25% Shield' : 'DUAL LUNGE · two hits',

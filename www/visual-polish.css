@@ -583,3 +583,14 @@ button:active,.icon-btn:active,.subj-pill:active,.chip:active {
   transition: none !important;
   scroll-behavior: auto !important;
 }
+
+
+/* Hard stop for all Realm motion. Bumped asset version forces stale mobile caches to reload. */
+html body .realm-overlay,
+html body .realm-overlay *,
+html body .realm-overlay *::before,
+html body .realm-overlay *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}

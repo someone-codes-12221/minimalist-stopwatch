@@ -152,13 +152,13 @@ Relic Vault already has unlock requirements based on study/Realm progress, disco
 ### Combat, cubes, and map
 
 Already includes:
-- 3×3 Cube-grid auto-clash combat; ChronoRealm visual motion remains disabled.
+- 3×3 Cube-grid auto-clash combat; all ChronoRealm CSS animations and transitions are forcibly disabled, with a cache-busted stylesheet version.
 - Strike, Ward, and Synergy cube roles.
 - Core cubes: Spike, Ember, Shatter, Aegis, Reflect, Mend, Prism, Echo, and Catalyst.
 - Study-unlocked cubes: Frost (180 saved study minutes), Rupture (600 saved study minutes), Siphon (20 saved sessions), and Conduit (3 distinct saved subjects).
 - Inventory, placement, swapping, removal, tier upgrades, and grid synergy.
 - Free Test Grid action and Shard Forge purchases for Battle Charges/Drafts.
-- Enemy-specific tactics with rotating guarded cells, telegraphed attack intent, and archetype-specific counterattacks.
+- Enemy-specific tactics with rotating guarded cells, telegraphed attack intent, and archetype-specific counterattacks. Phantom enemies shift their guard but no longer receive a periodic Phase Surge damage boost.
 - Boss phase transitions at 55% HP, with phase-specific behavior.
 - Five boss-exclusive Legendary relics, each dropped by its matching zone guardian and equipable through the existing two relic slots.
 - Real map and daily World Event encounters each consume 1 Battle Charge on entry. Charges are earned through study (15 minutes per Charge); the Test Grid remains free.
