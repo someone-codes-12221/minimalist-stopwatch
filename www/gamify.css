@@ -587,3 +587,7 @@
 .map-zone-subtitle{position:absolute;left:12px;top:31px;color:rgba(255,255,255,.48);font-size:9px;letter-spacing:.04em;pointer-events:none;max-width:75%;}
 
 .map-zone-rule{position:relative;margin:8px 12px 0;padding:7px 9px;border:1px solid rgba(191,140,255,.18);border-radius:8px;background:rgba(191,140,255,.055);color:rgba(235,224,255,.78);font-size:10px;line-height:1.4;letter-spacing:.01em;}
+
+/* Enemy tactics: highlighted cells are partially guarded */
+.mini-slot.tactic-guarded{position:relative;background:rgba(191,140,255,.12);border:1px dashed rgba(191,140,255,.72);box-shadow:inset 0 0 8px rgba(191,140,255,.12);}
+.enemy-tactic{font-size:9.5px;line-height:1.35;margin-top:5px;color:#d4b5ff;background:rgba(191,140,255,.08);border:1px solid rgba(191,140,255,.2);border-radius:6px;padding:5px 6px;}
