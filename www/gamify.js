@@ -539,7 +539,7 @@
       </div>
       <div class="realm-res-bar" id="realmResBar"></div>
       <div class="realm-tabs">
-        <button class="realm-tab active" data-rtab="map">Map & Battle</button>
+        <button class="realm-tab active" data-rtab="map">Map</button>
         <button class="realm-tab" data-rtab="grid">3×3 Grid</button>
         <button class="realm-tab" data-rtab="stars">Constellations</button>
         <button class="realm-tab" data-rtab="journal">Journal</button>
