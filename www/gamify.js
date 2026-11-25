@@ -11,7 +11,11 @@
     mend:     { id: 'mend',     name: 'Mend',     cls: 'ward',    glyph: '✚', desc: 'Restores Run HP during the clash.', base: 10 },
     prism:    { id: 'prism',    name: 'Prism',    cls: 'synergy', glyph: '◇', desc: 'Triggers Cubes directly ABOVE & BELOW again.', base: 1 },
     echo:     { id: 'echo',     name: 'Echo',     cls: 'synergy', glyph: '◎', desc: 'Copies the previous fired Cube in the grid.', base: 1 },
-    catalyst: { id: 'catalyst', name: 'Catalyst', cls: 'synergy', glyph: '✦', desc: 'Boosts adjacent 4-way Cubes by +50% (+15%/tier).', base: 0.5 }
+    catalyst: { id: 'catalyst', name: 'Catalyst', cls: 'synergy', glyph: '✦', desc: 'Boosts adjacent 4-way Cubes by +50% (+15%/tier).', base: 0.5 },
+    frost: { id: 'frost', name: 'Frost', cls: 'strike', glyph: '❄', desc: 'Deals damage and chills the enemy, reducing its next counterattack by 25%.', base: 11, unlock: { metric: 'minutes', target: 180, label: 'Study 3 hours total' } },
+    rupture: { id: 'rupture', name: 'Rupture', cls: 'strike', glyph: '⌁', desc: 'Deals damage and permanently strips 2 enemy Armor this fight.', base: 10, unlock: { metric: 'minutes', target: 600, label: 'Study 10 hours total' } },
+    siphon: { id: 'siphon', name: 'Siphon', cls: 'strike', glyph: '⟡', desc: 'Deals damage and restores HP equal to 30% of its damage.', base: 8, unlock: { metric: 'sessions', target: 20, label: 'Complete 20 saved sessions' } },
+    conduit: { id: 'conduit', name: 'Conduit', cls: 'synergy', glyph: '⌘', desc: 'Empowers the next Strike or Ward cube by 25%.', base: 0, unlock: { metric: 'subjects', target: 3, label: 'Study 3 different subjects' } }
   };
 
   const CONSTELLATIONS = {
@@ -236,7 +240,8 @@
         endurance: { xp: 0, lvl: 1 }, depth: { xp: 0, lvl: 1 },
         momentum: { xp: 0, lvl: 1 }, versatility: { xp: 0, lvl: 1 }, overclock: { xp: 0, lvl: 1 }
       },
-      perkPoints: 1, perks: {}
+      perkPoints: 1, perks: {},
+      bestiary: {}, studyCubeClaims: {}, studySessionCount: 0, surgeArmed: false
     };
   }
 
@@ -249,6 +254,10 @@
   if (!Number.isFinite(R.bossWins)) R.bossWins = 0;
   if (!Number.isFinite(R.cubesDrafted)) R.cubesDrafted = 0;
   if (!Array.isArray(R.equippedRelics)) R.equippedRelics = [];
+  if (!R.bestiary || typeof R.bestiary !== 'object' || Array.isArray(R.bestiary)) R.bestiary = {};
+  if (!R.studyCubeClaims || typeof R.studyCubeClaims !== 'object' || Array.isArray(R.studyCubeClaims)) R.studyCubeClaims = {};
+  if (!Number.isFinite(R.studySessionCount)) R.studySessionCount = 0;
+  if (typeof R.surgeArmed !== 'boolean') R.surgeArmed = false;
   // Add the optional side-route to existing saves without replacing their current map.
   if ((R.zone || 1) >= 2 && Array.isArray(R.map) && !R.map.some(n => n.isSecretBoss)) {
     const scale = 1 + ((R.zone || 1) - 1) * 0.32;
@@ -327,6 +336,7 @@
     const mins = Math.max(0, info.durationMs / 60000);
     if (mins < 0.5) return;
     R.totalStudyMins += mins;
+    R.studySessionCount = (R.studySessionCount || 0) + 1;
 
     R.remChargeMin += mins;
     const newCharges = Math.floor(R.remChargeMin / 15);
@@ -763,7 +773,9 @@
 
   function openDraftModal() {
     if (R.drafts < 1) { showToast('Study 30m to earn a Cube Draft'); return; }
-    const keys = Object.keys(CUBE_DEFS), picks = [];
+    const keys = Object.keys(CUBE_DEFS).filter(key => isCubeUnlocked(CUBE_DEFS[key]));
+    if (keys.length < 3) { showToast('More cube types unlock through study milestones'); return; }
+    const picks = [];
     while (picks.length < 3) {
       const k = keys[Math.floor(Math.random() * keys.length)];
       if (!picks.includes(k)) picks.push(k);
@@ -1082,6 +1094,40 @@
       bosses: Number(R.bossWins) || 0, zone: Number(R.zone) || 1,
       grid: (R.grid || []).filter(Boolean).length
     };
+  }
+
+  function getCombatStudyMetrics() {
+    const rows = window.ChronoStudyData && Array.isArray(window.ChronoStudyData.allTimeSessions)
+      ? window.ChronoStudyData.allTimeSessions : [];
+    const recordMinutes = rows.reduce((sum, s) => sum + Math.max(0, Number(s.duration) || 0), 0) / 60000;
+    return {
+      minutes: Math.max(Number(R.totalStudyMins) || 0, recordMinutes),
+      sessions: Math.max(Number(R.studySessionCount) || 0, rows.length),
+      subjects: new Set(rows.map(s => String(s.subject || 'General').trim()).filter(Boolean)).size
+    };
+  }
+
+  function isCubeUnlocked(def, stats) {
+    if (!def || !def.unlock) return true;
+    const metrics = stats || getCombatStudyMetrics();
+    return Number(metrics[def.unlock.metric]) >= def.unlock.target;
+  }
+
+  function grantStudyCubeUnlocks() {
+    if (!Array.isArray(R.inventory)) R.inventory = [];
+    if (!R.studyCubeClaims || typeof R.studyCubeClaims !== 'object') R.studyCubeClaims = {};
+    const metrics = getCombatStudyMetrics();
+    const granted = [];
+    Object.values(CUBE_DEFS).forEach(def => {
+      if (!def.unlock || !isCubeUnlocked(def, metrics) || R.studyCubeClaims[def.id]) return;
+      const uid = 'study_unlock_' + def.id;
+      if (!R.inventory.some(c => c && c.uid === uid)) {
+        R.inventory.push({ uid, type: def.id, tier: 1 });
+      }
+      R.studyCubeClaims[def.id] = true;
+      granted.push(def.name);
+    });
+    return granted;
   }
 
   const PROFILE_TITLES = [
@@ -1664,13 +1710,19 @@
   }
 
 
-  window.ChronoRealm = { open: openRealm, onSessionSaved, updateBadge: updateRealmBadge, syncDailyStudySnapshot: (snapshot) => { window.ChronoStudyData = snapshot; } };
+  window.ChronoRealm = { open: openRealm, onSessionSaved, updateBadge: updateRealmBadge, syncDailyStudySnapshot: (snapshot) => {
+    window.ChronoStudyData = snapshot;
+    const granted = grantStudyCubeUnlocks();
+    if (granted.length) { saveR(); showToast('Study milestone unlocked: ' + granted.join(', ')); }
+  } };
   document.addEventListener('DOMContentLoaded', () => {
     if (!R.dailyMissionClaims || typeof R.dailyMissionClaims !== 'object') R.dailyMissionClaims = {};
     const claimDays = Object.keys(R.dailyMissionClaims).sort();
     claimDays.slice(0, Math.max(0, claimDays.length - 45)).forEach(day => delete R.dailyMissionClaims[day]);
     const btn = document.getElementById('realmBtn');
     if (btn) btn.addEventListener('click', openRealm);
+    const initialUnlocks = grantStudyCubeUnlocks();
+    if (initialUnlocks.length) showToast('Study milestone unlocked: ' + initialUnlocks.join(', '));
     updateRealmBadge();
     saveR();
   });
