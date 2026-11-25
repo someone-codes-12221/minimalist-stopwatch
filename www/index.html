@@ -1900,7 +1900,10 @@
       window.ChronoStudyData = {
         dateKey: tk,
         sessions: todayArr.map(s => ({ duration: Number(s.duration) || 0, subject: s.subject || 'General' })),
-        weekStart, weekEnd, weekSessions
+        weekStart, weekEnd, weekSessions,
+        allTimeSessions: Object.entries(store.days).flatMap(([day, sessions]) =>
+          Array.isArray(sessions) ? sessions.map(s => ({ date: day, duration: Number(s.duration) || 0, subject: s.subject || 'General' })) : []
+        )
       };
       if (window.ChronoRealm && window.ChronoRealm.syncDailyStudySnapshot) {
         window.ChronoRealm.syncDailyStudySnapshot(window.ChronoStudyData);
