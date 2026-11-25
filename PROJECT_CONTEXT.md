@@ -338,3 +338,11 @@ This pass is deliberately presentation-only:
 - Selected nodes now keep their highlighted border/glow but do not pulse or animate.
 - The Realm content stagger remains scoped to explicit tab transitions only; map-node selection bypasses it.
 - Bumped the gamify.css cache key so deployed browsers fetch the static selected-node styling.
+
+
+## 18. Hard-stop enemy selection motion
+
+- Map-node selection now marks the rendered Realm body with `enemy-selection-static`.
+- A high-specificity CSS override disables animations throughout the selected encounter content, including the enemy idle-float animation and any child entrance animations.
+- The static-selection class is cleared when switching tabs or before combat starts, so normal tab transitions and combat hit effects remain available.
+- Bumped the gamify.css cache key to `enemy-selection-hard-stop-v4`.
