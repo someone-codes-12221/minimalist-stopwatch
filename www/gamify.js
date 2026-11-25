@@ -241,7 +241,7 @@
         momentum: { xp: 0, lvl: 1 }, versatility: { xp: 0, lvl: 1 }, overclock: { xp: 0, lvl: 1 }
       },
       perkPoints: 1, perks: {},
-      bestiary: {}, studyCubeClaims: {}, studySessionCount: 0, surgeArmed: false
+      bestiary: {}, studyCubeClaims: {}, studySessionCount: 0, surgeArmed: false, combatRulesVersion: 2
     };
   }
 
@@ -258,6 +258,27 @@
   if (!R.studyCubeClaims || typeof R.studyCubeClaims !== 'object' || Array.isArray(R.studyCubeClaims)) R.studyCubeClaims = {};
   if (!Number.isFinite(R.studySessionCount)) R.studySessionCount = 0;
   if (typeof R.surgeArmed !== 'boolean') R.surgeArmed = false;
+  if (!Number.isFinite(R.combatRulesVersion)) R.combatRulesVersion = 0;
+  if (R.combatRulesVersion < 2) {
+    const tuneSavedEnemy = enemy => {
+      if (!enemy || typeof enemy !== 'object') return;
+      const oldMax = Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1);
+      const oldHp = Math.max(0, Number(enemy.hp) || 0);
+      const isBoss = enemy.kind === 'boss';
+      const hpScale = isBoss ? 1.10 : 1.18;
+      const attackScale = isBoss ? 1.10 : 1.14;
+      enemy.maxHp = Math.round(oldMax * hpScale);
+      enemy.hp = Math.min(enemy.maxHp, Math.round(enemy.maxHp * Math.min(1, oldHp / oldMax)));
+      enemy.atk = Math.max(1, Math.round((Number(enemy.atk) || 1) * attackScale));
+      if (!Number.isFinite(enemy.baseArmor)) enemy.baseArmor = Number(enemy.armor) || 0;
+      if (!Number.isFinite(enemy.turns)) enemy.turns = 0;
+      if (isBoss && !Number.isFinite(enemy.phase)) enemy.phase = 1;
+    };
+    if (Array.isArray(R.map)) R.map.forEach(node => tuneSavedEnemy(node && node.enemy));
+    if (R.worldEvent && R.worldEvent.node) tuneSavedEnemy(R.worldEvent.node.enemy);
+    R.combatRulesVersion = 2;
+    saveR();
+  }
   // Add the optional side-route to existing saves without replacing their current map.
   if ((R.zone || 1) >= 2 && Array.isArray(R.map) && !R.map.some(n => n.isSecretBoss)) {
     const scale = 1 + ((R.zone || 1) - 1) * 0.32;
@@ -656,7 +677,7 @@
       let totalIncoming = en.atk * (en.hits || 1);
       if (en.kind === 'monolith' && attackTurn % 3 === 0) totalIncoming = Math.round(totalIncoming * 1.45);
       if (en.kind === 'phantom' && attackTurn % 2 === 0) totalIncoming = Math.round(totalIncoming * 1.2);
-      if (node.type === 'boss' && en.phase >= 2 && en.bossStyle === 0 && attackTurn % 2 === 0) totalIncoming = Math.round(totalIncoming * 1.35);
+      if (node.type === 'boss' && en.bossStyle === 0 && attackTurn % 2 === 0) totalIncoming = Math.round(totalIncoming * (en.phase >= 2 ? 1.35 : 1.2));
       const chillReduction = Math.min(0.5, chilledPower);
       const chilledIncoming = Math.max(0, Math.round(totalIncoming * (1 - chillReduction)));
       const bypassRatio = node.type === 'boss' && en.phase >= 2 && en.bossStyle === 4 && attackTurn % 2 === 0 ? 0.3
@@ -1767,7 +1788,7 @@
     document.getElementById('buyChargeBtn').addEventListener('click', () => {
       if (R.shards < 18) { showToast('Need 18 Shards'); return; }
       R.shards -= 18; R.charges++; saveR(); renderRealm();
-      showToast('Battle Charge forged · −18 Shards');
+      showToast('Surge Charge forged · −18 Shards');
     });
     document.getElementById('buyDraftBtn').addEventListener('click', () => {
       if (R.shards < 45) { showToast('Need 45 Shards'); return; }
