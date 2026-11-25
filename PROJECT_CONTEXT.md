@@ -152,13 +152,15 @@ Relic Vault already has unlock requirements based on study/Realm progress, disco
 ### Combat, cubes, and map
 
 Already includes:
-- Animated auto-clash combat using a 3×3 Cube grid.
+- 3×3 Cube-grid auto-clash combat; ChronoRealm visual motion remains disabled.
 - Strike, Ward, and Synergy cube roles.
-- Spike, Ember, Shatter, Aegis, Reflect, Mend, Prism, Echo, and Catalyst cube types.
+- Core cubes: Spike, Ember, Shatter, Aegis, Reflect, Mend, Prism, Echo, and Catalyst.
+- Study-unlocked cubes: Frost (180 saved study minutes), Rupture (600 saved study minutes), Siphon (20 saved sessions), and Conduit (3 distinct saved subjects).
 - Inventory, placement, swapping, removal, tier upgrades, and grid synergy.
 - Free Test Grid action and Shard Forge purchases for Charges/Drafts.
-- Enemy-specific tactics and behaviors.
-- Charge-costed real encounters.
+- Enemy-specific tactics with rotating guarded cells, telegraphed attack intent, and archetype-specific counterattacks.
+- Boss phase transitions at 55% HP, with phase-specific behavior.
+- Free real encounters; study-earned Charges are optional Surge fuel (+30% to one volley).
 - Branching zone maps with hostile nodes, shrines, vaults, bosses, and optional secret boss route.
 - Five region themes: Ashen March, Drowned Archive, Thornwild, Hollow Crown, Starfall Citadel.
 - Zone progression and boss rewards.
@@ -354,3 +356,18 @@ This pass is deliberately presentation-only:
 - This removes Realm entrance effects, tab transitions, selected-node pulses, enemy idle motion, combat shakes/hit effects, reward reveals, and toast motion.
 - Stopwatch UI outside ChronoRealm keeps its existing animations.
 - Cache-busted visual-polish.css with `realm-motion-free-v1`.
+
+
+## 20. Cube combat overhaul
+
+- Preserves the 3×3 board, inventory, placement, upgrades, role formations, relics, Constellations, and existing enemy/map data.
+- Adds four study-history unlocks: Frost at 180 saved minutes, Rupture at 600 saved minutes, Siphon at 20 saved sessions, and Conduit after 3 distinct saved subjects. Each is granted once into inventory and remains available in future drafts.
+- Frost reduces the next enemy counterattack by 25% per Frost cube (capped at 50%); Rupture permanently removes 2 Armor per cube for the current encounter; Siphon heals 30% of its damage; Conduit empowers the next Strike or Ward cube by 25%.
+- Fully occupied mixed-role rows/columns grant a Tactical Triad (+12%) in addition to existing same-role formations.
+- Encounters no longer consume entry Charges. Charges are now optional Surge resources: arm one before a fight for +30% volley power; cancellation refunds the charge.
+- Enemy guard cells rotate for selected archetypes. Counterattacks include Monolith slams, Phantom surges, Reaver shield bypass, and existing Swarm/Thorn/Leech/Hexcaller traits.
+- Zone bosses have two phases; Phase II begins at 55% HP and changes their attack/guard behavior.
+- Defeat returns the player to camp at 65% HP and restores 15% enemy HP. Camp offers a full rest for 12 Shards or an emergency recovery to 75% HP when the player cannot afford it.
+- First victories against each enemy archetype or named boss add a Bestiary record and one bonus Cube Draft. Repeat victories increase the recorded count without repeating the first-trophy reward.
+- Study-derived cube unlocks read saved study snapshots and cumulative Realm study/session counters. Existing study save/import/session pathways remain unchanged.
+- New combat UI uses static intent, phase, unlock-progress, Surge, and Bestiary panels. No ChronoRealm animation or transition was added.
