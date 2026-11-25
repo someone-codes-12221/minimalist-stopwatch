@@ -399,8 +399,6 @@
     const node = R.selectedNode === -1 && R.worldEvent ? R.worldEvent.node : R.map.find(n => n.id === R.selectedNode);
     if (!isTestDummy) {
       if (!node || (node.type !== 'hostile' && node.type !== 'boss') || node.cleared) return;
-      if (R.charges < 1) { showToast('Need 1 Battle Charge (Study 15m)'); return; }
-      R.charges--;
       const strikeBtn = document.getElementById('strikeBtn');
       if (strikeBtn) strikeBtn.disabled = true;
     }
@@ -425,12 +423,15 @@
 
     const relicBonuses = getEquippedRelicBonuses();
     const overMult = 1 + (R.overcharge || 0) + (R.overcharge > 0 && hasPerk('d2') ? 0.15 : 0);
-    const powerMult = getBasePowerMult() * overMult * (1 + relicBonuses.power);
+    const surgeActive = !isTestDummy && !!R.surgeArmed;
+    const powerMult = getBasePowerMult() * overMult * (1 + relicBonuses.power) * (surgeActive ? 1.3 : 1);
+    if (surgeActive) { R.surgeArmed = false; saveR(); }
     const strikeMult = (1 + (hasPerk('d1') ? 0.18 : 0) + (hasPerk('d4') ? 0.30 : 0)) * (1 + relicBonuses.strike);
     const wardMult = (1 + (hasPerk('m1') ? 0.20 : 0)) * (1 + relicBonuses.ward);
     const critChance = Math.min(0.6, (hasPerk('o1') ? 0.15 : 0) + (hasPerk('o3') ? 0.20 : 0) + relicBonuses.crit);
 
     let totalDmg = 0, totalBurn = 0, totalShield = hasPerk('m4') ? 12 : 0, totalHeal = 0, hasReflect = false;
+    let chilledPower = 0, conduitCharges = 0;
     const updateTallies = () => {
       if (tallyDmgEl) tallyDmgEl.textContent = `⚔ ${totalDmg}`;
       if (tallyShdEl) tallyShdEl.textContent = `⬡ ${totalShield}`;
@@ -460,12 +461,14 @@
       if (!c) return;
       const def = CUBE_DEFS[c.type];
       const tierMult = 1 + (c.tier - 1) * 0.45;
-      const mult = powerMult * tierMult * adjBonus[idx] * formationBonus[idx] * extraMult;
+      const conduitBoost = c.type !== 'conduit' && def.cls !== 'synergy' && conduitCharges > 0 ? 1.25 : 1;
+      if (conduitBoost > 1) conduitCharges--;
+      const mult = powerMult * tierMult * adjBonus[idx] * formationBonus[idx] * extraMult * conduitBoost;
 
       const slotEl = document.querySelector(`[data-clash-idx="${idx}"]`);
       if (slotEl) slotEl.classList.add('firing');
 
-      if (c.type === 'spike' || c.type === 'ember' || c.type === 'shatter') {
+      if (c.type === 'spike' || c.type === 'ember' || c.type === 'shatter' || c.type === 'frost' || c.type === 'rupture' || c.type === 'siphon') {
         let d = Math.round(def.base * mult * strikeMult);
         const tactic = !isTestDummy && node ? getEnemyTactic(node.enemy) : null;
         if (tactic && tactic.cells.includes(idx)) {
@@ -486,6 +489,16 @@
           const b = Math.round(def.burn * mult * (hasPerk('d3') ? 1.4 : 1));
           totalBurn += b;
           appendLog(`${labelPrefix}<span class="hl">Ember</span> → <span class="dmg">${d} DMG</span> + <span class="syn">${b} Burn</span>`);
+        } else if (c.type === 'frost') {
+          chilledPower = Math.min(0.5, chilledPower + 0.25);
+          appendLog(`${labelPrefix}<span class="hl">Frost</span> → <span class="dmg">${d} DMG</span> + <span class="syn">25% Chill</span>`);
+        } else if (c.type === 'rupture') {
+          if (!isTestDummy && node && node.enemy) node.enemy.armor = Math.max(0, (node.enemy.armor || 0) - 2);
+          appendLog(`${labelPrefix}<span class="hl">Rupture</span> → <span class="dmg">${d} DMG</span> + <span class="syn">−2 Armor</span>`);
+        } else if (c.type === 'siphon') {
+          const drain = Math.max(1, Math.round(d * 0.3));
+          totalHeal += drain;
+          appendLog(`${labelPrefix}<span class="hl">Siphon</span> → <span class="dmg">${d} DMG</span> + <span class="win">+${drain} HP</span>`);
         } else {
           appendLog(`${labelPrefix}<span class="hl">${def.name}</span> → <span class="dmg">${d} DMG</span>`);
         }
@@ -533,6 +546,11 @@
         playSfx('synergy');
         spawnFloat(miniGrid || slotEl, '✦ BOOST', 'syn');
         appendLog(`<span class="syn">✦ Catalyst</span> empowering adjacent tiles.`);
+      } else if (c.type === 'conduit') {
+        conduitCharges = Math.min(3, conduitCharges + 1);
+        playSfx('synergy');
+        spawnFloat(miniGrid || slotEl, '⌘ LINK', 'syn');
+        appendLog(`<span class="syn">⌘ Conduit</span> — next Strike or Ward fires at 125% power.`);
       }
 
       updateTallies();
