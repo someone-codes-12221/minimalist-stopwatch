@@ -600,6 +600,17 @@
     appendLog(`<span class="hl">Volley landed: <span class="dmg">${netDmg}</span>${burnTick ? ` + ${burnTick} Burn` : ''}${effArmor ? ` (${effArmor} Armor)` : ''}.</span>`);
     await wait(360);
 
+    if (node.type === 'boss' && en.hp > 0 && (en.phase || 1) < 2 && en.hp <= en.maxHp * 0.55) {
+      en.phase = 2;
+      en.atk = Math.round(en.atk * 1.18);
+      en.armor = Math.max(0, Math.round((en.armor || 0) * 0.8));
+      if (en.bossStyle === 4) en.hits = 2;
+      appendLog(`<span class="syn">PHASE II — ${en.name} reveals its true form. Attack rises; its guard changes.</span>`);
+      showToast(`${en.name} · PHASE II`);
+      const phaseEl = document.getElementById('enemyPhase');
+      if (phaseEl) phaseEl.textContent = 'PHASE II';
+    }
+
     if (en.hp <= 0) {
       playSfx('kill'); vibrate([30, 50, 40]);
       if (enemyVis) enemyVis.classList.add('shatter');
@@ -607,6 +618,11 @@
       node.cleared = true;
       R.combatWins = (R.combatWins || 0) + 1;
       if (node.type === 'boss') R.bossWins = (R.bossWins || 0) + 1;
+      const trophyKey = node.type === 'boss' ? `boss:${en.name}` : `enemy:${en.kind}`;
+      const previousKills = Number(R.bestiary[trophyKey]) || 0;
+      R.bestiary[trophyKey] = previousKills + 1;
+      const firstTrophy = previousKills === 0;
+      if (firstTrophy) R.drafts += 1;
       const shardDrop = node.type === 'boss' ? 35 : 12;
       if (node.isWorldEvent) {
         R.worldEvent.completed = true;
@@ -622,22 +638,33 @@
       } else if (node.type === 'boss' && !node.isSecretBoss) {
         R.drafts += 2; R.zone++; R.zoneBuff = 0; R.runHp = getMaxHp();
         R.map = buildZoneMap(R.zone); R.selectedNode = 1;
-        showToast(`ZONE ${R.zone} UNLOCKED! +${shardDrop} Shards · +2 Drafts`);
+        showToast(`ZONE ${R.zone} UNLOCKED! +${shardDrop} Shards · +2 Drafts${firstTrophy ? ' · Trophy +1 Draft' : ''}`);
         showLegendaryMoment('A New Realm Awaits', `The boss has fallen. Zone ${R.zone} is now open.`, '♛');
       } else if (node.isSecretBoss) {
         R.shards += 50; R.drafts += 1;
         showToast('Secret boss defeated · +50 Shards · +1 Draft');
         showLegendaryMoment('The Hidden Path Revealed', 'The Veilbound Warden has fallen. A hidden chapter is yours to explore.', '⌘');
       } else {
-        showToast(`${en.name} Defeated! +${shardDrop} Shards`);
+        showToast(`${en.name} Defeated! +${shardDrop} Shards${firstTrophy ? ' · Trophy +1 Draft' : ''}`);
       }
+      if (firstTrophy) appendLog(`<span class="win">BESTIARY TROPHY RECORDED · ${en.name} · +1 Cube Draft</span>`);
     } else {
       // Enemy Counterattack Lunge
       if (enemyVis) { enemyVis.classList.remove('lunge'); void enemyVis.offsetWidth; enemyVis.classList.add('lunge'); }
       await wait(160);
-      const totalIncoming = en.atk * (en.hits || 1);
-      const blocked = Math.min(totalShield, totalIncoming);
-      const hpLoss = Math.max(0, totalIncoming - blocked);
+      const attackTurn = (en.turns || 0) + 1;
+      let totalIncoming = en.atk * (en.hits || 1);
+      if (en.kind === 'monolith' && attackTurn % 3 === 0) totalIncoming = Math.round(totalIncoming * 1.45);
+      if (en.kind === 'phantom' && attackTurn % 2 === 0) totalIncoming = Math.round(totalIncoming * 1.2);
+      if (node.type === 'boss' && en.phase >= 2 && en.bossStyle === 0 && attackTurn % 2 === 0) totalIncoming = Math.round(totalIncoming * 1.35);
+      const chillReduction = Math.min(0.5, chilledPower);
+      const chilledIncoming = Math.max(0, Math.round(totalIncoming * (1 - chillReduction)));
+      const bypassRatio = node.type === 'boss' && en.phase >= 2 && en.bossStyle === 4 && attackTurn % 2 === 0 ? 0.3
+        : en.kind === 'reaver' && attackTurn % 2 === 0 ? 0.25 : 0;
+      const bypass = Math.round(chilledIncoming * bypassRatio);
+      const blockable = chilledIncoming - bypass;
+      const blocked = Math.min(totalShield, blockable);
+      const hpLoss = bypass + Math.max(0, blockable - blocked);
       R.runHp = Math.max(0, R.runHp - hpLoss);
 
       if (hpLoss > 0) {
@@ -648,7 +675,7 @@
         playSfx('ward'); vibrate(12);
         if (miniGrid) { miniGrid.classList.add('shield-flash'); spawnFloat(miniGrid, 'BLOCKED', 'shd'); }
       }
-      appendLog(`${en.name} strikes (${totalIncoming}) → <span class="shd">${blocked} blocked</span>, <span class="dmg">-${hpLoss} HP</span>.`);
+      appendLog(`${en.name} ${en.kind === 'monolith' && attackTurn % 3 === 0 ? 'CRUSHING SLAM' : 'strikes'} (${totalIncoming}) → <span class="shd">${blocked} blocked</span>${bypass ? ` · ${bypass} bypassed` : ''}, <span class="dmg">-${hpLoss} HP</span>${chillReduction ? ` · Chill −${Math.round(chillReduction * 100)}%` : ''}.`);
 
       // Each region adds one readable battlefield rule on top of enemy traits.
       en.turns = (en.turns || 0) + 1;
@@ -679,12 +706,14 @@
         appendLog(`<span class="syn">${en.name} gathers power. Next attack: ${en.atk}.</span>`);
       }
       if (en.kind === 'thorn' || (node.type === 'boss' && en.bossStyle === 2)) {
-        const regrow = Math.min(Math.ceil(en.maxHp * 0.04), en.maxHp - en.hp);
+        const regrowPct = node.type === 'boss' && en.phase >= 2 ? 0.08 : 0.04;
+        const regrow = Math.min(Math.ceil(en.maxHp * regrowPct), en.maxHp - en.hp);
         en.hp += regrow;
         if (regrow) appendLog(`<span class="win">${en.name} regrows ${regrow} HP.</span>`);
       }
       if (en.kind === 'leech' || (node.type === 'boss' && en.bossStyle === 1)) {
-        const stolen = Math.min(Math.ceil(en.maxHp * 0.035), en.maxHp - en.hp);
+        const drainPct = node.type === 'boss' && en.phase >= 2 ? 0.065 : 0.035;
+        const stolen = Math.min(Math.ceil(en.maxHp * drainPct), en.maxHp - en.hp);
         en.hp += stolen;
         if (stolen) appendLog(`<span class="syn">${en.name} restores ${stolen} HP.</span>`);
       }
@@ -697,9 +726,22 @@
         appendLog(`<span class="shd">Reflect bounced ${refDmg} DMG back!</span>`);
       }
 
+      if (node.type === 'boss' && en.phase >= 2 && en.bossStyle === 0 && attackTurn % 2 === 0) {
+        R.runHp = Math.max(0, R.runHp - 6);
+        appendLog(`<span class="syn">Cinder wave burns for 6 additional HP.</span>`);
+      }
+      if (node.type === 'boss' && en.phase >= 2 && en.bossStyle === 3) {
+        const baseArmor = en.baseArmor == null ? (en.baseArmor = en.armor || 0) : en.baseArmor;
+        en.armor = Math.min(baseArmor + 10, (en.armor || 0) + 2);
+        en.atk = Math.round(en.atk * 1.08);
+        appendLog(`<span class="syn">Regent's decree: +2 Armor and rising attack (${en.atk}).</span>`);
+      }
       if (R.runHp <= 0) {
-        R.runHp = getMaxHp(); R.selectedNode = 0;
-        showToast('Respawned at Camp (Full HP · Zero items lost)');
+        R.runHp = Math.max(1, Math.ceil(getMaxHp() * 0.65));
+        en.hp = Math.min(en.maxHp, en.hp + Math.ceil(en.maxHp * 0.15));
+        R.selectedNode = 0;
+        appendLog(`<span class="dmg">Forced retreat. You return to camp at 65% HP; ${en.name} recovers 15% HP.</span>`);
+        showToast('Forced retreat · Rest at Camp or rebuild your grid');
       }
       await wait(380);
     }
