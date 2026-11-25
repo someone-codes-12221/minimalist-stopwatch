@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
   <title>Chrono Obsidian</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
   <style>
     :root {
       --bg: #000000;
@@ -20,6 +21,46 @@
       --blue: #64d2ff;
       --amber: #ffd60a;
       --red: #ff453a;
+      --font-ui: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-clock: "JetBrains Mono", ui-monospace, monospace;
+      --font-label: "Outfit", -apple-system, sans-serif;
+      --clock-weight: 300;
+    }
+
+    /* Late-Night Amber Tint (Zero Blue Light) */
+    body.amber-tint {
+      --text: #ffae34;
+      --muted: #8a5a18;
+      --dim: #362208;
+      --accent: #ff9f0a;
+      --subject-rgb: 255, 159, 10 !important;
+      --green: #ff9f0a;
+      --blue: #ffb84d;
+      --amber: #ff9f0a;
+      --glass: rgba(255, 159, 10, 0.055);
+      --glass-strong: rgba(255, 159, 10, 0.11);
+      --glass-border: rgba(255, 159, 10, 0.14);
+    }
+
+    body[data-font="mono"] {
+      --font-clock: "JetBrains Mono", ui-monospace, monospace;
+      --font-label: "JetBrains Mono", ui-monospace, monospace;
+      --clock-weight: 300;
+    }
+    body[data-font="editorial"] {
+      --font-clock: "JetBrains Mono", ui-monospace, monospace;
+      --font-label: "Instrument Serif", Georgia, serif;
+      --clock-weight: 200;
+    }
+    body[data-font="outfit"] {
+      --font-clock: "Outfit", -apple-system, sans-serif;
+      --font-label: "Outfit", -apple-system, sans-serif;
+      --clock-weight: 200;
+    }
+    body[data-font="grotesk"] {
+      --font-clock: "Space Grotesk", -apple-system, sans-serif;
+      --font-label: "Space Grotesk", -apple-system, sans-serif;
+      --clock-weight: 300;
     }
 
     * {
@@ -34,7 +75,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+      font-family: var(--font-ui);
       height: 100dvh;
       display: flex;
       flex-direction: column;
@@ -45,17 +86,27 @@
       position: relative;
     }
 
+    /* Auto-Dim Overlay */
+    .dim-curtain {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 90;
+      transition: opacity 1.2s ease;
+    }
+    body.auto-dimmed .dim-curtain { opacity: 0.72; pointer-events: auto; }
+
     /* Hairline Daily Goal Bar */
     .goal-bar-track {
       position: fixed;
       top: env(safe-area-inset-top);
-      left: 0;
-      right: 0;
+      left: 0; right: 0;
       height: 2px;
       background: rgba(255, 255, 255, 0.06);
       z-index: 30;
     }
-
     .goal-bar-fill {
       height: 100%;
       width: 0%;
@@ -64,38 +115,27 @@
       transition: width 0.5s ease, background 0.4s ease;
     }
 
-    /* Ambient Glow */
+    /* Ambient Glow (with Gyro Parallax offset) */
     .ambient-aura {
       position: fixed;
-      top: 40%;
-      left: 50%;
-      width: 360px;
-      height: 360px;
-      transform: translate(-50%, -50%) scale(0.85);
+      top: 40%; left: 50%;
+      width: 360px; height: 360px;
+      transform: translate(calc(-50% + var(--px, 0px)), calc(-50% + var(--py, 0px))) scale(0.85);
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(var(--subject-rgb), 0.12) 0%, rgba(var(--subject-rgb), 0.03) 45%, transparent 72%);
+      background: radial-gradient(circle, rgba(var(--subject-rgb), 0.13) 0%, rgba(var(--subject-rgb), 0.03) 45%, transparent 72%);
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.8s ease, transform 0.8s ease, background 0.6s ease;
+      transition: opacity 0.8s ease, background 0.6s ease;
       z-index: 0;
     }
-
-    body.running .ambient-aura {
-      opacity: 1;
-      animation: breathe 5s ease-in-out infinite alternate;
-    }
-
-    body.break-mode .ambient-aura {
-      background: radial-gradient(circle, rgba(100, 210, 255, 0.14) 0%, transparent 70%);
-    }
-
-    body.final-five .ambient-aura {
-      background: radial-gradient(circle, rgba(255, 69, 58, 0.18) 0%, transparent 70%);
-    }
+    body.running .ambient-aura { opacity: 1; animation: breathe 5s ease-in-out infinite alternate; }
+    body.break-mode .ambient-aura { background: radial-gradient(circle, rgba(100, 210, 255, 0.14) 0%, transparent 70%); }
+    body.final-five .ambient-aura { background: radial-gradient(circle, rgba(255, 69, 58, 0.18) 0%, transparent 70%); }
+    body.overtime .ambient-aura { background: radial-gradient(circle, rgba(255, 214, 10, 0.16) 0%, transparent 70%); }
 
     @keyframes breathe {
-      from { opacity: 0.65; transform: translate(-50%, -50%) scale(0.96); }
-      to { opacity: 1; transform: translate(-50%, -50%) scale(1.18); }
+      from { opacity: 0.65; }
+      to { opacity: 1; }
     }
 
     /* Top Bar */
@@ -105,16 +145,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      gap: 6px;
       z-index: 5;
       transition: opacity 0.4s ease;
     }
-
-    .top-group { display: flex; align-items: center; gap: 8px; }
+    .top-group { display: flex; align-items: center; gap: 6px; }
 
     .icon-btn {
-      width: 36px;
-      height: 36px;
+      width: 34px; height: 34px;
       border-radius: 50%;
       background: var(--glass);
       border: 1px solid var(--glass-border);
@@ -126,57 +164,52 @@
       transition: all 0.22s ease;
       position: relative;
     }
-
     .icon-btn.active {
       color: var(--text);
       border-color: rgba(var(--subject-rgb), 0.45);
       background: rgba(var(--subject-rgb), 0.12);
     }
-
     .icon-btn:active { transform: scale(0.9); }
 
-    .sound-tag {
+    .badge-dot {
       position: absolute;
-      bottom: -14px;
-      font-size: 8.5px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      white-space: nowrap;
-      pointer-events: none;
+      top: 5px; right: 5px;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--amber);
+      display: none;
     }
+    .icon-btn.has-badge .badge-dot { display: block; }
 
     .today-pill {
       display: flex;
       align-items: center;
-      gap: 7px;
-      padding: 7px 14px;
+      gap: 6px;
+      padding: 7px 12px;
       border-radius: 999px;
       background: var(--glass);
       border: 1px solid var(--glass-border);
       font-size: 11px;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.09em;
       text-transform: uppercase;
       color: var(--muted);
       font-variant-numeric: tabular-nums;
       cursor: pointer;
       transition: all 0.2s ease;
     }
-
     .today-pill:active { transform: scale(0.95); background: var(--glass-strong); }
     .today-pill strong { color: var(--text); font-weight: 500; }
 
     .dot {
-      width: 6px;
-      height: 6px;
+      width: 6px; height: 6px;
       border-radius: 50%;
       background: var(--dim);
       transition: all 0.3s ease;
     }
-
     body.running .dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
     body.break-mode.running .dot { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
     body.final-five.running .dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+    body.overtime.running .dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
 
     /* Subject Pills */
     .subjects-wrap {
@@ -207,30 +240,27 @@
       cursor: pointer;
       transition: all 0.22s ease;
     }
-
     .subj-pill.active {
       color: var(--text);
       background: rgba(var(--subject-rgb), 0.14);
       border-color: rgba(var(--subject-rgb), 0.45);
     }
-
     .subj-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
     /* Main Gesture Dial */
     .dial-wrap {
       position: relative;
-      width: 286px;
-      height: 286px;
+      width: 288px;
+      height: 288px;
       flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       z-index: 2;
-      touch-action: manipulation;
+      touch-action: none;
       transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
     }
-
     .dial-wrap.pressing { transform: scale(0.965); }
 
     svg.dial-svg {
@@ -239,11 +269,35 @@
       width: 100%;
       height: 100%;
       overflow: visible;
+      transform: translate(var(--gx, 0px), var(--gy, 0px));
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Monochrome Goal-Hit Shockwave */
+    .goal-pulse {
+      position: absolute;
+      inset: 14px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 24px rgba(48, 209, 88, 0.7), inset 0 0 18px rgba(255, 255, 255, 0.35);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .goal-pulse.fire {
+      animation: goalWave 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes goalWave {
+      0% { transform: scale(0.85); opacity: 0.95; }
+      100% { transform: scale(1.42); opacity: 0; }
     }
 
     .tick { stroke: #1b1b20; stroke-width: 1.2; stroke-linecap: round; }
     .tick.major { stroke: #31313a; stroke-width: 1.6; }
+    body.amber-tint .tick { stroke: #2b1a04; }
+    body.amber-tint .tick.major { stroke: #4a2e08; }
+
     .ring-track { fill: none; stroke: #131316; stroke-width: 2; }
+    body.amber-tint .ring-track { stroke: #1f1303; }
 
     .ring-progress {
       fill: none;
@@ -253,7 +307,7 @@
       stroke-dasharray: 766.55;
       stroke-dashoffset: 766.55;
       transform: rotate(-90deg);
-      transform-origin: 143px 143px;
+      transform-origin: 144px 144px;
       filter: drop-shadow(0 0 6px rgba(var(--subject-rgb), 0.55));
       transition: stroke 0.4s ease;
     }
@@ -261,31 +315,28 @@
     .ring-hold {
       fill: none;
       stroke: var(--red);
-      stroke-width: 3.5;
+      stroke-width: 3.6;
       stroke-linecap: round;
       stroke-dasharray: 766.55;
       stroke-dashoffset: 766.55;
       transform: rotate(-90deg);
-      transform-origin: 143px 143px;
+      transform-origin: 144px 144px;
       filter: drop-shadow(0 0 10px rgba(255, 69, 58, 0.85));
       pointer-events: none;
     }
 
-    body.break-mode .ring-progress {
-      stroke: var(--blue);
-      filter: drop-shadow(0 0 8px rgba(100, 210, 255, 0.6));
-    }
+    .matrix-dot { fill: #1c1c22; transition: fill 0.18s ease; }
+    .matrix-dot.lit { fill: rgba(var(--subject-rgb), 0.85); }
+    .matrix-dot.head { fill: var(--accent); filter: drop-shadow(0 0 6px rgba(var(--subject-rgb), 0.95)); }
 
-    body.final-five .ring-progress {
-      stroke: var(--red);
-      filter: drop-shadow(0 0 10px rgba(255, 69, 58, 0.75));
-      animation: finalPulse 1.4s ease-in-out infinite;
-    }
+    body.break-mode .ring-progress { stroke: var(--blue); filter: drop-shadow(0 0 8px rgba(100, 210, 255, 0.6)); }
+    body.break-mode .matrix-dot.lit { fill: var(--blue); }
+    body.final-five .ring-progress { stroke: var(--red); filter: drop-shadow(0 0 10px rgba(255, 69, 58, 0.75)); animation: finalPulse 1.4s ease-in-out infinite; }
+    body.final-five .matrix-dot.lit { fill: var(--red); }
+    body.overtime .ring-progress { stroke: var(--amber); filter: drop-shadow(0 0 10px rgba(255, 214, 10, 0.7)); }
+    body.overtime .matrix-dot.lit { fill: var(--amber); }
 
-    @keyframes finalPulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.45; }
-    }
+    @keyframes finalPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 
     .orb-live {
       fill: rgb(var(--subject-rgb));
@@ -293,43 +344,116 @@
       opacity: 0;
       transition: opacity 0.3s ease, fill 0.3s ease;
     }
-
     body.started .orb-live { opacity: 1; }
     body.break-mode .orb-live { fill: var(--blue); }
     body.final-five .orb-live { fill: var(--red); }
+    body.overtime .orb-live { fill: var(--amber); }
 
+    body[data-dial="orbital"] #matrixGroup { display: none; }
+    body[data-dial="dotmatrix"] #orbitalGroup { display: none; }
+    body[data-dial="typographic"] .dial-svg { display: none; }
+
+    .typo-bar-wrap {
+      display: none;
+      width: 220px; height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      margin: 16px auto 0;
+      overflow: hidden;
+      position: relative;
+    }
+    body[data-dial="typographic"] .typo-bar-wrap { display: block; }
+    .typo-bar-fill {
+      height: 100%; width: 0%;
+      background: rgb(var(--subject-rgb));
+      box-shadow: 0 0 8px rgba(var(--subject-rgb), 0.8);
+    }
+    .typo-hold-fill {
+      position: absolute; inset: 0;
+      background: var(--red);
+      transform: scaleX(0);
+      transform-origin: left;
+    }
+
+    /* Rolling Digits Typography */
     .time-box { text-align: center; z-index: 3; pointer-events: none; }
 
     .mode-label {
-      font-size: 10px;
+      font-family: var(--font-label);
+      font-size: 11px;
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--muted);
       margin-bottom: 8px;
     }
-
+    body[data-font="editorial"] .mode-label {
+      font-size: 19px;
+      letter-spacing: 0.06em;
+      text-transform: none;
+      font-style: italic;
+      color: var(--text);
+      opacity: 0.78;
+    }
     body.break-mode .mode-label { color: var(--blue); }
     body.final-five .mode-label { color: var(--red); }
+    body.overtime .mode-label { color: var(--amber); }
 
     .time-row {
-      display: flex;
-      align-items: baseline;
+      display: inline-flex;
+      align-items: center;
       justify-content: center;
+      font-family: var(--font-clock);
+      font-weight: var(--clock-weight);
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.02em;
     }
 
-    .hrs, .colon-h {
-      font-size: 40px;
-      font-weight: 200;
-      color: var(--dim);
-      transition: color 0.35s ease;
+    .overtime-plus {
+      display: none;
+      font-size: 28px;
+      color: var(--amber);
+      margin-right: 2px;
     }
+    body.overtime .overtime-plus { display: inline; }
 
-    .hrs.lit { color: var(--text); }
+    .digit-group {
+      display: inline-flex;
+      align-items: center;
+    }
+    .digit-group.hrs-group { font-size: 36px; color: var(--dim); transition: color 0.35s ease; }
+    .digit-group.hrs-group.lit { color: var(--text); }
+    .digit-group.ms-group { font-size: 42px; color: var(--text); }
+
+    .colon-h { font-size: 34px; color: var(--dim); margin: 0 1px; transition: color 0.35s ease; }
     .colon-h.lit { color: var(--muted); }
-    .mins, .secs { font-size: 46px; font-weight: 200; color: var(--text); }
-    .colon { font-size: 38px; font-weight: 200; color: var(--muted); margin: 0 1px; }
+    .colon { font-size: 34px; color: var(--muted); margin: 0 1px; }
+
+    body[data-dial="typographic"] .digit-group.hrs-group,
+    body[data-dial="typographic"] .colon-h { font-size: 48px; }
+    body[data-dial="typographic"] .digit-group.ms-group { font-size: 56px; }
+    body[data-dial="typographic"] .colon { font-size: 44px; }
+
+    .digit-slot {
+      display: inline-block;
+      height: 1.15em;
+      line-height: 1.15em;
+      overflow: hidden;
+      position: relative;
+      width: 0.62em;
+      text-align: center;
+    }
+    .digit-strip {
+      display: flex;
+      flex-direction: column;
+      transform: translateY(0%);
+      transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
+    .digit-strip span {
+      height: 1.15em;
+      line-height: 1.15em;
+      display: block;
+    }
 
     .earned-badge {
       margin-top: 10px;
@@ -338,16 +462,16 @@
       color: var(--muted);
       font-variant-numeric: tabular-nums;
     }
-
     .earned-badge span { color: var(--blue); font-weight: 500; }
 
     .gesture-hint {
-      margin-top: 8px;
+      margin-top: 7px;
       font-size: 9.5px;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: #3a3a42;
     }
+    body.amber-tint .gesture-hint { color: #54340a; }
 
     /* Quick Strip */
     .quick-strip {
@@ -358,7 +482,6 @@
       z-index: 3;
       transition: opacity 0.4s ease;
     }
-
     .chip {
       padding: 6px 13px;
       border-radius: 999px;
@@ -370,7 +493,6 @@
       cursor: pointer;
       transition: all 0.2s ease;
     }
-
     .chip:active { transform: scale(0.94); }
     .chip.highlight { color: var(--blue); border-color: rgba(100, 210, 255, 0.35); background: rgba(100, 210, 255, 0.09); }
     .chip.warn { color: var(--amber); border-color: rgba(255, 214, 10, 0.28); }
@@ -408,17 +530,21 @@
       cursor: pointer;
       animation: slideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
     }
-
     .session-row:active { background: var(--glass-strong); }
-
     .s-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .s-left { display: flex; align-items: center; gap: 7px; }
     .s-meta { color: var(--muted); font-size: 11px; }
     .s-subj { font-size: 11px; color: var(--text); opacity: 0.85; }
-    .s-dur { font-weight: 500; color: var(--text); }
+    .s-dur { font-weight: 500; color: var(--text); font-family: var(--font-clock); font-size: 12.5px; }
+    .s-right { display: flex; align-items: center; gap: 7px; }
     .s-slips { font-size: 11px; color: var(--muted); }
     .s-slips.clean { color: var(--green); }
     .s-note { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .energy-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .energy-high { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .energy-mid { background: var(--blue); }
+    .energy-low { background: var(--amber); opacity: 0.8; }
 
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(-8px); }
@@ -431,73 +557,57 @@
     body.zen .subjects-wrap,
     body.zen .today-pill,
     body.zen #soundBtn,
-    body.zen #flipBtn {
+    body.zen #flipBtn,
+    body.zen #parkBtn,
+    body.zen #settingsBtn {
       opacity: 0;
       pointer-events: none;
     }
-
     body.zen .dial-wrap { transform: translateY(15vh) scale(1.1); }
 
-    /* Landscape Desk-Clock Mode + AMOLED Burn-in Protection */
+    /* Landscape Desk-Clock Mode */
     @media (orientation: landscape) and (max-height: 560px) {
-      body {
-        justify-content: center;
-        padding: 12px 24px;
-      }
-      .topbar, .subjects-wrap, .quick-strip, .sessions, .dial-svg, .gesture-hint {
-        display: none !important;
-      }
-      .dial-wrap {
-        width: 100%;
-        height: 100%;
-        animation: burninShift 60s ease-in-out infinite alternate;
-      }
-      .mode-label { font-size: 12px; letter-spacing: 0.3em; margin-bottom: 10px; }
-      .hrs, .colon-h { font-size: clamp(64px, 16vw, 128px); font-weight: 100; }
-      .mins, .secs { font-size: clamp(72px, 18vw, 144px); font-weight: 100; }
-      .colon { font-size: clamp(58px, 14vw, 112px); font-weight: 100; margin: 0 4px; }
+      body { justify-content: center; padding: 12px 24px; }
+      .topbar, .subjects-wrap, .quick-strip, .sessions, .dial-svg, .gesture-hint, .typo-bar-wrap { display: none !important; }
+      .dial-wrap { width: 100%; height: 100%; animation: burninShift 60s ease-in-out infinite alternate; }
+      .mode-label { font-size: 13px; letter-spacing: 0.3em; margin-bottom: 10px; }
+      .digit-group.hrs-group, .colon-h { font-size: clamp(58px, 14vw, 114px) !important; }
+      .digit-group.ms-group { font-size: clamp(66px, 16vw, 130px) !important; }
+      .colon { font-size: clamp(52px, 12vw, 102px) !important; margin: 0 4px; }
       .earned-badge { font-size: 13px; margin-top: 12px; }
     }
-
     @keyframes burninShift {
       0% { transform: translate(-6px, -4px); }
       50% { transform: translate(6px, 4px); }
       100% { transform: translate(-4px, 5px); }
     }
 
-    /* Flip-to-Focus Blackout */
+    /* Flip-to-Focus Curtain */
     .flip-curtain {
-      position: fixed;
-      inset: 0;
+      position: fixed; inset: 0;
       background: #000000;
       z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
       transition: opacity 0.4s ease;
     }
     .flip-curtain.active { opacity: 1; pointer-events: auto; }
     .flip-curtain span { font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: #222; }
 
-    /* Past Days Drawer */
+    /* Drawers */
     .drawer-backdrop {
-      position: fixed;
-      inset: 0;
+      position: fixed; inset: 0;
       background: rgba(0, 0, 0, 0.72);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       z-index: 40;
-      opacity: 0;
-      pointer-events: none;
+      opacity: 0; pointer-events: none;
       transition: opacity 0.3s ease;
     }
     .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
 
     .drawer {
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
+      position: fixed; left: 0; right: 0; bottom: 0;
       max-height: 88dvh;
       background: #0a0a0c;
       border-top: 1px solid rgba(255, 255, 255, 0.12);
@@ -521,19 +631,12 @@
       margin: 0 auto 14px;
       flex-shrink: 0;
     }
-
-    .drawer-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
+    .drawer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .drawer-title { font-size: 15px; font-weight: 500; letter-spacing: 0.04em; }
     .drawer-actions { display: flex; gap: 7px; }
 
     .mini-btn {
-      padding: 6px 10px;
+      padding: 6px 11px;
       border-radius: 999px;
       background: var(--glass);
       border: 1px solid var(--glass-border);
@@ -543,19 +646,23 @@
     }
     .mini-btn:active { transform: scale(0.94); }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 10px;
+    .countdown-banner {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 14px;
+      margin-bottom: 12px;
+      border-radius: 14px;
+      background: rgba(var(--subject-rgb), 0.08);
+      border: 1px solid rgba(var(--subject-rgb), 0.24);
+      font-size: 12px;
     }
+    .countdown-banner.visible { display: flex; }
+    .cb-label { color: var(--muted); }
+    .cb-days { font-family: var(--font-clock); font-weight: 500; color: var(--text); }
 
-    .insights-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+    .insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
 
     .stat-card {
       background: var(--glass);
@@ -564,8 +671,7 @@
       padding: 10px;
       text-align: center;
     }
-
-    .stat-val { font-size: 15.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .stat-val { font-size: 15px; font-weight: 500; font-family: var(--font-clock); font-variant-numeric: tabular-nums; }
     .stat-lbl { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 3px; }
 
     .sec-head {
@@ -576,7 +682,7 @@
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--muted);
-      margin: 10px 2px 8px;
+      margin: 12px 2px 8px;
     }
 
     .bars-wrap {
@@ -590,34 +696,10 @@
       border-radius: 16px;
       padding: 14px 10px 10px;
     }
-
-    .bar-col {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      height: 100%;
-      justify-content: flex-end;
-      cursor: pointer;
-    }
-
-    .bar-track {
-      width: 14px; flex: 1;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 99px;
-      display: flex;
-      align-items: flex-end;
-      overflow: hidden;
-    }
-
-    .bar-fill {
-      width: 100%;
-      border-radius: 99px;
-      background: rgba(255, 255, 255, 0.35);
-      transition: height 0.4s ease, background 0.2s ease;
-    }
-
-    .bar-col.selected .bar-fill { background: #ffffff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+    .bar-col { display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; cursor: pointer; }
+    .bar-track { width: 14px; flex: 1; background: rgba(255, 255, 255, 0.05); border-radius: 99px; display: flex; align-items: flex-end; overflow: hidden; }
+    .bar-fill { width: 100%; border-radius: 99px; background: rgba(255, 255, 255, 0.35); transition: height 0.4s ease; }
+    .bar-col.selected .bar-fill { background: var(--accent); box-shadow: 0 0 10px rgba(var(--subject-rgb), 0.5); }
     .bar-day { font-size: 10px; color: var(--muted); }
     .bar-col.selected .bar-day { color: var(--text); font-weight: 600; }
 
@@ -630,80 +712,173 @@
       border-radius: 16px;
       padding: 12px;
     }
-
     .heat-cell {
-      aspect-ratio: 1;
-      border-radius: 6px;
+      aspect-ratio: 1; border-radius: 6px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid transparent;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9px;
-      color: rgba(255, 255, 255, 0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; color: rgba(255, 255, 255, 0.25);
     }
-
     .heat-cell.l1 { background: rgba(48, 209, 88, 0.22); color: rgba(255,255,255,0.65); }
     .heat-cell.l2 { background: rgba(48, 209, 88, 0.45); color: #fff; }
     .heat-cell.l3 { background: rgba(48, 209, 88, 0.72); color: #000; font-weight: 600; }
     .heat-cell.l4 { background: #30d158; color: #000; font-weight: 600; box-shadow: 0 0 10px rgba(48, 209, 88, 0.4); }
-    .heat-cell.selected { border-color: #ffffff; }
+    .heat-cell.selected { border-color: var(--accent); }
 
-    .day-detail {
+    /* 24-Hour Timeline */
+    .timeline-box { margin-bottom: 12px; }
+    .timeline-track {
+      position: relative;
+      height: 10px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+    }
+    .timeline-block {
+      position: absolute;
+      top: 0; bottom: 0;
+      border-radius: 4px;
+      min-width: 3px;
+    }
+    .timeline-axis {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: var(--muted);
+      font-family: var(--font-clock);
+      margin-top: 4px;
+    }
+
+    .day-detail, .alltime-card {
       margin-top: 12px;
       background: var(--glass);
       border: 1px solid var(--glass-border);
       border-radius: 16px;
       padding: 12px 14px;
     }
-
-    .day-detail-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12.5px;
-      font-weight: 500;
-      margin-bottom: 10px;
-    }
-
-    .subj-breakdown { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
+    .day-detail-head { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; font-weight: 500; margin-bottom: 10px; }
+    .subj-breakdown { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
     .sb-row { font-size: 11.5px; }
-    .sb-top { display: flex; justify-content: space-between; margin-bottom: 3px; color: var(--muted); }
-    .sb-top strong { color: var(--text); font-weight: 500; }
+    .sb-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; color: var(--muted); }
+    .sb-top strong { color: var(--text); font-weight: 500; font-family: var(--font-clock); }
     .sb-bar { height: 4px; border-radius: 99px; background: rgba(255,255,255,0.07); overflow: hidden; }
     .sb-fill { height: 100%; border-radius: 99px; }
-
+    .milestone-pill {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      border-radius: 99px;
+      font-size: 9px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      font-family: var(--font-clock);
+    }
     .day-logs { display: flex; flex-direction: column; gap: 6px; }
     .empty-msg { font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0; }
 
-    /* Modals */
-    .modal-wrap {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.78);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 80;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .modal-wrap.open { display: flex; }
-
-    .modal-card {
-      width: 100%;
-      max-width: 340px;
-      background: #101014;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 22px;
-      padding: 18px;
+    /* Settings Controls */
+    .set-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 12px 14px;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
+    .set-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
+    .set-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
+    .seg-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .seg-btn {
+      flex: 1; min-width: 66px;
+      padding: 8px 8px; border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--glass-border);
+      color: var(--muted); font-size: 11.5px; cursor: pointer; text-align: center;
+    }
+    .seg-btn.active { background: var(--accent); color: #000000; border-color: transparent; font-weight: 500; }
+
+    .toggle-switch {
+      width: 44px; height: 24px;
+      border-radius: 99px;
+      background: #23232a;
+      position: relative; cursor: pointer; flex-shrink: 0;
+      transition: background 0.25s ease;
+    }
+    .toggle-switch.on { background: var(--green); }
+    .toggle-switch::after {
+      content: "";
+      position: absolute; top: 3px; left: 3px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #ffffff;
+      transition: transform 0.25s ease;
+    }
+    .toggle-switch.on::after { transform: translateX(20px); }
+
+    .subj-mgr-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 13px;
+    }
+    .subj-mgr-row:last-child { border-bottom: none; }
+
+    /* Soundboard Sliders */
+    .slider-row { display: flex; flex-direction: column; gap: 6px; }
+    .slider-head { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text); }
+    .slider-head span:last-child { color: var(--muted); font-family: var(--font-clock); font-size: 11.5px; }
+    input[type="range"] {
+      -webkit-appearance: none; width: 100%; height: 5px;
+      border-radius: 99px; background: rgba(255, 255, 255, 0.12); outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px;
+      border-radius: 50%; background: var(--accent); cursor: pointer;
+    }
+
+    /* Thought Parking Lot */
+    .park-list {
+      display: flex; flex-direction: column; gap: 7px;
+      max-height: 220px; overflow-y: auto; scrollbar-width: none;
+    }
+    .park-item {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 13px; cursor: pointer;
+    }
+    .park-item.done span { text-decoration: line-through; color: var(--muted); }
+
+    /* Energy Picker */
+    .energy-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .energy-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 9px 6px; border-radius: 12px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      color: var(--muted); font-size: 11.5px; cursor: pointer;
+    }
+    .energy-btn.active { color: var(--text); border-color: rgba(255, 255, 255, 0.45); background: var(--glass-strong); }
+
+    /* Modals */
+    .modal-wrap {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 80;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-wrap.open { display: flex; }
+
+    .modal-card {
+      width: 100%; max-width: 340px;
+      background: #101014;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 22px;
+      padding: 18px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
     .modal-title { font-size: 14.5px; font-weight: 500; }
 
     .input {
@@ -711,85 +886,67 @@
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
-      padding: 11px 13px;
-      color: var(--text);
-      font-size: 13.5px;
-      font-family: inherit;
-      outline: none;
-      user-select: text;
-      -webkit-user-select: text;
+      padding: 10px 13px;
+      color: var(--text); font-size: 13.5px; font-family: inherit;
+      outline: none; user-select: text; -webkit-user-select: text;
     }
     .input:focus { border-color: rgba(255, 255, 255, 0.4); }
     textarea.input { min-height: 90px; resize: none; font-size: 11.5px; font-family: monospace; }
 
-    .preset-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
+    .preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .preset-btn {
-      padding: 10px 6px;
-      border-radius: 12px;
-      background: var(--glass);
-      border: 1px solid var(--glass-border);
-      color: var(--text);
-      font-size: 12.5px;
-      cursor: pointer;
+      padding: 10px 6px; border-radius: 12px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      color: var(--text); font-size: 12px; cursor: pointer;
     }
-    .preset-btn.active { background: #ffffff; color: #000000; border-color: transparent; font-weight: 500; }
+    .preset-btn.active { background: var(--accent); color: #000000; border-color: transparent; font-weight: 500; }
 
     .color-row { display: flex; gap: 10px; justify-content: space-between; }
-    .color-swatch {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      border: 2px solid transparent;
-      cursor: pointer;
-    }
+    .color-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
     .color-swatch.selected { border-color: #ffffff; transform: scale(1.12); }
 
     .modal-btns { display: flex; gap: 10px; margin-top: 2px; }
     .btn {
-      flex: 1;
-      height: 42px;
-      border-radius: 999px;
+      flex: 1; height: 42px; border-radius: 999px;
       border: 1px solid var(--glass-border);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
+      font-size: 13px; font-weight: 500; cursor: pointer;
     }
     .btn:active { transform: scale(0.96); }
     .btn-secondary { background: var(--glass); color: var(--text); }
-    .btn-primary { background: #ffffff; color: #000000; border-color: transparent; }
+    .btn-primary { background: var(--accent); color: #000000; border-color: transparent; }
     .btn-danger { background: rgba(255, 69, 58, 0.16); color: var(--red); border-color: rgba(255, 69, 58, 0.35); }
 
     .receipt-preview {
-      width: 100%;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      display: block;
+      width: 100%; border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12); display: block;
     }
   </style>
 </head>
-<body>
+<body data-font="mono" data-dial="orbital">
+  <div class="dim-curtain" id="dimCurtain"></div>
   <div class="goal-bar-track"><div class="goal-bar-fill" id="goalBarFill"></div></div>
-  <div class="ambient-aura"></div>
+  <div class="ambient-aura" id="ambientAura"></div>
 
   <!-- Top Bar -->
   <div class="topbar">
     <div class="top-group">
-      <button class="icon-btn" id="soundBtn" aria-label="Soundscapes">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <button class="icon-btn" id="soundBtn" aria-label="Soundboard">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
           <path d="M2 12h2M6 8v8M10 5v14M14 9v6M18 7v10M22 12h-2"></path>
         </svg>
-        <span class="sound-tag" id="soundTag"></span>
       </button>
-
       <button class="icon-btn" id="flipBtn" aria-label="Flip to Focus">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="6" y="3" width="12" height="18" rx="2"></rect>
           <path d="M12 17h.01"></path>
         </svg>
+      </button>
+      <button class="icon-btn" id="parkBtn" aria-label="Thought Parking Lot">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+        <span class="badge-dot"></span>
       </button>
     </div>
 
@@ -799,12 +956,20 @@
       <strong id="todayTotalEl">0h 00m</strong>
     </button>
 
-    <button class="icon-btn" id="zenBtn" aria-label="Zen Mode">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-        <circle cx="12" cy="12" r="3"></circle>
-      </svg>
-    </button>
+    <div class="top-group">
+      <button class="icon-btn" id="zenBtn" aria-label="Zen Mode">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- Subject Tags -->
@@ -812,23 +977,43 @@
 
   <!-- Gesture Dial -->
   <div class="dial-wrap" id="dial">
-    <svg class="dial-svg" viewBox="0 0 286 286">
-      <g id="ticksGroup"></g>
-      <circle class="ring-track" cx="143" cy="143" r="122"></circle>
-      <circle class="ring-progress" id="ringProgress" cx="143" cy="143" r="122"></circle>
-      <circle class="ring-hold" id="ringHold" cx="143" cy="143" r="122"></circle>
-      <circle class="orb-live" id="orbLive" cx="143" cy="21" r="4"></circle>
+    <div class="goal-pulse" id="goalPulse"></div>
+    <svg class="dial-svg" id="dialSvg" viewBox="0 0 288 288">
+      <g id="orbitalGroup">
+        <g id="ticksGroup"></g>
+        <circle class="ring-track" cx="144" cy="144" r="122"></circle>
+        <circle class="ring-progress" id="ringProgress" cx="144" cy="144" r="122"></circle>
+        <circle class="orb-live" id="orbLive" cx="144" cy="22" r="4"></circle>
+      </g>
+      <g id="matrixGroup"></g>
+      <circle class="ring-hold" id="ringHold" cx="144" cy="144" r="122"></circle>
     </svg>
 
     <div class="time-box">
       <div class="mode-label" id="modeLabel">General</div>
       <div class="time-row">
-        <span class="hrs" id="hrsEl">00</span><span class="colon-h" id="colonH">:</span>
-        <span class="mins" id="minsEl">00</span><span class="colon">:</span>
-        <span class="secs" id="secsEl">00</span>
+        <span class="overtime-plus">+</span>
+        <span class="digit-group hrs-group" id="hrsGroup">
+          <span class="digit-slot"><span class="digit-strip" id="dH1"></span></span>
+          <span class="digit-slot"><span class="digit-strip" id="dH2"></span></span>
+        </span>
+        <span class="colon-h" id="colonH">:</span>
+        <span class="digit-group ms-group">
+          <span class="digit-slot"><span class="digit-strip" id="dM1"></span></span>
+          <span class="digit-slot"><span class="digit-strip" id="dM2"></span></span>
+        </span>
+        <span class="colon">:</span>
+        <span class="digit-group ms-group">
+          <span class="digit-slot"><span class="digit-strip" id="dS1"></span></span>
+          <span class="digit-slot"><span class="digit-strip" id="dS2"></span></span>
+        </span>
+      </div>
+      <div class="typo-bar-wrap">
+        <div class="typo-bar-fill" id="typoBarFill"></div>
+        <div class="typo-hold-fill" id="typoHoldFill"></div>
       </div>
       <div class="earned-badge" id="earnedBadge">Earned break: <span>0m</span></div>
-      <div class="gesture-hint" id="gestureHint">Tap to start</div>
+      <div class="gesture-hint" id="gestureHint">Tap to start · Swipe subject</div>
     </div>
   </div>
 
@@ -845,17 +1030,23 @@
   <!-- Flip-to-Focus Curtain -->
   <div class="flip-curtain" id="flipCurtain"><span>Flip-to-Focus Active</span></div>
 
-  <!-- Past Days Drawer -->
+  <!-- Shared Drawer Backdrop -->
   <div class="drawer-backdrop" id="drawerBackdrop"></div>
-  <div class="drawer" id="drawer">
-    <div class="drawer-handle" id="drawerHandle"></div>
+
+  <!-- Past Days Drawer -->
+  <div class="drawer" id="historyDrawer">
+    <div class="drawer-handle" data-close-drawer></div>
     <div class="drawer-header">
       <div class="drawer-title">Study History</div>
       <div class="drawer-actions">
-        <button class="mini-btn" id="goalEditBtn">Goal: 4h</button>
+        <button class="mini-btn" id="weeklyReceiptBtn">Week Card</button>
         <button class="mini-btn" id="manualAddBtn">+ Log</button>
-        <button class="mini-btn" id="backupBtn">Backup</button>
       </div>
+    </div>
+
+    <div class="countdown-banner" id="countdownBanner">
+      <span class="cb-label" id="cbLabel">Target Date</span>
+      <span class="cb-days" id="cbDays">0 days left</span>
     </div>
 
     <div class="stats-grid">
@@ -891,21 +1082,174 @@
     <div class="heatmap" id="heatmap"></div>
 
     <div class="day-detail" id="dayDetail"></div>
+
+    <div class="sec-head"><span>All-Time Totals</span><span>Milestones</span></div>
+    <div class="alltime-card" id="allTimeCard"></div>
   </div>
 
-  <!-- Sprint / Countdown Modal -->
+  <!-- Settings Drawer -->
+  <div class="drawer" id="settingsDrawer">
+    <div class="drawer-handle" data-close-drawer></div>
+    <div class="drawer-header">
+      <div class="drawer-title">Settings</div>
+      <button class="mini-btn" data-close-drawer>Done</button>
+    </div>
+
+    <div class="sec-head"><span>Appearance</span></div>
+    <div class="set-card">
+      <div>
+        <div style="font-size:12.5px;margin-bottom:8px;">Clock Font</div>
+        <div class="seg-group" id="fontSeg">
+          <button class="seg-btn" data-val="mono">JetBrains</button>
+          <button class="seg-btn" data-val="editorial">Editorial</button>
+          <button class="seg-btn" data-val="outfit">Outfit</button>
+          <button class="seg-btn" data-val="grotesk">Grotesk</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12.5px;margin-bottom:8px;">Dial Style</div>
+        <div class="seg-group" id="dialSeg">
+          <button class="seg-btn" data-val="orbital">Orbital</button>
+          <button class="seg-btn" data-val="dotmatrix">Dot Matrix</button>
+          <button class="seg-btn" data-val="typographic">Typographic</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div>
+          <div>Late-Night Amber Tint</div>
+          <div class="set-sub">Zero blue light warm monochrome</div>
+        </div>
+        <div class="toggle-switch" id="amberToggle"></div>
+      </div>
+      <div class="set-row">
+        <div>
+          <div>True Fullscreen Mode</div>
+          <div class="set-sub">Hide Android status bar while running</div>
+        </div>
+        <div class="toggle-switch" id="fullscreenToggle"></div>
+      </div>
+      <div class="set-row">
+        <div>
+          <div>Night-Desk Auto-Dim</div>
+          <div class="set-sub">Dims screen after 2 mins untouched</div>
+        </div>
+        <div class="toggle-switch" id="autoDimToggle"></div>
+      </div>
+    </div>
+
+    <div class="sec-head"><span>Timer Rules</span></div>
+    <div class="set-card">
+      <div>
+        <div style="font-size:12.5px;margin-bottom:8px;">Daily Goal</div>
+        <div class="seg-group" id="goalSeg">
+          <button class="seg-btn" data-val="120">2h</button>
+          <button class="seg-btn" data-val="240">4h</button>
+          <button class="seg-btn" data-val="360">6h</button>
+          <button class="seg-btn" data-val="480">8h</button>
+          <button class="seg-btn" data-val="600">10h</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12.5px;margin-bottom:8px;">Earned Break Ratio</div>
+        <div class="seg-group" id="ratioSeg">
+          <button class="seg-btn" data-val="0.15">15%</button>
+          <button class="seg-btn" data-val="0.2">20%</button>
+          <button class="seg-btn" data-val="0.25">25%</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12.5px;margin-bottom:8px;">Hold-to-Save Duration</div>
+        <div class="seg-group" id="holdSeg">
+          <button class="seg-btn" data-val="1500">1.5s</button>
+          <button class="seg-btn" data-val="2500">2.5s</button>
+          <button class="seg-btn" data-val="3500">3.5s</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12.5px;margin-bottom:8px;">Silent Milestone Buzz</div>
+        <div class="seg-group" id="milestoneSeg">
+          <button class="seg-btn" data-val="0">Off</button>
+          <button class="seg-btn" data-val="30">30m</button>
+          <button class="seg-btn" data-val="60">60m</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div>Haptic Feedback</div>
+        <div class="toggle-switch" id="hapticsToggle"></div>
+      </div>
+    </div>
+
+    <div class="sec-head"><span>Big Date Countdown (In History)</span></div>
+    <div class="set-card">
+      <input class="input" id="bigDateLabelInput" type="text" placeholder="Event label (e.g. Finals)" maxlength="28" />
+      <input class="input" id="bigDateInput" type="date" />
+    </div>
+
+    <div class="sec-head"><span>Subjects</span><button class="mini-btn" id="settingsAddSubjBtn">+ Add</button></div>
+    <div class="set-card" id="subjManagerList"></div>
+
+    <div class="sec-head"><span>Data</span></div>
+    <div class="set-card">
+      <button class="btn btn-secondary" id="openBackupFromSettings">Backup / Restore JSON</button>
+    </div>
+  </div>
+
+  <!-- Thought Parking Lot Modal -->
+  <div class="modal-wrap" id="parkModal">
+    <div class="modal-card">
+      <div class="modal-title">Thought Parking Lot</div>
+      <div style="display:flex;gap:8px;">
+        <input class="input" id="parkInput" type="text" placeholder="Dump stray thought & get back..." maxlength="100" />
+        <button class="btn btn-primary" id="parkAddBtn" style="flex:0 0 64px;height:40px;">Add</button>
+      </div>
+      <div class="park-list" id="parkList"></div>
+      <div class="modal-btns">
+        <button class="btn btn-secondary" id="parkClearBtn">Clear Done</button>
+        <button class="btn btn-primary" id="parkCloseBtn">Back to Focus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mixable Soundboard Modal -->
+  <div class="modal-wrap" id="soundModal">
+    <div class="modal-card">
+      <div class="modal-title">Ambient Soundboard</div>
+      <div class="slider-row">
+        <div class="slider-head"><span>Brown Noise</span><span id="valBrown">0%</span></div>
+        <input type="range" id="slBrown" min="0" max="100" value="0" />
+      </div>
+      <div class="slider-row">
+        <div class="slider-head"><span>Soft Rain</span><span id="valRain">0%</span></div>
+        <input type="range" id="slRain" min="0" max="100" value="0" />
+      </div>
+      <div class="slider-row">
+        <div class="slider-head"><span>40Hz Focus Hum</span><span id="valFocus40">0%</span></div>
+        <input type="range" id="slFocus40" min="0" max="100" value="0" />
+      </div>
+      <div class="set-row" style="margin-top:4px;">
+        <div style="font-size:12.5px;">Fade out when paused</div>
+        <div class="toggle-switch" id="soundFadeToggle"></div>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-secondary" id="soundMuteAllBtn">Mute All</button>
+        <button class="btn btn-primary" id="soundCloseBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sprint / Ignition / Flow Modal -->
   <div class="modal-wrap" id="sprintModal">
     <div class="modal-card">
       <div class="modal-title">Timer Mode</div>
       <div class="preset-grid" id="presetGrid">
-        <button class="preset-btn" data-mins="0">Flow (Up)</button>
-        <button class="preset-btn" data-mins="25">25m</button>
-        <button class="preset-btn" data-mins="50">50m</button>
-        <button class="preset-btn" data-mins="90">90m</button>
-        <button class="preset-btn" data-mins="120">2h</button>
-        <button class="preset-btn" data-mins="180">3h</button>
+        <button class="preset-btn" data-mode="flow" data-mins="0">Flow (Up)</button>
+        <button class="preset-btn" data-mode="ignition" data-mins="5">Ignition 5m</button>
+        <button class="preset-btn" data-mode="sprint" data-mins="25">25m</button>
+        <button class="preset-btn" data-mode="sprint" data-mins="50">50m</button>
+        <button class="preset-btn" data-mode="sprint" data-mins="90">90m</button>
+        <button class="preset-btn" data-mode="sprint" data-mins="180">3h</button>
       </div>
-      <input class="input" id="customSprintMins" type="number" min="1" max="600" placeholder="Or custom minutes (e.g. 45)" />
+      <input class="input" id="customSprintMins" type="number" min="1" max="600" placeholder="Or custom sprint minutes (e.g. 45)" />
       <div class="modal-btns">
         <button class="btn btn-secondary" id="sprintCancelBtn">Cancel</button>
         <button class="btn btn-primary" id="sprintApplyBtn">Apply</button>
@@ -913,10 +1257,19 @@
     </div>
   </div>
 
-  <!-- Save Note Modal -->
+  <!-- Save Note + Trim + Energy Modal -->
   <div class="modal-wrap" id="noteModal">
     <div class="modal-card">
       <div class="modal-title">Log Session</div>
+      <div class="energy-row" id="energyRow">
+        <button class="energy-btn active" data-e="high"><span class="energy-dot energy-high"></span>Locked In</button>
+        <button class="energy-btn" data-e="mid"><span class="energy-dot energy-mid"></span>Steady</button>
+        <button class="energy-btn" data-e="low"><span class="energy-dot energy-low"></span>Drained</button>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px;">Duration in minutes (edit to trim idle time)</div>
+        <input class="input" id="trimMinsInput" type="number" min="1" max="960" />
+      </div>
       <input class="input" id="noteInput" type="text" placeholder="What did you finish? (optional)" maxlength="90" />
       <div class="modal-btns">
         <button class="btn btn-secondary" id="noteDiscardBtn">Discard</button>
@@ -940,15 +1293,15 @@
     </div>
   </div>
 
-  <!-- Add Subject Modal -->
+  <!-- Add / Edit Subject Modal -->
   <div class="modal-wrap" id="subjModal">
     <div class="modal-card">
-      <div class="modal-title">New Subject</div>
+      <div class="modal-title" id="subjModalTitle">New Subject</div>
       <input class="input" id="subjNameInput" type="text" placeholder="Subject name" maxlength="20" />
       <div class="color-row" id="colorRow"></div>
       <div class="modal-btns">
         <button class="btn btn-secondary" id="subjCancelBtn">Cancel</button>
-        <button class="btn btn-primary" id="subjSaveBtn">Add</button>
+        <button class="btn btn-primary" id="subjSaveBtn">Save</button>
       </div>
     </div>
   </div>
@@ -981,11 +1334,11 @@
     </div>
   </div>
 
-  <!-- Daily Receipt Modal -->
+  <!-- Receipt Modal (Daily or Weekly) -->
   <div class="modal-wrap" id="receiptModal">
     <div class="modal-card">
-      <div class="modal-title">Daily Receipt</div>
-      <img class="receipt-preview" id="receiptImg" alt="Daily Study Receipt" />
+      <div class="modal-title" id="receiptTitle">Daily Receipt</div>
+      <img class="receipt-preview" id="receiptImg" alt="Study Receipt" />
       <div class="modal-btns">
         <button class="btn btn-secondary" id="receiptCloseBtn">Close</button>
         <button class="btn btn-primary" id="receiptSaveBtn">Save / Share</button>
@@ -997,28 +1350,67 @@
     function dateKey(d = new Date()) {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
-
     function shiftDate(base, offset) {
-      const d = new Date(base);
-      d.setDate(d.getDate() + offset);
-      return d;
+      const d = new Date(base); d.setDate(d.getDate() + offset); return d;
     }
-
     function escapeHtml(str) {
       return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+
+    // ---------- Native Android Bridge Helpers ----------
+    function syncNativeNotification() {
+      if (!window.ChronoNative) return;
+      try {
+        if (!state.running) {
+          window.ChronoNative.stopNotification();
+          return;
+        }
+        const sub = getActiveSubject().name;
+        const elapsed = getElapsed();
+        if (state.isBreak) {
+          const rem = Math.max(0, state.targetMs - elapsed);
+          window.ChronoNative.updateNotification('Break', 'Rest & recharge', Date.now() + rem, true);
+        } else if (state.isIgnition && elapsed < 300000) {
+          window.ChronoNative.updateNotification(sub + ' · Ignition', '5m warmup', Date.now() + (300000 - elapsed), true);
+        } else if (state.isCountdown && elapsed < state.targetMs) {
+          window.ChronoNative.updateNotification(sub + ' · Sprint', 'Countdown active', Date.now() + (state.targetMs - elapsed), true);
+        } else {
+          window.ChronoNative.updateNotification(sub, 'Focus session active', Date.now() - elapsed, false);
+        }
+      } catch (_) {}
+    }
+
+    function syncNativeImmersive() {
+      if (!window.ChronoNative) return;
+      try {
+        const shouldHide = !!(store.settings.fullscreen && state.running);
+        window.ChronoNative.setImmersive(shouldHide);
+      } catch (_) {}
     }
 
     // ---------- Persistent Store ----------
     const STORE_KEY = 'chrono_obsidian_v2';
     const ACTIVE_KEY = 'chrono_active_v3';
     const PALETTE = [
-      '255, 255, 255',
-      '100, 210, 255',
-      '48, 209, 88',
-      '191, 90, 242',
-      '255, 159, 10',
-      '255, 55, 95'
+      '255, 255, 255', '100, 210, 255', '48, 209, 88',
+      '191, 90, 242', '255, 159, 10', '255, 55, 95'
     ];
+
+    const DEFAULT_SETTINGS = {
+      font: 'mono',
+      dialStyle: 'orbital',
+      amberTint: false,
+      fullscreen: true,
+      autoDim: true,
+      breakRatio: 0.2,
+      holdMs: 2500,
+      milestoneMins: 30,
+      haptics: true,
+      bigDateLabel: '',
+      bigDate: '',
+      soundFade: false,
+      soundMix: { brown: 0, rain: 0, focus40: 0 }
+    };
 
     function loadStore() {
       let data = null;
@@ -1033,60 +1425,96 @@
             { id: 'phys', name: 'Physics', rgb: '191, 90, 242' },
             { id: 'chem', name: 'Chem', rgb: '48, 209, 88' }
           ],
-          activeSubject: 'gen'
+          activeSubject: 'gen',
+          parkingLot: [],
+          lastGoalPulseDate: '',
+          settings: { ...DEFAULT_SETTINGS }
         };
       }
-      // Ensure every session has an id
-      let changed = false;
+      data.settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+      data.settings.soundMix = { ...DEFAULT_SETTINGS.soundMix, ...(data.settings.soundMix || {}) };
+      if (!Array.isArray(data.parkingLot)) data.parkingLot = [];
       Object.values(data.days).forEach(arr => {
         arr.forEach((s, i) => {
-          if (!s.id) { s.id = 's_' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 6); changed = true; }
+          if (!s.id) s.id = 's_' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 6);
         });
       });
-      if (changed) localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      localStorage.setItem(STORE_KEY, JSON.stringify(data));
       return data;
     }
 
     let store = loadStore();
     function saveStore() { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+    function buzz(p = 12) { if (store.settings.haptics && navigator.vibrate) navigator.vibrate(p); }
+
+    // ---------- Build Rolling Digit Strips ----------
+    const digitEls = {
+      h1: document.getElementById('dH1'), h2: document.getElementById('dH2'),
+      m1: document.getElementById('dM1'), m2: document.getElementById('dM2'),
+      s1: document.getElementById('dS1'), s2: document.getElementById('dS2')
+    };
+    const prevDigits = { h1: -1, h2: -1, m1: -1, m2: -1, s1: -1, s2: -1 };
+    Object.values(digitEls).forEach(el => {
+      el.innerHTML = '0123456789'.split('').map(d => `<span>${d}</span>`).join('');
+    });
+    function setDigit(key, val) {
+      if (prevDigits[key] === val) return;
+      prevDigits[key] = val;
+      digitEls[key].style.transform = `translateY(-${val * 10}%)`;
+    }
 
     // ---------- DOM Refs ----------
-    const hrsEl = document.getElementById('hrsEl');
+    const hrsGroup = document.getElementById('hrsGroup');
     const colonH = document.getElementById('colonH');
-    const minsEl = document.getElementById('minsEl');
-    const secsEl = document.getElementById('secsEl');
     const modeLabel = document.getElementById('modeLabel');
     const earnedBadge = document.getElementById('earnedBadge');
     const gestureHint = document.getElementById('gestureHint');
     const todayTotalEl = document.getElementById('todayTotalEl');
     const goalBarFill = document.getElementById('goalBarFill');
+    const goalPulse = document.getElementById('goalPulse');
     const ringProgress = document.getElementById('ringProgress');
     const ringHold = document.getElementById('ringHold');
     const orbLive = document.getElementById('orbLive');
+    const typoBarFill = document.getElementById('typoBarFill');
+    const typoHoldFill = document.getElementById('typoHoldFill');
     const modeChip = document.getElementById('modeChip');
     const slipBtn = document.getElementById('slipBtn');
     const breakBtn = document.getElementById('breakBtn');
     const sessionsList = document.getElementById('sessionsList');
     const dial = document.getElementById('dial');
+    const dialSvg = document.getElementById('dialSvg');
+    const ambientAura = document.getElementById('ambientAura');
     const soundBtn = document.getElementById('soundBtn');
-    const soundTag = document.getElementById('soundTag');
     const flipBtn = document.getElementById('flipBtn');
+    const parkBtn = document.getElementById('parkBtn');
     const flipCurtain = document.getElementById('flipCurtain');
     const zenBtn = document.getElementById('zenBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
     const subjectsWrap = document.getElementById('subjectsWrap');
     const todayPill = document.getElementById('todayPill');
+    const dimCurtain = document.getElementById('dimCurtain');
 
-    // 60 dial ticks
+    // Build 60 Orbital Ticks & 60 Dot Matrix Dots
     const ticksGroup = document.getElementById('ticksGroup');
+    const matrixGroup = document.getElementById('matrixGroup');
+    const matrixDots = [];
     for (let i = 0; i < 60; i++) {
       const a = (i * 6 - 90) * (Math.PI / 180);
       const major = i % 5 === 0;
       const r1 = major ? 131 : 134, r2 = 139;
       const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      l.setAttribute('x1', 143 + r1 * Math.cos(a)); l.setAttribute('y1', 143 + r1 * Math.sin(a));
-      l.setAttribute('x2', 143 + r2 * Math.cos(a)); l.setAttribute('y2', 143 + r2 * Math.sin(a));
+      l.setAttribute('x1', 144 + r1 * Math.cos(a)); l.setAttribute('y1', 144 + r1 * Math.sin(a));
+      l.setAttribute('x2', 144 + r2 * Math.cos(a)); l.setAttribute('y2', 144 + r2 * Math.sin(a));
       l.setAttribute('class', major ? 'tick major' : 'tick');
       ticksGroup.appendChild(l);
+
+      const d = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      d.setAttribute('cx', 144 + 128 * Math.cos(a));
+      d.setAttribute('cy', 144 + 128 * Math.sin(a));
+      d.setAttribute('r', major ? 2.6 : 1.7);
+      d.setAttribute('class', 'matrix-dot');
+      matrixGroup.appendChild(d);
+      matrixDots.push(d);
     }
 
     const R = 122, CIRC = 2 * Math.PI * R;
@@ -1096,10 +1524,13 @@
       running: false,
       isBreak: false,
       isCountdown: false,
+      isIgnition: false,
       targetMs: 0,
       startedAt: null,
       accumulatedMs: 0,
-      slips: 0
+      slips: 0,
+      overtimeChimed: false,
+      lastMilestone: 0
     };
 
     try {
@@ -1107,18 +1538,30 @@
       if (saved) state = { ...state, ...saved };
     } catch (_) {}
 
-    function persistActive() {
-      localStorage.setItem(ACTIVE_KEY, JSON.stringify(state));
-    }
-
+    function persistActive() { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state)); }
     function getElapsed() {
       if (!state.running || !state.startedAt) return state.accumulatedMs;
       return state.accumulatedMs + Math.max(0, Date.now() - state.startedAt);
     }
 
-    let rafId = null;
-    let wakeLock = null;
+    let rafId = null, wakeLock = null;
     let selectedHistoryKey = dateKey();
+    let lastInteraction = Date.now();
+
+    function wakeScreen() {
+      lastInteraction = Date.now();
+      document.body.classList.remove('auto-dimmed');
+    }
+    dimCurtain.addEventListener('pointerdown', e => { e.stopPropagation(); wakeScreen(); });
+    document.addEventListener('pointerdown', () => {
+      if (!document.body.classList.contains('auto-dimmed')) lastInteraction = Date.now();
+    });
+
+    function applyAppearance() {
+      document.body.dataset.font = store.settings.font;
+      document.body.dataset.dial = store.settings.dialStyle;
+      document.body.classList.toggle('amber-tint', !!store.settings.amberTint);
+    }
 
     function getActiveSubject() {
       return store.subjects.find(s => s.id === store.activeSubject) || store.subjects[0];
@@ -1127,9 +1570,17 @@
     function applySubjectTheme() {
       const sub = getActiveSubject();
       document.documentElement.style.setProperty('--subject-rgb', sub.rgb);
-      modeLabel.textContent = state.isBreak ? 'Break' : (state.isCountdown ? `${sub.name} · Sprint` : sub.name);
-      modeChip.textContent = state.isCountdown ? `Sprint: ${Math.round(state.targetMs / 60000)}m` : 'Mode: Flow';
-      modeChip.classList.toggle('sprint-on', state.isCountdown);
+      const isOvertime = state.isCountdown && !state.isBreak && getElapsed() > state.targetMs;
+      if (state.isBreak) modeLabel.textContent = 'Break';
+      else if (state.isIgnition) modeLabel.textContent = `${sub.name} · Ignition`;
+      else if (isOvertime) modeLabel.textContent = `${sub.name} · Overtime`;
+      else if (state.isCountdown) modeLabel.textContent = `${sub.name} · Sprint`;
+      else modeLabel.textContent = sub.name;
+
+      if (state.isIgnition) modeChip.textContent = 'Mode: Ignition 5m';
+      else if (state.isCountdown) modeChip.textContent = `Sprint: ${Math.round(state.targetMs / 60000)}m`;
+      else modeChip.textContent = 'Mode: Flow';
+      modeChip.classList.toggle('sprint-on', state.isCountdown || state.isIgnition);
     }
 
     function renderSubjects() {
@@ -1143,28 +1594,136 @@
           saveStore();
           applySubjectTheme();
           renderSubjects();
-          if (navigator.vibrate) navigator.vibrate(8);
+          buzz(8);
         });
         subjectsWrap.appendChild(btn);
       });
-
       const addBtn = document.createElement('button');
       addBtn.className = 'subj-pill';
       addBtn.textContent = '+ Subject';
-      addBtn.addEventListener('click', openSubjModal);
+      addBtn.addEventListener('click', () => openSubjModal(null));
       subjectsWrap.appendChild(addBtn);
       applySubjectTheme();
     }
 
-    // ---------- Offline Soundscapes & Completion Chime ----------
-    const SOUND_MODES = ['Off', 'Brown', 'Rain', '40Hz'];
-    let soundIdx = 0;
-    let audioCtx = null;
-    let activeNodes = [];
+    function cycleSubject(dir) {
+      if (store.subjects.length < 2) return;
+      const idx = store.subjects.findIndex(s => s.id === store.activeSubject);
+      store.activeSubject = store.subjects[(idx + dir + store.subjects.length) % store.subjects.length].id;
+      saveStore();
+      renderSubjects();
+      buzz(10);
+    }
 
-    function stopSound() {
-      activeNodes.forEach(n => { try { n.stop && n.stop(); n.disconnect && n.disconnect(); } catch (_) {} });
-      activeNodes = [];
+    // ---------- Thought Parking Lot ----------
+    const parkModal = document.getElementById('parkModal');
+    const parkInput = document.getElementById('parkInput');
+    const parkList = document.getElementById('parkList');
+
+    function renderParkingLot() {
+      const openCount = store.parkingLot.filter(t => !t.done).length;
+      parkBtn.classList.toggle('has-badge', openCount > 0);
+      if (store.parkingLot.length === 0) {
+        parkList.innerHTML = '<div class="empty-msg">Mind clear. Dump any distracting thought here.</div>';
+        return;
+      }
+      parkList.innerHTML = '';
+      store.parkingLot.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'park-item' + (item.done ? ' done' : '');
+        div.innerHTML = `<span>${escapeHtml(item.text)}</span><span style="color:var(--muted);font-size:11px;">${item.done ? '✓' : '○'}</span>`;
+        div.addEventListener('click', () => {
+          item.done = !item.done;
+          saveStore();
+          renderParkingLot();
+          buzz(8);
+        });
+        parkList.appendChild(div);
+      });
+    }
+
+    parkBtn.addEventListener('click', () => {
+      renderParkingLot();
+      parkModal.classList.add('open');
+      setTimeout(() => parkInput.focus(), 80);
+    });
+    function addParkedThought() {
+      const text = parkInput.value.trim();
+      if (!text) return;
+      store.parkingLot.unshift({ id: Date.now(), text, done: false });
+      parkInput.value = '';
+      saveStore();
+      renderParkingLot();
+      buzz(10);
+    }
+    document.getElementById('parkAddBtn').addEventListener('click', addParkedThought);
+    parkInput.addEventListener('keydown', e => { if (e.key === 'Enter') addParkedThought(); });
+    document.getElementById('parkClearBtn').addEventListener('click', () => {
+      store.parkingLot = store.parkingLot.filter(t => !t.done);
+      saveStore();
+      renderParkingLot();
+    });
+    document.getElementById('parkCloseBtn').addEventListener('click', () => parkModal.classList.remove('open'));
+
+    // ---------- Mixable Offline Soundboard ----------
+    let audioCtx = null, mixerNodes = null;
+    function initMixer() {
+      if (mixerNodes) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const masterGain = audioCtx.createGain();
+      masterGain.gain.value = 1;
+      masterGain.connect(audioCtx.destination);
+
+      const bLen = 2 * audioCtx.sampleRate, bBuf = audioCtx.createBuffer(1, bLen, audioCtx.sampleRate);
+      const bOut = bBuf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < bLen; i++) { const w = Math.random() * 2 - 1; bOut[i] = (last + 0.02 * w) / 1.02; last = bOut[i]; bOut[i] *= 3.2; }
+      const bSrc = audioCtx.createBufferSource(); bSrc.buffer = bBuf; bSrc.loop = true;
+      const bGain = audioCtx.createGain(); bGain.gain.value = 0;
+      bSrc.connect(bGain); bGain.connect(masterGain); bSrc.start();
+
+      const rLen = 3 * audioCtx.sampleRate, rBuf = audioCtx.createBuffer(1, rLen, audioCtx.sampleRate);
+      const rOut = rBuf.getChannelData(0);
+      let b0 = 0, b1 = 0, b2 = 0;
+      for (let i = 0; i < rLen; i++) {
+        const w = Math.random() * 2 - 1;
+        b0 = 0.997 * b0 + w * 0.029; b1 = 0.985 * b1 + w * 0.032; b2 = 0.950 * b2 + w * 0.048;
+        rOut[i] = (b0 + b1 + b2 + w * 0.015) * 1.6;
+      }
+      const rSrc = audioCtx.createBufferSource(); rSrc.buffer = rBuf; rSrc.loop = true;
+      const rFilter = audioCtx.createBiquadFilter(); rFilter.type = 'bandpass'; rFilter.frequency.value = 1100; rFilter.Q.value = 0.55;
+      const rGain = audioCtx.createGain(); rGain.gain.value = 0;
+      rSrc.connect(rFilter); rFilter.connect(rGain); rGain.connect(masterGain); rSrc.start();
+
+      const cOsc = audioCtx.createOscillator(); cOsc.type = 'sine'; cOsc.frequency.value = 160;
+      const sOsc = audioCtx.createOscillator(); sOsc.type = 'sine'; sOsc.frequency.value = 80;
+      const lfo = audioCtx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 40;
+      const lfoG = audioCtx.createGain(); lfoG.gain.value = 0.035;
+      const fBase = audioCtx.createGain(); fBase.gain.value = 0.06;
+      const fGain = audioCtx.createGain(); fGain.gain.value = 0;
+      lfo.connect(lfoG); lfoG.connect(fBase.gain);
+      cOsc.connect(fBase); sOsc.connect(fBase); fBase.connect(fGain); fGain.connect(masterGain);
+      cOsc.start(); sOsc.start(); lfo.start();
+
+      mixerNodes = { masterGain, bGain, rGain, fGain };
+    }
+
+    function updateAudioMix() {
+      const m = store.settings.soundMix;
+      const anyOn = m.brown > 0 || m.rain > 0 || m.focus40 > 0;
+      soundBtn.classList.toggle('active', anyOn);
+      if (!anyOn && !mixerNodes) return;
+      try {
+        initMixer();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const shouldSilence = store.settings.soundFade && !state.running && !soundModal.classList.contains('open');
+        mixerNodes.masterGain.gain.cancelScheduledValues(now);
+        mixerNodes.masterGain.gain.setTargetAtTime(shouldSilence ? 0 : 1, now, 0.25);
+        mixerNodes.bGain.gain.setTargetAtTime((m.brown / 100) * 0.2, now, 0.08);
+        mixerNodes.rGain.gain.setTargetAtTime((m.rain / 100) * 0.28, now, 0.08);
+        mixerNodes.fGain.gain.setTargetAtTime((m.focus40 / 100) * 1.0, now, 0.08);
+      } catch (_) {}
     }
 
     function playChime() {
@@ -1173,92 +1732,56 @@
         if (audioCtx.state === 'suspended') audioCtx.resume();
         const now = audioCtx.currentTime;
         [523.25, 659.25, 783.99].forEach((freq, i) => {
-          const osc = audioCtx.createOscillator();
-          const g = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, now + i * 0.12);
+          const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+          osc.type = 'sine'; osc.frequency.setValueAtTime(freq, now + i * 0.12);
           g.gain.setValueAtTime(0.08, now + i * 0.12);
           g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.12 + 0.5);
           osc.connect(g); g.connect(audioCtx.destination);
-          osc.start(now + i * 0.12);
-          osc.stop(now + i * 0.12 + 0.55);
+          osc.start(now + i * 0.12); osc.stop(now + i * 0.12 + 0.55);
         });
       } catch (_) {}
     }
 
-    function startSound(mode) {
-      stopSound();
-      if (mode === 'Off') return;
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        if (mode === 'Brown') {
-          const len = 2 * audioCtx.sampleRate;
-          const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
-          const out = buf.getChannelData(0);
-          let last = 0;
-          for (let i = 0; i < len; i++) {
-            const w = Math.random() * 2 - 1;
-            out[i] = (last + 0.02 * w) / 1.02;
-            last = out[i];
-            out[i] *= 3.2;
-          }
-          const src = audioCtx.createBufferSource();
-          src.buffer = buf; src.loop = true;
-          const g = audioCtx.createGain(); g.gain.value = 0.14;
-          src.connect(g); g.connect(audioCtx.destination);
-          src.start();
-          activeNodes.push(src, g);
-        } else if (mode === 'Rain') {
-          const len = 3 * audioCtx.sampleRate;
-          const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
-          const out = buf.getChannelData(0);
-          let b0 = 0, b1 = 0, b2 = 0;
-          for (let i = 0; i < len; i++) {
-            const w = Math.random() * 2 - 1;
-            b0 = 0.997 * b0 + w * 0.029;
-            b1 = 0.985 * b1 + w * 0.032;
-            b2 = 0.950 * b2 + w * 0.048;
-            out[i] = (b0 + b1 + b2 + w * 0.015) * 1.6;
-          }
-          const src = audioCtx.createBufferSource();
-          src.buffer = buf; src.loop = true;
-          const filter = audioCtx.createBiquadFilter();
-          filter.type = 'bandpass'; filter.frequency.value = 1100; filter.Q.value = 0.55;
-          const g = audioCtx.createGain(); g.gain.value = 0.22;
-          src.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
-          src.start();
-          activeNodes.push(src, filter, g);
-        } else if (mode === '40Hz') {
-          const carrier = audioCtx.createOscillator();
-          carrier.type = 'sine'; carrier.frequency.value = 160;
-          const sub = audioCtx.createOscillator();
-          sub.type = 'sine'; sub.frequency.value = 80;
-          const lfo = audioCtx.createOscillator();
-          lfo.type = 'sine'; lfo.frequency.value = 40;
-          const lfoGain = audioCtx.createGain(); lfoGain.gain.value = 0.035;
-          const mainGain = audioCtx.createGain(); mainGain.gain.value = 0.06;
-          lfo.connect(lfoGain); lfoGain.connect(mainGain.gain);
-          carrier.connect(mainGain); sub.connect(mainGain);
-          mainGain.connect(audioCtx.destination);
-          carrier.start(); sub.start(); lfo.start();
-          activeNodes.push(carrier, sub, lfo, lfoGain, mainGain);
-        }
-      } catch (_) {}
+    const soundModal = document.getElementById('soundModal');
+    const slBrown = document.getElementById('slBrown');
+    const slRain = document.getElementById('slRain');
+    const slFocus40 = document.getElementById('slFocus40');
+    const soundFadeToggle = document.getElementById('soundFadeToggle');
+
+    function syncSoundUI() {
+      const m = store.settings.soundMix;
+      slBrown.value = m.brown; document.getElementById('valBrown').textContent = m.brown + '%';
+      slRain.value = m.rain; document.getElementById('valRain').textContent = m.rain + '%';
+      slFocus40.value = m.focus40; document.getElementById('valFocus40').textContent = m.focus40 + '%';
+      soundFadeToggle.classList.toggle('on', store.settings.soundFade);
     }
-
-    soundBtn.addEventListener('click', () => {
-      soundIdx = (soundIdx + 1) % SOUND_MODES.length;
-      const mode = SOUND_MODES[soundIdx];
-      startSound(mode);
-      soundBtn.classList.toggle('active', mode !== 'Off');
-      soundTag.textContent = mode === 'Off' ? '' : mode;
-      if (navigator.vibrate) navigator.vibrate(10);
+    soundBtn.addEventListener('click', () => { syncSoundUI(); soundModal.classList.add('open'); updateAudioMix(); });
+    [slBrown, slRain, slFocus40].forEach(sl => {
+      sl.addEventListener('input', () => {
+        store.settings.soundMix = { brown: Number(slBrown.value), rain: Number(slRain.value), focus40: Number(slFocus40.value) };
+        saveStore(); syncSoundUI(); updateAudioMix();
+      });
     });
+    soundFadeToggle.addEventListener('click', () => {
+      store.settings.soundFade = !store.settings.soundFade; saveStore(); syncSoundUI(); updateAudioMix();
+    });
+    document.getElementById('soundMuteAllBtn').addEventListener('click', () => {
+      store.settings.soundMix = { brown: 0, rain: 0, focus40: 0 }; saveStore(); syncSoundUI(); updateAudioMix();
+    });
+    document.getElementById('soundCloseBtn').addEventListener('click', () => { soundModal.classList.remove('open'); updateAudioMix(); });
 
-    // ---------- Flip-to-Focus ----------
+    // ---------- Flip-to-Focus + Subtle Gyro Parallax ----------
     let flipEnabled = false, isFaceDown = false, flipTimeout = null;
     window.addEventListener('deviceorientation', e => {
+      if (e.gamma !== null && e.beta !== null) {
+        // Subtle 2-4px glass parallax
+        const gx = Math.max(-4, Math.min(4, (e.gamma / 45) * 4));
+        const gy = Math.max(-4, Math.min(4, ((e.beta - 45) / 45) * 4));
+        dialSvg.style.setProperty('--gx', gx.toFixed(1) + 'px');
+        dialSvg.style.setProperty('--gy', gy.toFixed(1) + 'px');
+        ambientAura.style.setProperty('--px', (-gx * 2.2).toFixed(1) + 'px');
+        ambientAura.style.setProperty('--py', (-gy * 2.2).toFixed(1) + 'px');
+      }
       if (!flipEnabled || e.beta === null) return;
       const faceDownNow = Math.abs(e.beta) > 155;
       if (faceDownNow && !isFaceDown) {
@@ -1275,7 +1798,6 @@
         if (state.running && !state.isBreak) toggle();
       }
     });
-
     flipBtn.addEventListener('click', async () => {
       if (!flipEnabled && typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         try { await DeviceOrientationEvent.requestPermission(); } catch (_) {}
@@ -1283,7 +1805,7 @@
       flipEnabled = !flipEnabled;
       flipBtn.classList.toggle('active', flipEnabled);
       if (!flipEnabled) { isFaceDown = false; flipCurtain.classList.remove('active'); }
-      if (navigator.vibrate) navigator.vibrate(10);
+      buzz(10);
     });
 
     // ---------- Timer Display & Logic ----------
@@ -1299,21 +1821,19 @@
       const h = Math.floor(totalSec / 3600);
       const m = Math.floor((totalSec % 3600) / 60);
       const s = totalSec % 60;
-      return {
-        h, m, s,
-        hStr: String(h).padStart(2, '0'),
-        mStr: String(m).padStart(2, '0'),
-        sStr: String(s).padStart(2, '0')
-      };
+      return { h, m, s, hStr: String(h).padStart(2, '0'), mStr: String(m).padStart(2, '0'), sStr: String(s).padStart(2, '0') };
     }
-
     function formatHM(ms) {
       const mins = Math.floor(ms / 60000);
       return `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m`;
     }
+    function getDayMs(dk) { return (store.days[dk] || []).reduce((sum, s) => sum + s.duration, 0); }
 
-    function getDayMs(dk) {
-      return (store.days[dk] || []).reduce((sum, s) => sum + s.duration, 0);
+    function triggerGoalPulse() {
+      goalPulse.classList.remove('fire');
+      void goalPulse.offsetWidth;
+      goalPulse.classList.add('fire');
+      buzz([20, 60, 30]);
     }
 
     function updateTodayUI() {
@@ -1327,6 +1847,7 @@
       [...todayArr].reverse().forEach(s => {
         const f = formatHMS(s.duration);
         const durText = f.h > 0 ? `${f.h}h ${f.m}m` : `${f.m}m ${f.s}s`;
+        const eDot = s.energy ? `<span class="energy-dot energy-${s.energy}"></span>` : '';
         const row = document.createElement('div');
         row.className = 'session-row';
         row.innerHTML = `
@@ -1336,8 +1857,11 @@
               <span class="s-subj">${escapeHtml(s.subject || 'General')}</span>
               <span class="s-meta">${s.time}</span>
             </div>
-            <span class="s-dur">${durText}</span>
-            <span class="s-slips ${s.slips === 0 ? 'clean' : ''}">${s.slips === 0 ? 'Clean' : s.slips + ' slip' + (s.slips > 1 ? 's' : '')}</span>
+            <div class="s-right">
+              ${eDot}
+              <span class="s-dur">${durText}</span>
+              <span class="s-slips ${s.slips === 0 ? 'clean' : ''}">${s.slips === 0 ? 'Clean' : s.slips + ' slip' + (s.slips > 1 ? 's' : '')}</span>
+            </div>
           </div>
           ${s.note ? `<div class="s-note">${escapeHtml(s.note)}</div>` : ''}
         `;
@@ -1347,40 +1871,111 @@
     }
 
     function renderTime(ms) {
-      const isCountingDown = state.isBreak || state.isCountdown;
-      const displayMs = isCountingDown ? Math.max(0, state.targetMs - ms) : ms;
+      let displayMs = ms;
+      let progress = (ms % 3600000) / 3600000;
+      let isOvertime = false;
+      let isFinalFive = false;
+
+      if (state.isBreak) {
+        displayMs = Math.max(0, state.targetMs - ms);
+        progress = state.targetMs > 0 ? displayMs / state.targetMs : 0;
+        if (displayMs <= 0 && state.running) { finishBreak(); return; }
+      } else if (state.isIgnition) {
+        const rem = 300000 - ms;
+        if (rem > 0) {
+          displayMs = rem;
+          progress = rem / 300000;
+        } else {
+          // Silently morph into Flow mode!
+          state.isIgnition = false;
+          persistActive();
+          buzz(18);
+          applySubjectTheme();
+          syncNativeNotification();
+        }
+      } else if (state.isCountdown) {
+        const rem = state.targetMs - ms;
+        if (rem > 0) {
+          displayMs = rem;
+          progress = state.targetMs > 0 ? rem / state.targetMs : 0;
+          isFinalFive = state.running && rem <= 300000;
+        } else {
+          isOvertime = true;
+          displayMs = ms - state.targetMs;
+          progress = (displayMs % 3600000) / 3600000;
+          if (!state.overtimeChimed && state.running) {
+            state.overtimeChimed = true;
+            persistActive();
+            playChime();
+            buzz([30, 70, 30]);
+            applySubjectTheme();
+            syncNativeNotification();
+          }
+        }
+      }
+
+      document.body.classList.toggle('final-five', isFinalFive);
+      document.body.classList.toggle('overtime', isOvertime);
+
       const f = formatHMS(displayMs);
-
-      hrsEl.textContent = f.hStr;
-      minsEl.textContent = f.mStr;
-      secsEl.textContent = f.sStr;
-      hrsEl.classList.toggle('lit', f.h > 0);
+      setDigit('h1', Number(f.hStr[0])); setDigit('h2', Number(f.hStr[1]));
+      setDigit('m1', Number(f.mStr[0])); setDigit('m2', Number(f.mStr[1]));
+      setDigit('s1', Number(f.sStr[0])); setDigit('s2', Number(f.sStr[1]));
+      hrsGroup.classList.toggle('lit', f.h > 0);
       colonH.classList.toggle('lit', f.h > 0);
-
-      const progress = isCountingDown
-        ? (state.targetMs > 0 ? displayMs / state.targetMs : 0)
-        : ((ms % 3600000) / 3600000);
 
       ringProgress.style.strokeDashoffset = CIRC * (1 - progress);
       const angle = (progress * 360 - 90) * (Math.PI / 180);
-      orbLive.setAttribute('cx', 143 + R * Math.cos(angle));
-      orbLive.setAttribute('cy', 143 + R * Math.sin(angle));
+      orbLive.setAttribute('cx', 144 + R * Math.cos(angle));
+      orbLive.setAttribute('cy', 144 + R * Math.sin(angle));
 
-      const isFinalFive = state.isCountdown && !state.isBreak && state.running && displayMs > 0 && displayMs <= 300000;
-      document.body.classList.toggle('final-five', isFinalFive);
+      const litCount = Math.floor(progress * 60);
+      for (let i = 0; i < 60; i++) {
+        matrixDots[i].classList.toggle('lit', i < litCount);
+        matrixDots[i].classList.toggle('head', (ms > 0 || state.running) && i === litCount % 60);
+      }
+      typoBarFill.style.width = (progress * 100).toFixed(1) + '%';
+
+      // Monochrome Goal-Hit Pulse (Live Check)
+      if (state.running && !state.isBreak) {
+        const tk = dateKey();
+        const liveTodayMs = getDayMs(tk) + ms;
+        goalBarFill.style.width = Math.min(100, (liveTodayMs / (store.goalMins * 60000)) * 100).toFixed(1) + '%';
+        if (liveTodayMs >= store.goalMins * 60000 && store.lastGoalPulseDate !== tk) {
+          store.lastGoalPulseDate = tk;
+          saveStore();
+          triggerGoalPulse();
+        }
+      }
+
+      // Silent Milestone Buzz
+      const mMins = store.settings.milestoneMins;
+      if (state.running && !state.isBreak && mMins > 0) {
+        const curM = Math.floor(ms / (mMins * 60000));
+        if (curM > state.lastMilestone) {
+          state.lastMilestone = curM;
+          persistActive();
+          buzz([25, 90, 25]);
+        }
+      }
+
+      // Auto-Dim Check
+      if (store.settings.autoDim && state.running && !isFaceDown && (Date.now() - lastInteraction > 120000)) {
+        document.body.classList.add('auto-dimmed');
+      }
 
       if (state.isBreak) {
         earnedBadge.innerHTML = `<span>Rest & recharge</span>`;
         gestureHint.textContent = state.running ? 'Tap pause · Hold skip' : 'Tap resume · Hold skip';
-        if (displayMs <= 0 && state.running) finishBreak();
       } else {
-        const earnedMins = Math.floor((ms / 60000) / 5);
-        earnedBadge.innerHTML = `Earned break: <span>${earnedMins}m</span>`;
-        if (ms === 0 && !state.running) {
-          gestureHint.textContent = 'Tap to start';
-        } else {
-          gestureHint.textContent = state.running ? 'Tap pause · Hold save' : 'Tap resume · Hold save';
-        }
+        const earnedMins = Math.floor((ms / 60000) * store.settings.breakRatio);
+        if (state.isIgnition) earnedBadge.innerHTML = `<span>Just 5 mins to start</span>`;
+        else if (isOvertime) earnedBadge.innerHTML = `<span style="color:var(--amber)">Overtime flow · +${earnedMins}m break</span>`;
+        else earnedBadge.innerHTML = `Earned break: <span>${earnedMins}m</span>`;
+
+        gestureHint.textContent = (ms === 0 && !state.running)
+          ? 'Tap to start · Swipe subject'
+          : (state.running ? 'Tap pause · Hold save' : 'Tap resume · Hold save');
 
         if (earnedMins >= 1 && !state.running) {
           breakBtn.style.display = 'inline-block';
@@ -1388,18 +1983,6 @@
           breakBtn.classList.add('highlight');
         } else {
           breakBtn.style.display = 'none';
-        }
-
-        if (state.isCountdown && displayMs <= 0 && state.running) {
-          state.accumulatedMs = state.targetMs;
-          state.running = false;
-          state.startedAt = null;
-          persistActive();
-          document.body.classList.remove('running', 'final-five');
-          setWakeLock(false);
-          playChime();
-          if (navigator.vibrate) navigator.vibrate([40, 80, 40, 80, 60]);
-          requestSaveSession();
         }
       }
     }
@@ -1411,7 +1994,7 @@
     }
 
     function toggle() {
-      if (navigator.vibrate) navigator.vibrate(12);
+      buzz(12);
       if (!state.running) {
         state.running = true;
         state.startedAt = Date.now();
@@ -1419,6 +2002,9 @@
         document.body.classList.add('running', 'started');
         breakBtn.style.display = 'none';
         setWakeLock(true);
+        updateAudioMix();
+        syncNativeNotification();
+        syncNativeImmersive();
         tick();
       } else {
         state.accumulatedMs = getElapsed();
@@ -1428,78 +2014,121 @@
         cancelAnimationFrame(rafId);
         document.body.classList.remove('running', 'final-five');
         setWakeLock(false);
+        updateAudioMix();
+        syncNativeNotification();
+        syncNativeImmersive();
         renderTime(state.accumulatedMs);
       }
     }
 
-    // ---------- Gesture Dial: Tap to Start/Pause, Hold (0.75s) to Save/Reset ----------
-    let holdTimer = null;
-    let holdCompleted = false;
-    let pointerActive = false;
+    // ---------- Gesture Dial: Tap (Start/Pause), Swipe (Subject), Hold w/ 0.4s Dead-Zone ----------
+    let deadZoneTimer = null, halfwayTimer = null, holdCompleteTimer = null;
+    let holdCompleted = false, pointerActive = false, isSwiping = false;
+    let pStartX = 0, pStartY = 0;
 
-    function resetHoldVisual() {
+    function cancelHoldTimers() {
+      clearTimeout(deadZoneTimer); clearTimeout(halfwayTimer); clearTimeout(holdCompleteTimer);
+      deadZoneTimer = halfwayTimer = holdCompleteTimer = null;
       ringHold.style.transition = 'stroke-dashoffset 0.16s ease';
       ringHold.style.strokeDashoffset = CIRC;
+      typoHoldFill.style.transition = 'transform 0.16s ease';
+      typoHoldFill.style.transform = 'scaleX(0)';
       dial.classList.remove('pressing');
     }
 
     dial.addEventListener('pointerdown', e => {
       if (e.button && e.button !== 0) return;
-      pointerActive = true;
-      holdCompleted = false;
+      pointerActive = true; holdCompleted = false; isSwiping = false;
+      pStartX = e.clientX; pStartY = e.clientY;
       dial.classList.add('pressing');
 
       const hasProgress = getElapsed() > 0 || state.running || state.isBreak;
       if (hasProgress) {
-        ringHold.style.transition = 'stroke-dashoffset 0.75s linear';
-        ringHold.style.strokeDashoffset = 0;
-        holdTimer = setTimeout(() => {
-          holdCompleted = true;
-          pointerActive = false;
-          resetHoldVisual();
-          if (navigator.vibrate) navigator.vibrate([18, 35, 18]);
-          requestSaveSession();
-        }, 750);
+        const holdDur = store.settings.holdMs;
+        deadZoneTimer = setTimeout(() => {
+          if (!pointerActive || isSwiping) return;
+          ringHold.style.transition = `stroke-dashoffset ${holdDur}ms linear`;
+          ringHold.style.strokeDashoffset = 0;
+          typoHoldFill.style.transition = `transform ${holdDur}ms linear`;
+          typoHoldFill.style.transform = 'scaleX(1)';
+
+          halfwayTimer = setTimeout(() => { if (pointerActive && !isSwiping) buzz(15); }, holdDur / 2);
+          holdCompleteTimer = setTimeout(() => {
+            holdCompleted = true; pointerActive = false; cancelHoldTimers();
+            buzz([20, 40, 20]);
+            requestSaveSession();
+          }, holdDur);
+        }, 400);
       }
     });
 
-    function handlePointerEnd(triggerTap) {
+    dial.addEventListener('pointermove', e => {
+      if (!pointerActive) return;
+      if (!isSwiping && (Math.abs(e.clientX - pStartX) > 26 || Math.abs(e.clientY - pStartY) > 26)) {
+        isSwiping = true;
+        cancelHoldTimers();
+      }
+    });
+
+    function handlePointerEnd(e, isUp) {
       if (!pointerActive) return;
       pointerActive = false;
-      if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-      resetHoldVisual();
-      if (triggerTap && !holdCompleted) toggle();
+      cancelHoldTimers();
+      if (isUp && isSwiping && !state.running && !state.isBreak) {
+        const dx = e.clientX - pStartX;
+        if (Math.abs(dx) > 45) cycleSubject(dx < 0 ? 1 : -1);
+      } else if (isUp && !isSwiping && !holdCompleted) {
+        toggle();
+      }
     }
+    dial.addEventListener('pointerup', e => handlePointerEnd(e, true));
+    dial.addEventListener('pointerleave', e => handlePointerEnd(e, false));
+    dial.addEventListener('pointercancel', e => handlePointerEnd(e, false));
 
-    dial.addEventListener('pointerup', () => handlePointerEnd(true));
-    dial.addEventListener('pointerleave', () => handlePointerEnd(false));
-    dial.addEventListener('pointercancel', () => handlePointerEnd(false));
-
-    // ---------- Save Note Flow ----------
+    // ---------- Save Note + Trim + Energy ----------
     const noteModal = document.getElementById('noteModal');
     const noteInput = document.getElementById('noteInput');
+    const trimMinsInput = document.getElementById('trimMinsInput');
+    const energyRow = document.getElementById('energyRow');
+    let pendingRawMs = 0, pendingDefaultMins = 0, pickedEnergy = 'high';
+
+    energyRow.addEventListener('click', e => {
+      const btn = e.target.closest('.energy-btn');
+      if (!btn) return;
+      pickedEnergy = btn.dataset.e;
+      [...energyRow.children].forEach(b => b.classList.toggle('active', b === btn));
+      buzz(8);
+    });
 
     function requestSaveSession() {
       if (state.isBreak) { finishBreak(); return; }
       if (state.running) toggle();
-      const ms = getElapsed();
-      if (ms < 5000) { clearCurrentTimer(); return; }
+      pendingRawMs = getElapsed();
+      if (pendingRawMs < 5000) { clearCurrentTimer(); return; }
+      pendingDefaultMins = Math.max(1, Math.round(pendingRawMs / 60000));
+      trimMinsInput.value = pendingDefaultMins;
       noteInput.value = '';
+      pickedEnergy = 'high';
+      [...energyRow.children].forEach(b => b.classList.toggle('active', b.dataset.e === 'high'));
       noteModal.classList.add('open');
-      setTimeout(() => noteInput.focus(), 80);
     }
 
-    function commitSession(noteText) {
+    function commitSession(noteText, customMins) {
       const tk = dateKey();
       if (!store.days[tk]) store.days[tk] = [];
       const sub = getActiveSubject();
       const now = new Date();
+      const finalMs = (customMins && customMins !== pendingDefaultMins && customMins > 0)
+        ? customMins * 60000 : pendingRawMs;
+
       store.days[tk].push({
         id: 's_' + Date.now(),
-        duration: getElapsed(),
+        duration: finalMs,
         slips: state.slips,
         time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hour: now.getHours(),
+        endMin: now.getHours() * 60 + now.getMinutes(),
+        energy: pickedEnergy,
         subject: sub.name,
         rgb: sub.rgb,
         note: (noteText || '').trim()
@@ -1512,162 +2141,140 @@
 
     function clearCurrentTimer() {
       cancelAnimationFrame(rafId);
-      state.running = false;
-      state.startedAt = null;
-      state.accumulatedMs = 0;
-      state.slips = 0;
+      state.running = false; state.startedAt = null; state.accumulatedMs = 0;
+      state.slips = 0; state.overtimeChimed = false; state.lastMilestone = 0;
       persistActive();
       slipBtn.textContent = '+ Distraction (0)';
       slipBtn.classList.remove('warn');
-      document.body.classList.remove('running', 'started', 'final-five');
+      document.body.classList.remove('running', 'started', 'final-five', 'overtime', 'auto-dimmed');
       breakBtn.style.display = 'none';
+      applySubjectTheme();
       setWakeLock(false);
+      updateAudioMix();
+      syncNativeNotification();
+      syncNativeImmersive();
       renderTime(0);
     }
 
-    document.getElementById('noteSaveBtn').addEventListener('click', () => commitSession(noteInput.value));
-    document.getElementById('noteDiscardBtn').addEventListener('click', () => {
-      noteModal.classList.remove('open');
-      clearCurrentTimer();
-    });
+    document.getElementById('noteSaveBtn').addEventListener('click', () => commitSession(noteInput.value, parseInt(trimMinsInput.value, 10)));
+    document.getElementById('noteDiscardBtn').addEventListener('click', () => { noteModal.classList.remove('open'); clearCurrentTimer(); });
 
     // ---------- Break Mode ----------
     function startBreak() {
-      const earnedMins = Math.floor((getElapsed() / 60000) / 5);
+      const ms = getElapsed();
+      const earnedMins = Math.floor((ms / 60000) * store.settings.breakRatio);
       if (earnedMins < 1) return;
-      commitSession('');
-      state.isBreak = true;
-      state.isCountdown = false;
+      pendingRawMs = ms; pendingDefaultMins = Math.max(1, Math.round(ms / 60000));
+      commitSession('', pendingDefaultMins);
+      state.isBreak = true; state.isCountdown = false; state.isIgnition = false;
       state.targetMs = earnedMins * 60000;
       persistActive();
       document.body.classList.add('break-mode');
       applySubjectTheme();
-      slipBtn.style.display = 'none';
-      modeChip.style.display = 'none';
+      slipBtn.style.display = 'none'; modeChip.style.display = 'none';
       renderTime(0);
       toggle();
     }
 
     function finishBreak() {
       cancelAnimationFrame(rafId);
-      state.running = false;
-      state.isBreak = false;
-      state.startedAt = null;
-      state.accumulatedMs = 0;
-      state.targetMs = 0;
+      state.running = false; state.isBreak = false; state.startedAt = null;
+      state.accumulatedMs = 0; state.targetMs = 0;
       persistActive();
-      document.body.classList.remove('break-mode', 'running', 'started', 'final-five');
+      document.body.classList.remove('break-mode', 'running', 'started', 'final-five', 'overtime', 'auto-dimmed');
       applySubjectTheme();
-      slipBtn.style.display = 'inline-block';
-      modeChip.style.display = 'inline-block';
-      setWakeLock(false);
-      renderTime(0);
-      playChime();
-      if (navigator.vibrate) navigator.vibrate([30, 60, 30]);
+      slipBtn.style.display = 'inline-block'; modeChip.style.display = 'inline-block';
+      setWakeLock(false); updateAudioMix(); syncNativeNotification(); syncNativeImmersive();
+      renderTime(0); playChime(); buzz([30, 60, 30]);
     }
 
     breakBtn.addEventListener('click', startBreak);
-
     slipBtn.addEventListener('click', () => {
-      state.slips++;
-      persistActive();
+      state.slips++; persistActive();
       slipBtn.textContent = `+ Distraction (${state.slips})`;
-      slipBtn.classList.add('warn');
-      if (navigator.vibrate) navigator.vibrate(14);
+      slipBtn.classList.add('warn'); buzz(14);
     });
-
     zenBtn.addEventListener('click', () => {
       document.body.classList.toggle('zen');
       zenBtn.classList.toggle('active', document.body.classList.contains('zen'));
-      if (navigator.vibrate) navigator.vibrate(8);
+      buzz(8);
     });
 
-    // ---------- Sprint / Countdown Modal ----------
+    // ---------- Sprint / Ignition / Flow Modal ----------
     const sprintModal = document.getElementById('sprintModal');
     const presetGrid = document.getElementById('presetGrid');
     const customSprintMins = document.getElementById('customSprintMins');
-    let pickedSprintMins = 0;
+    let pickedMode = 'flow', pickedSprintMins = 0;
 
     modeChip.addEventListener('click', () => {
       if (state.running || getElapsed() > 0) return;
-      pickedSprintMins = state.isCountdown ? Math.round(state.targetMs / 60000) : 0;
+      pickedMode = state.isIgnition ? 'ignition' : (state.isCountdown ? 'sprint' : 'flow');
+      pickedSprintMins = state.isCountdown ? Math.round(state.targetMs / 60000) : (state.isIgnition ? 5 : 0);
       customSprintMins.value = '';
       [...presetGrid.children].forEach(b => {
-        b.classList.toggle('active', Number(b.dataset.mins) === pickedSprintMins);
+        b.classList.toggle('active', b.dataset.mode === pickedMode && Number(b.dataset.mins) === pickedSprintMins);
       });
       sprintModal.classList.add('open');
     });
-
     presetGrid.addEventListener('click', e => {
       const btn = e.target.closest('.preset-btn');
       if (!btn) return;
+      pickedMode = btn.dataset.mode;
       pickedSprintMins = Number(btn.dataset.mins);
       customSprintMins.value = '';
       [...presetGrid.children].forEach(b => b.classList.toggle('active', b === btn));
     });
-
     document.getElementById('sprintCancelBtn').addEventListener('click', () => sprintModal.classList.remove('open'));
     document.getElementById('sprintApplyBtn').addEventListener('click', () => {
       const custom = parseInt(customSprintMins.value, 10);
-      const mins = custom > 0 ? custom : pickedSprintMins;
-      state.isCountdown = mins > 0;
-      state.targetMs = mins * 60000;
-      persistActive();
-      applySubjectTheme();
-      renderTime(0);
+      if (custom > 0) {
+        state.isIgnition = false; state.isCountdown = true; state.targetMs = custom * 60000;
+      } else if (pickedMode === 'ignition') {
+        state.isIgnition = true; state.isCountdown = false; state.targetMs = 300000;
+      } else if (pickedMode === 'sprint' && pickedSprintMins > 0) {
+        state.isIgnition = false; state.isCountdown = true; state.targetMs = pickedSprintMins * 60000;
+      } else {
+        state.isIgnition = false; state.isCountdown = false; state.targetMs = 0;
+      }
+      state.overtimeChimed = false;
+      persistActive(); applySubjectTheme(); renderTime(0);
       sprintModal.classList.remove('open');
     });
 
-    // ---------- Past Days Drawer & Insights ----------
-    const drawer = document.getElementById('drawer');
+    // ---------- Shared Drawer Controls ----------
     const drawerBackdrop = document.getElementById('drawerBackdrop');
+    const historyDrawer = document.getElementById('historyDrawer');
+    const settingsDrawer = document.getElementById('settingsDrawer');
+    function closeAllDrawers() {
+      historyDrawer.classList.remove('open');
+      settingsDrawer.classList.remove('open');
+      drawerBackdrop.classList.remove('open');
+    }
+    drawerBackdrop.addEventListener('click', closeAllDrawers);
+    document.querySelectorAll('[data-close-drawer]').forEach(el => el.addEventListener('click', closeAllDrawers));
+
+    // ---------- History Drawer ----------
     const barsWrap = document.getElementById('barsWrap');
     const heatmap = document.getElementById('heatmap');
     const dayDetail = document.getElementById('dayDetail');
-    const goalEditBtn = document.getElementById('goalEditBtn');
+    const allTimeCard = document.getElementById('allTimeCard');
 
-    function openDrawer() {
+    todayPill.addEventListener('click', () => {
       selectedHistoryKey = dateKey();
-      renderDrawer();
-      drawer.classList.add('open');
+      renderHistoryDrawer();
+      historyDrawer.classList.add('open');
       drawerBackdrop.classList.add('open');
-      if (navigator.vibrate) navigator.vibrate(8);
-    }
-
-    function closeDrawer() {
-      drawer.classList.remove('open');
-      drawerBackdrop.classList.remove('open');
-    }
-
-    todayPill.addEventListener('click', openDrawer);
-    drawerBackdrop.addEventListener('click', closeDrawer);
-    document.getElementById('drawerHandle').addEventListener('click', closeDrawer);
-
-    goalEditBtn.addEventListener('click', () => {
-      const steps = [120, 180, 240, 360, 480, 600];
-      store.goalMins = steps[(steps.indexOf(store.goalMins) + 1) % steps.length];
-      saveStore();
-      updateTodayUI();
-      renderDrawer();
+      buzz(8);
     });
 
     function computeInsights() {
       const buckets = { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 };
       let totalMs = 0, totalSlips = 0;
-
       Object.values(store.days).forEach(arr => {
         arr.forEach(s => {
           totalMs += s.duration;
           totalSlips += (s.slips || 0);
-          let h = typeof s.hour === 'number' ? s.hour : null;
-          if (h === null && s.time && s.time.includes(':')) {
-            const parts = s.time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
-            if (parts) {
-              h = parseInt(parts[1], 10);
-              if (parts[3] && parts[3].toUpperCase() === 'PM' && h < 12) h += 12;
-              if (parts[3] && parts[3].toUpperCase() === 'AM' && h === 12) h = 0;
-            }
-          }
+          const h = typeof s.hour === 'number' ? s.hour : null;
           if (h !== null) {
             if (h >= 5 && h < 12) buckets.Morning += s.duration;
             else if (h >= 12 && h < 17) buckets.Afternoon += s.duration;
@@ -1676,56 +2283,61 @@
           }
         });
       });
-
-      const topBucket = Object.entries(buckets).sort((a, b) => b[1] - a[1])[0];
-      const peak = topBucket && topBucket[1] > 0 ? topBucket[0] : '--';
-
-      let score = '--';
-      if (totalMs > 0) {
-        const hrs = Math.max(0.25, totalMs / 3600000);
-        const slipsPerHr = totalSlips / hrs;
-        score = `${Math.max(10, Math.min(100, Math.round(100 - slipsPerHr * 12)))} / 100`;
-      }
+      const top = Object.entries(buckets).sort((a, b) => b[1] - a[1])[0];
+      const peak = top && top[1] > 0 ? top[0] : '--';
+      const score = totalMs > 0
+        ? `${Math.max(10, Math.min(100, Math.round(100 - (totalSlips / Math.max(0.25, totalMs / 3600000)) * 12)))} / 100`
+        : '--';
       return { peak, score };
     }
 
     function getStreak() {
       const today = new Date();
-      let streak = 0;
-      let cursor = new Date(today);
+      let streak = 0, cursor = new Date(today);
       if (getDayMs(dateKey(cursor)) < 60000) cursor = shiftDate(cursor, -1);
-      while (getDayMs(dateKey(cursor)) >= 60000) {
-        streak++;
-        cursor = shiftDate(cursor, -1);
-      }
+      while (getDayMs(dateKey(cursor)) >= 60000) { streak++; cursor = shiftDate(cursor, -1); }
       return streak;
     }
 
-    function renderDrawer() {
-      goalEditBtn.textContent = `Goal: ${store.goalMins / 60}h`;
-      const today = new Date();
-      const streak = getStreak();
+    function getMilestoneTag(ms) {
+      const h = ms / 3600000;
+      if (h >= 100) return '100h';
+      if (h >= 50) return '50h';
+      if (h >= 25) return '25h';
+      if (h >= 10) return '10h';
+      return '';
+    }
 
+    function renderHistoryDrawer() {
+      const cb = document.getElementById('countdownBanner');
+      if (store.settings.bigDate) {
+        const target = new Date(store.settings.bigDate + 'T00:00:00');
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((target - now) / 86400000);
+        document.getElementById('cbLabel').textContent = store.settings.bigDateLabel || 'Target Date';
+        document.getElementById('cbDays').textContent = diffDays > 0 ? `${diffDays}d left` : (diffDays === 0 ? 'Today' : `${Math.abs(diffDays)}d ago`);
+        cb.classList.add('visible');
+      } else cb.classList.remove('visible');
+
+      const today = new Date();
       let last7Sum = 0;
       for (let i = 0; i < 7; i++) last7Sum += getDayMs(dateKey(shiftDate(today, -i)));
       let bestMs = 0;
       Object.keys(store.days).forEach(k => { const ms = getDayMs(k); if (ms > bestMs) bestMs = ms; });
-
       const { peak, score } = computeInsights();
-      document.getElementById('statStreak').textContent = `${streak}d`;
+
+      document.getElementById('statStreak').textContent = `${getStreak()}d`;
       document.getElementById('statAvg').textContent = formatHM(last7Sum / 7);
       document.getElementById('statBest').textContent = formatHM(bestMs);
       document.getElementById('statPeak').textContent = peak;
       document.getElementById('statScore').textContent = score;
 
-      // 7-Day Bar Graph
+      // 7-Day Bars
       barsWrap.innerHTML = '';
       const last7 = [];
       let max7 = store.goalMins * 60000;
       for (let i = 6; i >= 0; i--) {
-        const d = shiftDate(today, -i);
-        const k = dateKey(d);
-        const ms = getDayMs(k);
+        const d = shiftDate(today, -i), k = dateKey(d), ms = getDayMs(k);
         if (ms > max7) max7 = ms;
         last7.push({ k, label: d.toLocaleDateString([], { weekday: 'narrow' }), ms });
       }
@@ -1733,11 +2345,8 @@
         const col = document.createElement('div');
         col.className = 'bar-col' + (item.k === selectedHistoryKey ? ' selected' : '');
         const pct = item.ms > 0 ? Math.max(8, (item.ms / max7) * 100) : 0;
-        col.innerHTML = `
-          <div class="bar-track"><div class="bar-fill" style="height:${pct}%"></div></div>
-          <span class="bar-day">${item.label}</span>
-        `;
-        col.addEventListener('click', () => { selectedHistoryKey = item.k; renderDrawer(); });
+        col.innerHTML = `<div class="bar-track"><div class="bar-fill" style="height:${pct}%"></div></div><span class="bar-day">${item.label}</span>`;
+        col.addEventListener('click', () => { selectedHistoryKey = item.k; renderHistoryDrawer(); });
         barsWrap.appendChild(col);
       });
 
@@ -1745,20 +2354,17 @@
       heatmap.innerHTML = '';
       const goalMs = store.goalMins * 60000;
       for (let i = 34; i >= 0; i--) {
-        const d = shiftDate(today, -i);
-        const k = dateKey(d);
-        const ms = getDayMs(k);
-        const ratio = ms / goalMs;
+        const d = shiftDate(today, -i), k = dateKey(d), ms = getDayMs(k), ratio = ms / goalMs;
         let lvl = '';
         if (ms > 0) lvl = ratio >= 1 ? 'l4' : ratio >= 0.65 ? 'l3' : ratio >= 0.3 ? 'l2' : 'l1';
         const cell = document.createElement('div');
         cell.className = `heat-cell ${lvl} ${k === selectedHistoryKey ? 'selected' : ''}`;
         cell.textContent = d.getDate();
-        cell.addEventListener('click', () => { selectedHistoryKey = k; renderDrawer(); });
+        cell.addEventListener('click', () => { selectedHistoryKey = k; renderHistoryDrawer(); });
         heatmap.appendChild(cell);
       }
 
-      // Selected Day Detail
+      // Selected Day Detail + 24-Hour Timeline
       const arr = store.days[selectedHistoryKey] || [];
       const totalMs = getDayMs(selectedHistoryKey);
       const niceDate = selectedHistoryKey === dateKey()
@@ -1766,11 +2372,25 @@
         : new Date(selectedHistoryKey + 'T12:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
       const bySubj = {};
+      let timelineBlocks = '';
       arr.forEach(s => {
         const name = s.subject || 'General';
         if (!bySubj[name]) bySubj[name] = { ms: 0, rgb: s.rgb || '255,255,255' };
         bySubj[name].ms += s.duration;
+
+        const durMin = Math.max(4, s.duration / 60000);
+        const endMin = typeof s.endMin === 'number' ? s.endMin : ((typeof s.hour === 'number' ? s.hour : 12) * 60 + durMin);
+        const startMin = Math.max(0, endMin - durMin);
+        const leftPct = (startMin / 1440) * 100;
+        const widthPct = Math.min(100 - leftPct, (durMin / 1440) * 100);
+        timelineBlocks += `<div class="timeline-block" style="left:${leftPct.toFixed(2)}%;width:${widthPct.toFixed(2)}%;background:rgb(${s.rgb || '255,255,255'})"></div>`;
       });
+
+      const timelineHtml = totalMs > 0 ? `
+        <div class="timeline-box">
+          <div class="timeline-track">${timelineBlocks}</div>
+          <div class="timeline-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+        </div>` : '';
 
       let breakdownHtml = '';
       if (totalMs > 0) {
@@ -1778,25 +2398,22 @@
           .sort((a, b) => b[1].ms - a[1].ms)
           .map(([name, info]) => {
             const p = Math.round((info.ms / totalMs) * 100);
-            return `
-              <div class="sb-row">
-                <div class="sb-top"><span>${escapeHtml(name)}</span><strong>${formatHM(info.ms)} (${p}%)</strong></div>
-                <div class="sb-bar"><div class="sb-fill" style="width:${p}%;background:rgb(${info.rgb})"></div></div>
-              </div>`;
+            return `<div class="sb-row"><div class="sb-top"><span>${escapeHtml(name)}</span><strong>${formatHM(info.ms)} (${p}%)</strong></div><div class="sb-bar"><div class="sb-fill" style="width:${p}%;background:rgb(${info.rgb})"></div></div></div>`;
           }).join('') + '</div>';
       }
 
       dayDetail.innerHTML = `
         <div class="day-detail-head">
           <span>${niceDate} · ${formatHM(totalMs)}</span>
-          ${totalMs > 0 ? '<button class="mini-btn" id="openReceiptBtn">Receipt</button>' : ''}
+          ${totalMs > 0 ? '<button class="mini-btn" id="openReceiptBtn">Day Card</button>' : ''}
         </div>
+        ${timelineHtml}
         ${breakdownHtml}
         <div class="day-logs" id="drawerDayLogs"></div>
       `;
 
       const receiptTrigger = document.getElementById('openReceiptBtn');
-      if (receiptTrigger) receiptTrigger.addEventListener('click', () => generateReceipt(selectedHistoryKey, niceDate, bySubj, totalMs, arr));
+      if (receiptTrigger) receiptTrigger.addEventListener('click', () => generateDailyReceipt(selectedHistoryKey, niceDate, bySubj, totalMs, arr));
 
       const logsContainer = document.getElementById('drawerDayLogs');
       if (arr.length === 0) {
@@ -1805,6 +2422,7 @@
         [...arr].reverse().forEach(s => {
           const f = formatHMS(s.duration);
           const durText = f.h > 0 ? `${f.h}h ${f.m}m` : `${f.m}m ${f.s}s`;
+          const eDot = s.energy ? `<span class="energy-dot energy-${s.energy}"></span>` : '';
           const row = document.createElement('div');
           row.className = 'session-row';
           row.style.background = 'rgba(255,255,255,0.03)';
@@ -1815,7 +2433,7 @@
                 <span class="s-subj">${escapeHtml(s.subject || 'General')}</span>
                 <span class="s-meta">${s.time}</span>
               </div>
-              <span class="s-dur">${durText}</span>
+              <div class="s-right">${eDot}<span class="s-dur">${durText}</span></div>
             </div>
             ${s.note ? `<div class="s-note">${escapeHtml(s.note)}</div>` : ''}
           `;
@@ -1823,9 +2441,132 @@
           logsContainer.appendChild(row);
         });
       }
+
+      // All-Time Subject Totals
+      const allTotals = {};
+      let grandTotal = 0;
+      Object.values(store.days).forEach(dayArr => {
+        dayArr.forEach(s => {
+          const n = s.subject || 'General';
+          if (!allTotals[n]) allTotals[n] = { ms: 0, rgb: s.rgb || '255,255,255' };
+          allTotals[n].ms += s.duration;
+          grandTotal += s.duration;
+        });
+      });
+
+      if (grandTotal === 0) {
+        allTimeCard.innerHTML = '<div class="empty-msg">Complete sessions to build your all-time totals.</div>';
+      } else {
+        allTimeCard.innerHTML = '<div class="subj-breakdown" style="margin-bottom:0;">' + Object.entries(allTotals)
+          .sort((a, b) => b[1].ms - a[1].ms)
+          .map(([name, info]) => {
+            const p = Math.round((info.ms / grandTotal) * 100);
+            const tag = getMilestoneTag(info.ms);
+            return `<div class="sb-row">
+              <div class="sb-top">
+                <span>${escapeHtml(name)}${tag ? `<span class="milestone-pill">${tag}</span>` : ''}</span>
+                <strong>${formatHM(info.ms)}</strong>
+              </div>
+              <div class="sb-bar"><div class="sb-fill" style="width:${p}%;background:rgb(${info.rgb})"></div></div>
+            </div>`;
+          }).join('') + '</div>';
+      }
     }
 
-    // ---------- Edit / Delete Past Session ----------
+    document.getElementById('weeklyReceiptBtn').addEventListener('click', generateWeeklyReceipt);
+
+    // ---------- Settings Drawer ----------
+    function wireSeg(id, getVal, setVal) {
+      const grp = document.getElementById(id);
+      const sync = () => [...grp.children].forEach(b => b.classList.toggle('active', String(getVal()) === b.dataset.val));
+      grp.addEventListener('click', e => {
+        const btn = e.target.closest('.seg-btn');
+        if (!btn) return;
+        setVal(btn.dataset.val); saveStore(); sync(); buzz(8);
+      });
+      return sync;
+    }
+
+    const syncFontSeg = wireSeg('fontSeg', () => store.settings.font, v => { store.settings.font = v; applyAppearance(); });
+    const syncDialSeg = wireSeg('dialSeg', () => store.settings.dialStyle, v => { store.settings.dialStyle = v; applyAppearance(); });
+    const syncGoalSeg = wireSeg('goalSeg', () => store.goalMins, v => { store.goalMins = Number(v); updateTodayUI(); });
+    const syncRatioSeg = wireSeg('ratioSeg', () => store.settings.breakRatio, v => { store.settings.breakRatio = Number(v); renderTime(getElapsed()); });
+    const syncHoldSeg = wireSeg('holdSeg', () => store.settings.holdMs, v => { store.settings.holdMs = Number(v); });
+    const syncMilestoneSeg = wireSeg('milestoneSeg', () => store.settings.milestoneMins, v => { store.settings.milestoneMins = Number(v); });
+
+    const amberToggle = document.getElementById('amberToggle');
+    const fullscreenToggle = document.getElementById('fullscreenToggle');
+    const autoDimToggle = document.getElementById('autoDimToggle');
+    const hapticsToggle = document.getElementById('hapticsToggle');
+    const bigDateLabelInput = document.getElementById('bigDateLabelInput');
+    const bigDateInput = document.getElementById('bigDateInput');
+    const subjManagerList = document.getElementById('subjManagerList');
+
+    amberToggle.addEventListener('click', () => {
+      store.settings.amberTint = !store.settings.amberTint; saveStore();
+      amberToggle.classList.toggle('on', store.settings.amberTint); applyAppearance(); buzz(8);
+    });
+    fullscreenToggle.addEventListener('click', () => {
+      store.settings.fullscreen = !store.settings.fullscreen; saveStore();
+      fullscreenToggle.classList.toggle('on', store.settings.fullscreen); syncNativeImmersive(); buzz(8);
+    });
+    autoDimToggle.addEventListener('click', () => {
+      store.settings.autoDim = !store.settings.autoDim; saveStore();
+      autoDimToggle.classList.toggle('on', store.settings.autoDim);
+    });
+    hapticsToggle.addEventListener('click', () => {
+      store.settings.haptics = !store.settings.haptics; saveStore();
+      hapticsToggle.classList.toggle('on', store.settings.haptics); buzz(10);
+    });
+    bigDateLabelInput.addEventListener('input', () => { store.settings.bigDateLabel = bigDateLabelInput.value.trim(); saveStore(); });
+    bigDateInput.addEventListener('change', () => { store.settings.bigDate = bigDateInput.value; saveStore(); });
+
+    function renderSubjectManager() {
+      subjManagerList.innerHTML = '';
+      store.subjects.forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'subj-mgr-row';
+        row.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="subj-dot" style="background:rgb(${s.rgb});width:9px;height:9px;"></span>
+            <span>${escapeHtml(s.name)}</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="mini-btn" data-act="edit">Edit</button>
+            ${store.subjects.length > 1 ? '<button class="mini-btn" style="color:var(--red)" data-act="del">Del</button>' : ''}
+          </div>
+        `;
+        row.querySelector('[data-act="edit"]').addEventListener('click', () => openSubjModal(s.id));
+        const delBtn = row.querySelector('[data-act="del"]');
+        if (delBtn) delBtn.addEventListener('click', () => {
+          store.subjects = store.subjects.filter(x => x.id !== s.id);
+          if (store.activeSubject === s.id) store.activeSubject = store.subjects[0].id;
+          saveStore(); renderSubjects(); renderSubjectManager();
+        });
+        subjManagerList.appendChild(row);
+      });
+    }
+
+    settingsBtn.addEventListener('click', () => {
+      syncFontSeg(); syncDialSeg(); syncGoalSeg(); syncRatioSeg(); syncHoldSeg(); syncMilestoneSeg();
+      amberToggle.classList.toggle('on', !!store.settings.amberTint);
+      fullscreenToggle.classList.toggle('on', !!store.settings.fullscreen);
+      autoDimToggle.classList.toggle('on', !!store.settings.autoDim);
+      hapticsToggle.classList.toggle('on', !!store.settings.haptics);
+      bigDateLabelInput.value = store.settings.bigDateLabel || '';
+      bigDateInput.value = store.settings.bigDate || '';
+      renderSubjectManager();
+      settingsDrawer.classList.add('open');
+      drawerBackdrop.classList.add('open');
+      buzz(8);
+    });
+    document.getElementById('settingsAddSubjBtn').addEventListener('click', () => openSubjModal(null));
+    document.getElementById('openBackupFromSettings').addEventListener('click', () => {
+      backupText.value = JSON.stringify(store);
+      backupModal.classList.add('open');
+    });
+
+    // ---------- Edit / Delete Session ----------
     const editModal = document.getElementById('editModal');
     const editMins = document.getElementById('editMins');
     const editSubj = document.getElementById('editSubj');
@@ -1833,8 +2574,7 @@
     let editingTarget = null;
 
     function openEditModal(dk, sid) {
-      const arr = store.days[dk] || [];
-      const item = arr.find(x => x.id === sid);
+      const item = (store.days[dk] || []).find(x => x.id === sid);
       if (!item) return;
       editingTarget = { dk, sid };
       editMins.value = Math.max(1, Math.round(item.duration / 60000));
@@ -1846,12 +2586,10 @@
       editNote.value = item.note || '';
       editModal.classList.add('open');
     }
-
     document.getElementById('editCancelBtn').addEventListener('click', () => editModal.classList.remove('open'));
     document.getElementById('editSaveBtn').addEventListener('click', () => {
       if (!editingTarget) return;
-      const arr = store.days[editingTarget.dk] || [];
-      const item = arr.find(x => x.id === editingTarget.sid);
+      const item = (store.days[editingTarget.dk] || []).find(x => x.id === editingTarget.sid);
       const mins = parseInt(editMins.value, 10);
       if (item && mins > 0) {
         item.duration = mins * 60000;
@@ -1859,139 +2597,31 @@
         const foundSub = store.subjects.find(s => s.name === editSubj.value);
         if (foundSub) item.rgb = foundSub.rgb;
         item.note = editNote.value.trim();
-        saveStore();
-        updateTodayUI();
-        if (drawer.classList.contains('open')) renderDrawer();
+        saveStore(); updateTodayUI();
+        if (historyDrawer.classList.contains('open')) renderHistoryDrawer();
       }
       editModal.classList.remove('open');
     });
-
     document.getElementById('editDeleteBtn').addEventListener('click', () => {
       if (!editingTarget) return;
       store.days[editingTarget.dk] = (store.days[editingTarget.dk] || []).filter(x => x.id !== editingTarget.sid);
-      saveStore();
-      updateTodayUI();
-      if (drawer.classList.contains('open')) renderDrawer();
+      saveStore(); updateTodayUI();
+      if (historyDrawer.classList.contains('open')) renderHistoryDrawer();
       editModal.classList.remove('open');
     });
 
-    // ---------- Shareable Daily Receipt PNG ----------
-    const receiptModal = document.getElementById('receiptModal');
-    const receiptImg = document.getElementById('receiptImg');
-    let currentReceiptDataUrl = '';
-
-    function generateReceipt(dk, niceDate, bySubj, totalMs, arr) {
-      const c = document.createElement('canvas');
-      c.width = 900;
-      c.height = 1120;
-      const ctx = c.getContext('2d');
-
-      // Pure AMOLED Black Background
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, c.width, c.height);
-
-      // Subtle card border
-      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(42, 42, 816, 1036);
-
-      // Header
-      ctx.fillStyle = '#686872';
-      ctx.font = '500 22px sans-serif';
-      ctx.fillText('CHRONO OBSIDIAN · DAILY RECEIPT', 84, 118);
-
-      ctx.fillStyle = '#f5f5f7';
-      ctx.font = '300 44px sans-serif';
-      ctx.fillText(niceDate.toUpperCase() + '  (' + dk + ')', 84, 178);
-
-      // Divider
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-      ctx.beginPath(); ctx.moveTo(84, 215); ctx.lineTo(816, 215); ctx.stroke();
-
-      // Big Total
-      ctx.fillStyle = '#686872';
-      ctx.font = '500 20px sans-serif';
-      ctx.fillText('TOTAL DEEP WORK', 84, 275);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '200 112px sans-serif';
-      ctx.fillText(formatHM(totalMs), 80, 390);
-
-      // Streak & Sessions
-      const totalSlips = arr.reduce((a, b) => a + (b.slips || 0), 0);
-      const hrs = Math.max(0.25, totalMs / 3600000);
-      const dayScore = Math.max(10, Math.min(100, Math.round(100 - (totalSlips / hrs) * 12)));
-
-      ctx.fillStyle = '#a0a0aa';
-      ctx.font = '400 26px sans-serif';
-      ctx.fillText(`STREAK: ${getStreak()}D     ·     SESSIONS: ${arr.length}     ·     FOCUS: ${dayScore}/100`, 84, 456);
-
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-      ctx.beginPath(); ctx.moveTo(84, 498); ctx.lineTo(816, 498); ctx.stroke();
-
-      // Subject Bars
-      ctx.fillStyle = '#686872';
-      ctx.font = '500 20px sans-serif';
-      ctx.fillText('SUBJECT BREAKDOWN', 84, 550);
-
-      let y = 605;
-      Object.entries(bySubj)
-        .sort((a, b) => b[1].ms - a[1].ms)
-        .slice(0, 5)
-        .forEach(([name, info]) => {
-          const pct = Math.round((info.ms / totalMs) * 100);
-          ctx.fillStyle = '#f5f5f7';
-          ctx.font = '400 28px sans-serif';
-          ctx.fillText(name, 84, y);
-
-          ctx.fillStyle = '#a0a0aa';
-          ctx.textAlign = 'right';
-          ctx.fillText(`${formatHM(info.ms)} (${pct}%)`, 816, y);
-          ctx.textAlign = 'left';
-
-          ctx.fillStyle = 'rgba(255,255,255,0.08)';
-          ctx.fillRect(84, y + 16, 732, 10);
-
-          ctx.fillStyle = `rgb(${info.rgb})`;
-          ctx.fillRect(84, y + 16, Math.max(10, (732 * pct) / 100), 10);
-          y += 78;
-        });
-
-      // Footer
-      ctx.fillStyle = '#3a3a42';
-      ctx.font = '400 20px monospace';
-      ctx.fillText('STAY LOCKED IN.', 84, 1025);
-
-      currentReceiptDataUrl = c.toDataURL('image/png');
-      receiptImg.src = currentReceiptDataUrl;
-      receiptModal.classList.add('open');
-    }
-
-    document.getElementById('receiptCloseBtn').addEventListener('click', () => receiptModal.classList.remove('open'));
-    document.getElementById('receiptSaveBtn').addEventListener('click', async () => {
-      try {
-        const res = await fetch(currentReceiptDataUrl);
-        const blob = await res.blob();
-        const file = new File([blob], `chrono-${selectedHistoryKey}.png`, { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: 'Daily Study Receipt' });
-          return;
-        }
-      } catch (_) {}
-      const a = document.createElement('a');
-      a.href = currentReceiptDataUrl;
-      a.download = `chrono-${selectedHistoryKey}.png`;
-      a.click();
-    });
-
-    // ---------- Add Subject, Manual Log & Backup Modals ----------
+    // ---------- Add / Edit Subject ----------
     const subjModal = document.getElementById('subjModal');
     const subjNameInput = document.getElementById('subjNameInput');
     const colorRow = document.getElementById('colorRow');
-    let pickedRgb = PALETTE[1];
+    let pickedRgb = PALETTE[1], editingSubjId = null;
 
-    function openSubjModal() {
-      subjNameInput.value = '';
+    function openSubjModal(subId) {
+      editingSubjId = subId;
+      const existing = subId ? store.subjects.find(s => s.id === subId) : null;
+      document.getElementById('subjModalTitle').textContent = existing ? 'Edit Subject' : 'New Subject';
+      subjNameInput.value = existing ? existing.name : '';
+      pickedRgb = existing ? existing.rgb : PALETTE[1];
       colorRow.innerHTML = '';
       PALETTE.forEach(rgb => {
         const sw = document.createElement('div');
@@ -2007,19 +2637,24 @@
       subjModal.classList.add('open');
       setTimeout(() => subjNameInput.focus(), 80);
     }
-
     document.getElementById('subjCancelBtn').addEventListener('click', () => subjModal.classList.remove('open'));
     document.getElementById('subjSaveBtn').addEventListener('click', () => {
       const name = subjNameInput.value.trim();
       if (!name) return;
-      const id = 'sub_' + Date.now();
-      store.subjects.push({ id, name, rgb: pickedRgb });
-      store.activeSubject = id;
-      saveStore();
-      renderSubjects();
+      if (editingSubjId) {
+        const s = store.subjects.find(x => x.id === editingSubjId);
+        if (s) { s.name = name; s.rgb = pickedRgb; }
+      } else {
+        const id = 'sub_' + Date.now();
+        store.subjects.push({ id, name, rgb: pickedRgb });
+        store.activeSubject = id;
+      }
+      saveStore(); renderSubjects();
+      if (settingsDrawer.classList.contains('open')) renderSubjectManager();
       subjModal.classList.remove('open');
     });
 
+    // ---------- Manual Log & Backup ----------
     const manualModal = document.getElementById('manualModal');
     const manDate = document.getElementById('manDate');
     const manMins = document.getElementById('manMins');
@@ -2027,93 +2662,194 @@
     const manNote = document.getElementById('manNote');
 
     document.getElementById('manualAddBtn').addEventListener('click', () => {
-      manDate.value = selectedHistoryKey;
-      manMins.value = '';
-      manNote.value = '';
+      manDate.value = selectedHistoryKey; manMins.value = ''; manNote.value = '';
       manSubj.innerHTML = store.subjects.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
       manSubj.value = store.activeSubject;
       manualModal.classList.add('open');
     });
-
     document.getElementById('manCancelBtn').addEventListener('click', () => manualModal.classList.remove('open'));
     document.getElementById('manSaveBtn').addEventListener('click', () => {
-      const mins = parseInt(manMins.value, 10);
-      const dk = manDate.value || dateKey();
+      const mins = parseInt(manMins.value, 10), dk = manDate.value || dateKey();
       if (!mins || mins <= 0) return;
       const sub = store.subjects.find(s => s.id === manSubj.value) || store.subjects[0];
       if (!store.days[dk]) store.days[dk] = [];
+      const now = new Date();
       store.days[dk].push({
-        id: 's_' + Date.now(),
-        duration: mins * 60000,
-        slips: 0,
-        time: 'Manual',
-        hour: new Date().getHours(),
-        subject: sub.name,
-        rgb: sub.rgb,
-        note: manNote.value.trim()
+        id: 's_' + Date.now(), duration: mins * 60000, slips: 0, time: 'Manual',
+        hour: now.getHours(), endMin: now.getHours() * 60 + now.getMinutes(),
+        energy: 'mid', subject: sub.name, rgb: sub.rgb, note: manNote.value.trim()
       });
-      saveStore();
-      updateTodayUI();
-      selectedHistoryKey = dk;
-      renderDrawer();
+      saveStore(); updateTodayUI(); selectedHistoryKey = dk; renderHistoryDrawer();
       manualModal.classList.remove('open');
     });
 
     const backupModal = document.getElementById('backupModal');
     const backupText = document.getElementById('backupText');
-
-    document.getElementById('backupBtn').addEventListener('click', () => {
-      backupText.value = JSON.stringify(store);
-      backupModal.classList.add('open');
-    });
-
     document.getElementById('backupCopyBtn').addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(backupText.value);
         document.getElementById('backupCopyBtn').textContent = 'Copied!';
         setTimeout(() => document.getElementById('backupCopyBtn').textContent = 'Copy JSON', 1500);
-      } catch (_) {
-        backupText.select();
-        document.execCommand('copy');
-      }
+      } catch (_) { backupText.select(); document.execCommand('copy'); }
     });
-
     document.getElementById('backupImportBtn').addEventListener('click', () => {
       try {
         const parsed = JSON.parse(backupText.value);
         if (parsed && parsed.days && parsed.subjects) {
-          store = parsed;
-          saveStore();
-          renderSubjects();
-          updateTodayUI();
-          renderDrawer();
+          store = { ...parsed, settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) } };
+          if (!Array.isArray(store.parkingLot)) store.parkingLot = [];
+          saveStore(); applyAppearance(); renderSubjects(); updateTodayUI(); renderParkingLot();
+          if (historyDrawer.classList.contains('open')) renderHistoryDrawer();
+          if (settingsDrawer.classList.contains('open')) renderSubjectManager();
           backupModal.classList.remove('open');
         }
       } catch (_) { alert('Invalid backup JSON'); }
     });
-
     document.getElementById('backupCloseBtn').addEventListener('click', () => backupModal.classList.remove('open'));
 
-    // ---------- Resume Active Session on App Reopen ----------
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) renderTime(getElapsed());
+    // ---------- Daily & Weekly Receipt PNG Generators ----------
+    const receiptModal = document.getElementById('receiptModal');
+    const receiptImg = document.getElementById('receiptImg');
+    const receiptTitle = document.getElementById('receiptTitle');
+    let currentReceiptDataUrl = '', currentReceiptFilename = 'chrono-receipt.png';
+
+    function generateDailyReceipt(dk, niceDate, bySubj, totalMs, arr) {
+      const c = document.createElement('canvas'); c.width = 900; c.height = 1120;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 2; ctx.strokeRect(42, 42, 816, 1036);
+
+      ctx.fillStyle = '#686872'; ctx.font = '500 22px sans-serif'; ctx.fillText('CHRONO OBSIDIAN · DAILY RECEIPT', 84, 118);
+      ctx.fillStyle = '#f5f5f7'; ctx.font = '300 44px sans-serif'; ctx.fillText(niceDate.toUpperCase() + '  (' + dk + ')', 84, 178);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(84, 215); ctx.lineTo(816, 215); ctx.stroke();
+
+      ctx.fillStyle = '#686872'; ctx.font = '500 20px sans-serif'; ctx.fillText('TOTAL DEEP WORK', 84, 275);
+      ctx.fillStyle = '#ffffff'; ctx.font = '200 112px monospace'; ctx.fillText(formatHM(totalMs), 80, 390);
+
+      const totalSlips = arr.reduce((a, b) => a + (b.slips || 0), 0);
+      const dayScore = Math.max(10, Math.min(100, Math.round(100 - (totalSlips / Math.max(0.25, totalMs / 3600000)) * 12)));
+      ctx.fillStyle = '#a0a0aa'; ctx.font = '400 24px sans-serif';
+      ctx.fillText(`STREAK: ${getStreak()}D   ·   SESSIONS: ${arr.length}   ·   FOCUS: ${dayScore}/100`, 84, 456);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(84, 498); ctx.lineTo(816, 498); ctx.stroke();
+
+      ctx.fillStyle = '#686872'; ctx.font = '500 20px sans-serif'; ctx.fillText('SUBJECT BREAKDOWN', 84, 550);
+      let y = 605;
+      Object.entries(bySubj).sort((a, b) => b[1].ms - a[1].ms).slice(0, 5).forEach(([name, info]) => {
+        const pct = Math.round((info.ms / totalMs) * 100);
+        ctx.fillStyle = '#f5f5f7'; ctx.font = '400 28px sans-serif'; ctx.fillText(name, 84, y);
+        ctx.fillStyle = '#a0a0aa'; ctx.textAlign = 'right'; ctx.fillText(`${formatHM(info.ms)} (${pct}%)`, 816, y); ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(84, y + 16, 732, 10);
+        ctx.fillStyle = `rgb(${info.rgb})`; ctx.fillRect(84, y + 16, Math.max(10, (732 * pct) / 100), 10);
+        y += 78;
+      });
+      ctx.fillStyle = '#3a3a42'; ctx.font = '400 20px monospace'; ctx.fillText('STAY LOCKED IN.', 84, 1025);
+
+      receiptTitle.textContent = 'Daily Receipt';
+      currentReceiptFilename = `chrono-day-${dk}.png`;
+      currentReceiptDataUrl = c.toDataURL('image/png');
+      receiptImg.src = currentReceiptDataUrl;
+      receiptModal.classList.add('open');
+    }
+
+    function generateWeeklyReceipt() {
+      const today = new Date();
+      const days = [];
+      let weekTotal = 0, maxDay = 3600000;
+      const bySubj = {};
+
+      for (let i = 6; i >= 0; i--) {
+        const d = shiftDate(today, -i), k = dateKey(d), arr = store.days[k] || [];
+        const ms = getDayMs(k);
+        weekTotal += ms;
+        if (ms > maxDay) maxDay = ms;
+        days.push({ label: d.toLocaleDateString([], { weekday: 'short' }).toUpperCase(), ms });
+        arr.forEach(s => {
+          const n = s.subject || 'General';
+          if (!bySubj[n]) bySubj[n] = { ms: 0, rgb: s.rgb || '255,255,255' };
+          bySubj[n].ms += s.duration;
+        });
+      }
+
+      const c = document.createElement('canvas'); c.width = 900; c.height = 1120;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 2; ctx.strokeRect(42, 42, 816, 1036);
+
+      ctx.fillStyle = '#686872'; ctx.font = '500 22px sans-serif'; ctx.fillText('CHRONO OBSIDIAN · 7-DAY REPORT', 84, 118);
+      ctx.fillStyle = '#f5f5f7'; ctx.font = '300 42px sans-serif'; ctx.fillText('WEEKLY SUMMARY', 84, 178);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(84, 215); ctx.lineTo(816, 215); ctx.stroke();
+
+      ctx.fillStyle = '#686872'; ctx.font = '500 20px sans-serif'; ctx.fillText('7-DAY TOTAL', 84, 275);
+      ctx.fillStyle = '#ffffff'; ctx.font = '200 108px monospace'; ctx.fillText(formatHM(weekTotal), 80, 386);
+
+      const topSubj = Object.entries(bySubj).sort((a, b) => b[1].ms - a[1].ms)[0];
+      ctx.fillStyle = '#a0a0aa'; ctx.font = '400 24px sans-serif';
+      ctx.fillText(`DAILY AVG: ${formatHM(weekTotal / 7)}   ·   STREAK: ${getStreak()}D   ·   TOP: ${topSubj ? topSubj[0].toUpperCase() : '--'}`, 84, 452);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(84, 494); ctx.lineTo(816, 494); ctx.stroke();
+
+      // 7-Day Mini Bar Chart
+      ctx.fillStyle = '#686872'; ctx.font = '500 20px sans-serif'; ctx.fillText('DAILY RHYTHM', 84, 546);
+      const chartBottom = 860, chartH = 250, barW = 52, gap = 60;
+      days.forEach((d, idx) => {
+        const x = 94 + idx * (barW + gap);
+        const h = d.ms > 0 ? Math.max(14, (d.ms / maxDay) * chartH) : 6;
+        ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        ctx.fillRect(x, chartBottom - chartH, barW, chartH);
+        ctx.fillStyle = d.ms > 0 ? '#ffffff' : 'rgba(255,255,255,0.14)';
+        ctx.fillRect(x, chartBottom - h, barW, h);
+        ctx.fillStyle = '#888894'; ctx.font = '500 20px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(d.label.slice(0, 3), x + barW / 2, chartBottom + 36);
+        ctx.textAlign = 'left';
+      });
+
+      ctx.fillStyle = '#3a3a42'; ctx.font = '400 20px monospace'; ctx.fillText('CONSISTENCY COMPOUNDS.', 84, 1025);
+
+      receiptTitle.textContent = 'Weekly Receipt';
+      currentReceiptFilename = `chrono-week-${dateKey()}.png`;
+      currentReceiptDataUrl = c.toDataURL('image/png');
+      receiptImg.src = currentReceiptDataUrl;
+      receiptModal.classList.add('open');
+    }
+
+    document.getElementById('receiptCloseBtn').addEventListener('click', () => receiptModal.classList.remove('open'));
+    document.getElementById('receiptSaveBtn').addEventListener('click', async () => {
+      try {
+        const blob = await (await fetch(currentReceiptDataUrl)).blob();
+        const file = new File([blob], currentReceiptFilename, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: receiptTitle.textContent });
+          return;
+        }
+      } catch (_) {}
+      const a = document.createElement('a');
+      a.href = currentReceiptDataUrl; a.download = currentReceiptFilename; a.click();
     });
 
+    // ---------- Init & Resume Active Session ----------
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) { renderTime(getElapsed()); syncNativeImmersive(); }
+    });
+
+    applyAppearance();
     renderSubjects();
     updateTodayUI();
+    renderParkingLot();
+    syncSoundUI();
+
     if (state.slips > 0) {
       slipBtn.textContent = `+ Distraction (${state.slips})`;
       slipBtn.classList.add('warn');
     }
     if (state.isBreak) {
       document.body.classList.add('break-mode');
-      slipBtn.style.display = 'none';
-      modeChip.style.display = 'none';
+      slipBtn.style.display = 'none'; modeChip.style.display = 'none';
     }
     if (getElapsed() > 0 || state.running) document.body.classList.add('started');
     if (state.running) {
       document.body.classList.add('running');
       setWakeLock(true);
+      syncNativeNotification();
+      syncNativeImmersive();
       tick();
     } else {
       renderTime(getElapsed());
