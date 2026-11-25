@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#000000" />
   <title>Chrono Obsidian</title>
   <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="gamify.css" />
+  
   <style>
     :root {
       --bg: #000000;
@@ -957,6 +959,14 @@
     </button>
 
     <div class="top-group">
+          <button class="icon-btn" id="realmBtn" aria-label="The Realm">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 22 12 12 22 2 12 12 2"></polygon>
+          <circle cx="12" cy="12" r="2.5"></circle>
+        </svg>
+        <span class="badge-dot"></span>
+          </button>
+      
       <button class="icon-btn" id="zenBtn" aria-label="Zen Mode">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -2134,10 +2144,17 @@
         note: (noteText || '').trim()
       });
       saveStore();
+      if (window.ChronoRealm) {
+        const uniqSubj = new Set((store.days[tk] || []).map(x => x.subject)).size;
+        const otMs = (state.isCountdown && !state.isBreak && finalMs > state.targetMs) ? (finalMs - state.targetMs) : 0;
+        window.ChronoRealm.onSessionSaved({ durationMs: finalMs, overtimeMs: otMs, subjectsTodayCount: uniqSubj });
+      }
       updateTodayUI();
       clearCurrentTimer();
       noteModal.classList.remove('open');
     }
+
+    
 
     function clearCurrentTimer() {
       cancelAnimationFrame(rafId);
@@ -2855,5 +2872,7 @@
       renderTime(getElapsed());
     }
   </script>
+          <script src="gamify.js"></script>
+        
 </body>
 </html>
