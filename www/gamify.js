@@ -268,9 +268,61 @@
     updateRealmBadge();
 
     const parts = [];
-    if (newCharges > 0) parts.push(`+${newCharges} Charge`); if (newDrafts > 0) parts.push(`+${newDrafts} Draft`);
-    if (newShards > 0) parts.push(`+${newShards} Shards`); if (mins >= 45) parts.push('Overcharged'); if (parts.length) showToast(parts.join(' · ')); }  function updateRealmBadge() { const btn = document.getElementById('realmBtn'); if (btn) btn.classList.toggle('has-badge', R.drafts > 0 \vert{}\vert{} R.perkPoints > 0); }  // ---------- Animated Auto-Clash 3x3 Synergy Engine ---------- let isClashing = false;  async function runGridClash(isTestDummy) { if (isClashing) return; const node = R.map.find(n => n.id === R.selectedNode); if (!isTestDummy) { if (!node \vert{}\vert{} (node.type !== 'hostile' && node.type !== 'boss') \vert{}\vert{} node.cleared) return; if (R.charges < 1) { showToast('Need 1 Battle Charge (Study 15m)'); return; } R.charges--; const strikeBtn = document.getElementById('strikeBtn'); if (strikeBtn) strikeBtn.disabled = true; }  isClashing = true; const logEl = document.getElementById('clashLog'); const battleCard = document.getElementById('battleCard'); const enemyVis = document.getElementById('enemyVisual'); const miniGrid = document.getElementById('miniGrid'); const tallyDmgEl = document.getElementById('tallyDmg'); const tallyShdEl = document.getElementById('tallyShd'); const tallyHealEl = document.getElementById('tallyHeal');  const appendLog = (html) => { if (!logEl) return; const div = document.createElement('div'); div.innerHTML = html; logEl.appendChild(div); logEl.scrollTop = logEl.scrollHeight; }; if (logEl) logEl.innerHTML = '';  const overMult = 1 + (R.overcharge \vert{}\vert{} 0) + (R.overcharge > 0 && hasPerk('d2') ? 0.15 : 0); const powerMult = getBasePowerMult() * overMult; const strikeMult = 1 + (hasPerk('d1') ? 0.18 : 0) + (hasPerk('d4') ? 0.30 : 0); const wardMult = 1 + (hasPerk('m1') ? 0.20 : 0); const critChance = (hasPerk('o1') ? 0.15 : 0) + (hasPerk('o3') ? 0.20 : 0);  let totalDmg = 0, totalBurn = 0, totalShield = hasPerk('m4') ? 12 : 0, totalHeal = 0, hasReflect = false; const updateTallies = () => { if (tallyDmgEl) tallyDmgEl.textContent = `⚔ ${totalDmg}`;
-      if (tallyShdEl) tallyShdEl.textContent = `⬡ ${totalShield}`; if (tallyHealEl) tallyHealEl.textContent = `✚ ${totalHeal}`;
+    if (newCharges > 0) parts.push(`+${newCharges} Charge`);
+    if (newDrafts > 0) parts.push(`+${newDrafts} Draft`);
+    if (newShards > 0) parts.push(`+${newShards} Shards`);
+    if (mins >= 45) parts.push('Overcharged');
+    if (parts.length) showToast(parts.join(' · '));
+  }
+
+  function updateRealmBadge() {
+    const btn = document.getElementById('realmBtn');
+    if (btn) btn.classList.toggle('has-badge', R.drafts > 0 || R.perkPoints > 0);
+  }
+
+  // ---------- Animated Auto-Clash 3x3 Synergy Engine ----------
+  let isClashing = false;
+
+  async function runGridClash(isTestDummy) {
+    if (isClashing) return;
+    const node = R.map.find(n => n.id === R.selectedNode);
+    if (!isTestDummy) {
+      if (!node || (node.type !== 'hostile' && node.type !== 'boss') || node.cleared) return;
+      if (R.charges < 1) { showToast('Need 1 Battle Charge (Study 15m)'); return; }
+      R.charges--;
+      const strikeBtn = document.getElementById('strikeBtn');
+      if (strikeBtn) strikeBtn.disabled = true;
+    }
+
+    isClashing = true;
+    const logEl = document.getElementById('clashLog');
+    const battleCard = document.getElementById('battleCard');
+    const enemyVis = document.getElementById('enemyVisual');
+    const miniGrid = document.getElementById('miniGrid');
+    const tallyDmgEl = document.getElementById('tallyDmg');
+    const tallyShdEl = document.getElementById('tallyShd');
+    const tallyHealEl = document.getElementById('tallyHeal');
+
+    const appendLog = (html) => {
+      if (!logEl) return;
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    };
+    if (logEl) logEl.innerHTML = '';
+
+    const overMult = 1 + (R.overcharge || 0) + (R.overcharge > 0 && hasPerk('d2') ? 0.15 : 0);
+    const powerMult = getBasePowerMult() * overMult;
+    const strikeMult = 1 + (hasPerk('d1') ? 0.18 : 0) + (hasPerk('d4') ? 0.30 : 0);
+    const wardMult = 1 + (hasPerk('m1') ? 0.20 : 0);
+    const critChance = (hasPerk('o1') ? 0.15 : 0) + (hasPerk('o3') ? 0.20 : 0);
+
+    let totalDmg = 0, totalBurn = 0, totalShield = hasPerk('m4') ? 12 : 0, totalHeal = 0, hasReflect = false;
+    const updateTallies = () => {
+      if (tallyDmgEl) tallyDmgEl.textContent = `⚔ ${totalDmg}`;
+      if (tallyShdEl) tallyShdEl.textContent = `⬡ ${totalShield}`;
+      if (tallyHealEl) tallyHealEl.textContent = `✚ ${totalHeal}`;
     };
     updateTallies();
 
@@ -295,19 +347,49 @@
       const tierMult = 1 + (c.tier - 1) * 0.45;
       const mult = powerMult * tierMult * adjBonus[idx] * extraMult;
 
-      const slotEl = document.querySelector(`[data-clash-idx="${idx}"]`); if (slotEl) slotEl.classList.add('firing');  if (c.type === 'spike' \vert{}\vert{} c.type === 'ember' \vert{}\vert{} c.type === 'shatter') { let d = Math.round(def.base * mult * strikeMult); if (c.type === 'shatter' && R.overcharge > 0) d = Math.round(d * 1.8); totalDmg += d; playSfx('strike'); vibrate(14); if (enemyVis) { spawnSlash(enemyVis, false); spawnFloat(enemyVis, `-${d}`, 'dmg');
+      const slotEl = document.querySelector(`[data-clash-idx="${idx}"]`);
+      if (slotEl) slotEl.classList.add('firing');
+
+      if (c.type === 'spike' || c.type === 'ember' || c.type === 'shatter') {
+        let d = Math.round(def.base * mult * strikeMult);
+        if (c.type === 'shatter' && R.overcharge > 0) d = Math.round(d * 1.8);
+        totalDmg += d;
+        playSfx('strike'); vibrate(14);
+        if (enemyVis) {
+          spawnSlash(enemyVis, false);
+          spawnFloat(enemyVis, `-${d}`, 'dmg');
           enemyVis.classList.remove('hit'); void enemyVis.offsetWidth; enemyVis.classList.add('hit');
         } else if (slotEl) {
-          spawnFloat(slotEl, `-${d}`, 'dmg'); } if (c.type === 'ember') { const b = Math.round(def.burn * mult * (hasPerk('d3') ? 1.4 : 1)); totalBurn += b; appendLog(`${labelPrefix}<span class="hl">Ember</span> → <span class="dmg">${d} DMG</span> + <span class="syn">${b} Burn</span>`); } else { appendLog(`${labelPrefix}<span class="hl">${def.name}</span> → <span class="dmg">${d} DMG</span>`); } lastFired = { type: c.type, tier: c.tier, idx }; } else if (c.type === 'aegis' \vert{}\vert{} c.type === 'reflect') { const sh = Math.round(def.base * mult * wardMult); totalShield += sh; if (c.type === 'reflect') hasReflect = true; playSfx('ward'); vibrate(8); if (miniGrid) { miniGrid.classList.add('shield-flash'); spawnFloat(miniGrid, `+${sh} SHD`, 'shd');
+          spawnFloat(slotEl, `-${d}`, 'dmg');
+        }
+        if (c.type === 'ember') {
+          const b = Math.round(def.burn * mult * (hasPerk('d3') ? 1.4 : 1));
+          totalBurn += b;
+          appendLog(`${labelPrefix}<span class="hl">Ember</span> → <span class="dmg">${d} DMG</span> + <span class="syn">${b} Burn</span>`);
+        } else {
+          appendLog(`${labelPrefix}<span class="hl">${def.name}</span> → <span class="dmg">${d} DMG</span>`);
+        }
+        lastFired = { type: c.type, tier: c.tier, idx };
+      } else if (c.type === 'aegis' || c.type === 'reflect') {
+        const sh = Math.round(def.base * mult * wardMult);
+        totalShield += sh;
+        if (c.type === 'reflect') hasReflect = true;
+        playSfx('ward'); vibrate(8);
+        if (miniGrid) {
+          miniGrid.classList.add('shield-flash');
+          spawnFloat(miniGrid, `+${sh} SHD`, 'shd');
           setTimeout(() => miniGrid.classList.remove('shield-flash'), 260);
         } else if (slotEl) {
-          spawnFloat(slotEl, `+${sh} SHD`, 'shd'); } appendLog(`${labelPrefix}<span class="hl">${def.name}</span> → <span class="shd">+${sh} Shield</span>`);
+          spawnFloat(slotEl, `+${sh} SHD`, 'shd');
+        }
+        appendLog(`${labelPrefix}<span class="hl">${def.name}</span> → <span class="shd">+${sh} Shield</span>`);
         lastFired = { type: c.type, tier: c.tier, idx };
       } else if (c.type === 'mend') {
         const h = Math.round(def.base * mult * (hasPerk('m3') ? 1.35 : 1));
         totalHeal += h;
         playSfx('ward'); vibrate(8);
-        spawnFloat(miniGrid || slotEl, `+${h} HP`, 'heal'); appendLog(`${labelPrefix}<span class="hl">Mend</span> → <span class="win">+${h} HP</span>`);
+        spawnFloat(miniGrid || slotEl, `+${h} HP`, 'heal');
+        appendLog(`${labelPrefix}<span class="hl">Mend</span> → <span class="win">+${h} HP</span>`);
         lastFired = { type: 'mend', tier: c.tier, idx };
       } else if (c.type === 'prism') {
         playSfx('synergy'); vibrate([10, 25, 10]);
@@ -356,13 +438,68 @@
     }
 
     if (isTestDummy) {
-      appendLog(`<span class="win">DUMMY RESULT: ${totalDmg} DMG · ${totalShield} Shield · ${totalHeal} Heal</span>`); isClashing = false; return; }  // Apply Volley to Enemy const en = node.enemy; const armorIgnore = hasPerk('o4') ? 1 : (hasPerk('o2') ? 0.5 : 0); const effArmor = Math.round((en.armor \vert{}\vert{} 0) * (1 - armorIgnore)); const netDmg = Math.max(1, totalDmg - effArmor); en.burn = (en.burn \vert{}\vert{} 0) + totalBurn; const burnTick = en.burn; en.hp = Math.max(0, en.hp - netDmg - burnTick); R.overcharge = 0; if (totalHeal > 0) R.runHp = Math.min(getMaxHp(), R.runHp + totalHeal);  const hpBar = document.getElementById('enemyHpFill'); const hpText = document.getElementById('enemyHpText'); if (hpBar) hpBar.style.width = Math.round((en.hp / en.maxHp) * 100) + '\%'; if (hpText) hpText.textContent = `HP ${en.hp}/${en.maxHp}`; if (burnTick > 0 && enemyVis) spawnFloat(enemyVis, `🔥 -${burnTick}`, 'syn');
-    appendLog(`<span class="hl">Volley landed: <span class="dmg">${netDmg}</span>${burnTick ? ` + ${burnTick} Burn` : ''}${effArmor ? ` (${effArmor} Armor)` : ''}.</span>`); await wait(360);  if (en.hp <= 0) { playSfx('kill'); vibrate([30, 50, 40]); if (enemyVis) enemyVis.classList.add('shatter'); await wait(520); node.cleared = true; const shardDrop = node.type === 'boss' ? 35 : 12; R.shards += shardDrop; if (node.type === 'boss') { R.drafts += 2; R.zone++; R.zoneBuff = 0; R.runHp = getMaxHp(); R.map = buildZoneMap(R.zone); R.selectedNode = 1; showToast(`ZONE ${R.zone} UNLOCKED! +${shardDrop} Shards · +2 Drafts`); } else { showToast(`${en.name} Defeated! +${shardDrop} Shards`); } } else { // Enemy Counterattack Lunge if (enemyVis) { enemyVis.classList.remove('lunge'); void enemyVis.offsetWidth; enemyVis.classList.add('lunge'); } await wait(160); const totalIncoming = en.atk * (en.hits \vert{}\vert{} 1); const blocked = Math.min(totalShield, totalIncoming); const hpLoss = Math.max(0, totalIncoming - blocked); R.runHp = Math.max(0, R.runHp - hpLoss);  if (hpLoss > 0) { playSfx('hit'); vibrate(30); if (battleCard) { battleCard.classList.remove('shake'); void battleCard.offsetWidth; battleCard.classList.add('shake'); } if (miniGrid) spawnFloat(miniGrid, `-${hpLoss} HP`, 'dmg');
+      appendLog(`<span class="win">DUMMY RESULT: ${totalDmg} DMG · ${totalShield} Shield · ${totalHeal} Heal</span>`);
+      isClashing = false;
+      return;
+    }
+
+    // Apply Volley to Enemy
+    const en = node.enemy;
+    const armorIgnore = hasPerk('o4') ? 1 : (hasPerk('o2') ? 0.5 : 0);
+    const effArmor = Math.round((en.armor || 0) * (1 - armorIgnore));
+    const netDmg = Math.max(1, totalDmg - effArmor);
+    en.burn = (en.burn || 0) + totalBurn;
+    const burnTick = en.burn;
+    en.hp = Math.max(0, en.hp - netDmg - burnTick);
+    R.overcharge = 0;
+    if (totalHeal > 0) R.runHp = Math.min(getMaxHp(), R.runHp + totalHeal);
+
+    const hpBar = document.getElementById('enemyHpFill');
+    const hpText = document.getElementById('enemyHpText');
+    if (hpBar) hpBar.style.width = Math.round((en.hp / en.maxHp) * 100) + '%';
+    if (hpText) hpText.textContent = `HP ${en.hp}/${en.maxHp}`;
+    if (burnTick > 0 && enemyVis) spawnFloat(enemyVis, `🔥 -${burnTick}`, 'syn');
+    appendLog(`<span class="hl">Volley landed: <span class="dmg">${netDmg}</span>${burnTick ? ` + ${burnTick} Burn` : ''}${effArmor ? ` (${effArmor} Armor)` : ''}.</span>`);
+    await wait(360);
+
+    if (en.hp <= 0) {
+      playSfx('kill'); vibrate([30, 50, 40]);
+      if (enemyVis) enemyVis.classList.add('shatter');
+      await wait(520);
+      node.cleared = true;
+      const shardDrop = node.type === 'boss' ? 35 : 12;
+      R.shards += shardDrop;
+      if (node.type === 'boss') {
+        R.drafts += 2; R.zone++; R.zoneBuff = 0; R.runHp = getMaxHp();
+        R.map = buildZoneMap(R.zone); R.selectedNode = 1;
+        showToast(`ZONE ${R.zone} UNLOCKED! +${shardDrop} Shards · +2 Drafts`);
+      } else {
+        showToast(`${en.name} Defeated! +${shardDrop} Shards`);
+      }
+    } else {
+      // Enemy Counterattack Lunge
+      if (enemyVis) { enemyVis.classList.remove('lunge'); void enemyVis.offsetWidth; enemyVis.classList.add('lunge'); }
+      await wait(160);
+      const totalIncoming = en.atk * (en.hits || 1);
+      const blocked = Math.min(totalShield, totalIncoming);
+      const hpLoss = Math.max(0, totalIncoming - blocked);
+      R.runHp = Math.max(0, R.runHp - hpLoss);
+
+      if (hpLoss > 0) {
+        playSfx('hit'); vibrate(30);
+        if (battleCard) { battleCard.classList.remove('shake'); void battleCard.offsetWidth; battleCard.classList.add('shake'); }
+        if (miniGrid) spawnFloat(miniGrid, `-${hpLoss} HP`, 'dmg');
       } else {
         playSfx('ward'); vibrate(12);
         if (miniGrid) { miniGrid.classList.add('shield-flash'); spawnFloat(miniGrid, 'BLOCKED', 'shd'); }
       }
-      appendLog(`${en.name} strikes (${totalIncoming}) → <span class="shd">${blocked} blocked</span>, <span class="dmg">-${hpLoss} HP</span>.`);  if (hasReflect && blocked > 0) { await wait(240); const refDmg = Math.round(blocked * (hasPerk('m2') ? 0.85 : 0.6)); en.hp = Math.max(1, en.hp - refDmg); if (enemyVis) { spawnSlash(enemyVis, false); spawnFloat(enemyVis, `REFLECT -${refDmg}`, 'shd'); }
+      appendLog(`${en.name} strikes (${totalIncoming}) → <span class="shd">${blocked} blocked</span>, <span class="dmg">-${hpLoss} HP</span>.`);
+
+      if (hasReflect && blocked > 0) {
+        await wait(240);
+        const refDmg = Math.round(blocked * (hasPerk('m2') ? 0.85 : 0.6));
+        en.hp = Math.max(1, en.hp - refDmg);
+        if (enemyVis) { spawnSlash(enemyVis, false); spawnFloat(enemyVis, `REFLECT -${refDmg}`, 'shd'); }
         appendLog(`<span class="shd">Reflect bounced ${refDmg} DMG back!</span>`);
       }
 
@@ -474,4 +611,291 @@
     const resBar = document.getElementById('realmResBar');
     resBar.innerHTML = `
       <div class="res-pill"><div class="res-val">${R.charges}</div><div class="res-lbl">Charges</div></div>
-      <div class="res-pill clickable" id="openDraftPill"><div class="res-val">${R
+      <div class="res-pill clickable" id="openDraftPill"><div class="res-val">${R.drafts}</div><div class="res-lbl">Drafts</div></div>
+      <div class="res-pill"><div class="res-val">${R.shards}</div><div class="res-lbl">Shards</div></div>
+      <div class="res-pill"><div class="res-val">${R.runHp}/${getMaxHp()}</div><div class="res-lbl">Run HP</div></div>
+    `;
+    document.getElementById('openDraftPill').addEventListener('click', openDraftModal);
+
+    const body = document.getElementById('realmBody');
+    if (activeTab === 'map') renderMapTab(body);
+    else if (activeTab === 'grid') renderGridTab(body);
+    else renderConstTab(body);
+  }
+
+  function enemySvg(kind) {
+    if (kind === 'monolith') return `<svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="#f5f5f7" stroke-width="1.6"><rect x="8" y="5" width="20" height="26" rx="2"/><line x1="8" y1="14" x2="28" y2="14"/><line x1="8" y1="22" x2="28" y2="22"/></svg>`;
+    if (kind === 'phantom') return `<svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="#64d2ff" stroke-width="1.6"><polygon points="18,4 32,18 18,32 4,18"/><circle cx="18" cy="18" r="4"/></svg>`;
+    if (kind === 'swarm') return `<svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="#ffd60a" stroke-width="1.6"><polygon points="12,8 18,18 6,18"/><polygon points="24,8 30,18 18,18"/><polygon points="18,19 24,29 12,29"/></svg>`;
+    return `<svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="#ff453a" stroke-width="1.7"><polygon points="18,3 33,12 28,31 8,31 3,12"/><polygon points="18,10 25,18 18,26 11,18"/></svg>`;
+  }
+
+  function renderMapTab(body) {
+    const unlocked = getUnlockedNodes();
+    const edgesHtml = [], seen = new Set();
+    R.map.forEach(n => {
+      n.edges.forEach(t => {
+        const key = Math.min(n.id, t) + '-' + Math.max(n.id, t);
+        if (seen.has(key)) return;
+        seen.add(key);
+        const tn = R.map[t];
+        const open = unlocked.has(n.id) && unlocked.has(t);
+        edgesHtml.push(`<line class="map-edge ${open ? 'open' : ''}" x1="${n.x}%" y1="${n.y}%" x2="${tn.x}%" y2="${tn.y}%"/>`);
+      });
+    });
+
+    const nodesHtml = R.map.map(n => {
+      const isVis = unlocked.has(n.id);
+      const sym = n.type === 'start' ? '⌂' : n.type === 'shrine' ? '✦' : n.type === 'vault' ? '◈' : n.type === 'boss' ? '☠' : '⚔';
+      const cls = `map-node ${n.type} ${n.cleared ? 'cleared' : ''} ${n.id === R.selectedNode ? 'selected' : ''} ${!isVis ? 'fog' : ''}`;
+      return `<g class="${cls}" data-nid="${n.id}"><circle class="node-bg" cx="${n.x}%" cy="${n.y}%" r="14"/><text x="${n.x}%" y="${n.y}%">${n.cleared ? '✓' : sym}</text></g>`;
+    }).join('');
+
+    const node = R.map.find(n => n.id === R.selectedNode) || R.map[0];
+    let actionHtml = '';
+
+    if (node.type === 'start') {
+      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Tap any lit node on the map to explore or fight.</div></div>`;
+    } else if (node.type === 'shrine') {
+      actionHtml = `<div class="battle-card">
+        <div class="enemy-name">${node.name}</div>
+        <div class="enemy-gimmick">${node.buff}</div>
+        ${node.cleared ? '<div class="enemy-gimmick" style="color:var(--green)">Shrine claimed.</div>' : '<button class="btn btn-primary" id="claimNodeBtn">Claim Shrine (Free)</button>'}
+      </div>`;
+    } else if (node.type === 'vault') {
+      actionHtml = `<div class="battle-card">
+        <div class="enemy-name">${node.name}</div>
+        <div class="enemy-gimmick">Contains +1 Cube Draft & +20 Shards.</div>
+        ${node.cleared ? '<div class="enemy-gimmick" style="color:var(--green)">Vault opened.</div>' : '<button class="btn btn-primary" id="claimNodeBtn">Open Vault (Free)</button>'}
+      </div>`;
+    } else {
+      const en = node.enemy;
+      const pct = Math.round((en.hp / en.maxHp) * 100);
+      const miniSlotsHtml = R.grid.map((uid, idx) => {
+        const c = getCubeByUid(uid);
+        if (!c) return `<div class="mini-slot" data-clash-idx="${idx}">·</div>`;
+        const d = CUBE_DEFS[c.type];
+        return `<div class="mini-slot ${d.cls}" data-clash-idx="${idx}">${d.glyph}</div>`;
+      }).join('');
+
+      actionHtml = `<div class="battle-card" id="battleCard">
+        <div class="combat-stage">
+          <div class="mini-grid-3x3" id="miniGrid">${miniSlotsHtml}</div>
+          <div class="enemy-stage">
+            <div class="enemy-header-row">
+              <div class="enemy-visual idle" id="enemyVisual">${enemySvg(en.kind)}</div>
+              <div class="enemy-info">
+                <div class="enemy-name">${en.name} ${R.overcharge > 0 ? `<span class="milestone-pill" style="color:var(--amber)">+${Math.round(R.overcharge*100)}% OC</span>` : ''}</div>
+                <div class="enemy-gimmick">${en.gimmick}</div>
+              </div>
+            </div>
+            <div class="hp-track"><div class="hp-fill" id="enemyHpFill" style="width:${pct}%"></div></div>
+            <div class="hp-meta"><span id="enemyHpText">HP ${en.hp}/${en.maxHp}</span><span>ATK ${en.atk}${en.hits ? '×' + en.hits : ''}</span></div>
+          </div>
+        </div>
+        <div class="live-tallies">
+          <span style="color:var(--red)" id="tallyDmg">⚔ 0</span>
+          <span style="color:var(--blue)" id="tallyShd">⬡ 0</span>
+          <span style="color:var(--green)" id="tallyHeal">✚ 0</span>
+        </div>
+        <div class="clash-log" id="clashLog"><div>Tap Strike to fire your 3×3 Grid in an Auto-Clash.</div></div>
+        <div class="modal-btns">
+          <button class="btn btn-secondary" id="editGridQuickBtn">3×3 Grid</button>
+          <button class="btn btn-primary" id="strikeBtn" ${node.cleared ? 'disabled' : ''}>${node.cleared ? 'Cleared' : 'Strike (1 Charge)'}</button>
+        </div>
+      </div>`;
+    }
+
+    body.innerHTML = `
+      <div class="map-canvas-wrap">
+        <div class="map-zone-tag">Zone ${R.zone} · Power ×${getBasePowerMult().toFixed(2)}</div>
+        <svg class="map-svg">${edgesHtml.join('')}${nodesHtml}</svg>
+      </div>
+      ${actionHtml}
+    `;
+
+    body.querySelectorAll('.map-node').forEach(el => {
+      el.addEventListener('click', () => {
+        if (isClashing) return;
+        R.selectedNode = Number(el.dataset.nid);
+        saveR(); renderRealm();
+      });
+    });
+
+    const claimBtn = document.getElementById('claimNodeBtn');
+    if (claimBtn) {
+      claimBtn.addEventListener('click', () => {
+        node.cleared = true;
+        if (node.type === 'shrine') { R.zoneBuff = (R.zoneBuff || 0) + 0.12; showToast('Shrine active: +12% Grid Power'); }
+        if (node.type === 'vault') { R.drafts += 1; R.shards += 20; showToast('+1 Draft · +20 Shards'); }
+        playSfx('synergy'); saveR(); renderRealm();
+      });
+    }
+    const strikeBtn = document.getElementById('strikeBtn');
+    if (strikeBtn) strikeBtn.addEventListener('click', () => runGridClash(false));
+    const quickGrid = document.getElementById('editGridQuickBtn');
+    if (quickGrid) quickGrid.addEventListener('click', () => {
+      if (isClashing) return;
+      activeTab = 'grid';
+      document.querySelectorAll('.realm-tab').forEach(b => b.classList.toggle('active', b.dataset.rtab === 'grid'));
+      renderRealm();
+    });
+  }
+
+  function renderGridTab(body) {
+    const gridHtml = R.grid.map((uid, idx) => {
+      const c = getCubeByUid(uid);
+      if (!c) {
+        return `<div class="cube-slot ${selectedSlot === idx ? 'selected' : ''}" data-idx="${idx}" data-clash-idx="${idx}"><span style="color:var(--muted);font-size:18px;">+</span></div>`;
+      }
+      const d = CUBE_DEFS[c.type];
+      return `<div class="cube-slot filled ${d.cls} ${selectedSlot === idx ? 'selected' : ''}" data-idx="${idx}" data-clash-idx="${idx}">
+        <span class="cube-tier">T${c.tier}</span>
+        <div class="cube-glyph">${d.glyph}</div>
+        <div class="cube-name">${d.name}</div>
+      </div>`;
+    }).join('');
+
+    let detailHtml = '<div class="cube-detail-bar"><span style="color:var(--muted)">Tap a grid slot to place, swap, or upgrade a Cube.</span></div>';
+    if (selectedSlot !== null) {
+      const c = getCubeByUid(R.grid[selectedSlot]);
+      if (c) {
+        const d = CUBE_DEFS[c.type];
+        const cost = c.tier * 20;
+        detailHtml = `<div class="cube-detail-bar">
+          <div><strong>${d.name} (Tier ${c.tier})</strong><div style="color:var(--muted);font-size:10.5px;">${d.desc}</div></div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            ${c.tier < 3 ? `<button class="mini-btn" id="upgradeCubeBtn">Up (${cost}s)</button>` : ''}
+            <button class="mini-btn" style="color:var(--red)" id="removeCubeBtn">Rem</button>
+          </div>
+        </div>`;
+      }
+    }
+
+    const equippedSet = new Set(R.grid.filter(Boolean));
+    const invHtml = R.inventory.map(c => {
+      const d = CUBE_DEFS[c.type];
+      const eq = equippedSet.has(c.uid);
+      return `<div class="inv-card ${d.cls} ${eq ? 'equipped' : ''}" data-uid="${c.uid}">
+        <div style="font-size:16px;">${d.glyph}</div>
+        <div class="cube-name">${d.name} T${c.tier}</div>
+        <div class="cube-stat">${eq ? 'Equipped' : d.cls}</div>
+      </div>`;
+    }).join('');
+
+    body.innerHTML = `
+      <div class="grid-3x3">${gridHtml}</div>
+      ${detailHtml}
+      <div class="clash-log" id="clashLog"><div>Tap Test Grid anytime (0 Charges) to watch your synergy chain fire.</div></div>
+      <div class="modal-btns">
+        <button class="btn btn-secondary" id="testDummyBtn">Test Grid (Free)</button>
+        <button class="btn btn-primary" id="draftFromGridBtn">Draft Cube (${R.drafts})</button>
+      </div>
+      <div class="sec-head"><span>Cube Inventory</span><span>Tap slot, then cube</span></div>
+      <div class="inv-grid">${invHtml}</div>
+    `;
+
+    body.querySelectorAll('.cube-slot').forEach(el => {
+      el.addEventListener('click', () => {
+        if (isClashing) return;
+        const idx = Number(el.dataset.idx);
+        if (selectedSlot !== null && selectedSlot !== idx) {
+          const tmp = R.grid[selectedSlot]; R.grid[selectedSlot] = R.grid[idx]; R.grid[idx] = tmp;
+          selectedSlot = null; saveR();
+        } else {
+          selectedSlot = selectedSlot === idx ? null : idx;
+        }
+        renderRealm();
+      });
+    });
+
+    body.querySelectorAll('.inv-card').forEach(el => {
+      el.addEventListener('click', () => {
+        const uid = el.dataset.uid;
+        if (equippedSet.has(uid)) return;
+        const target = selectedSlot !== null ? selectedSlot : R.grid.indexOf(null);
+        if (target === -1) { showToast('Grid full — tap a slot to replace'); return; }
+        R.grid[target] = uid; selectedSlot = null; saveR(); renderRealm();
+      });
+    });
+
+    const upBtn = document.getElementById('upgradeCubeBtn');
+    if (upBtn) upBtn.addEventListener('click', () => {
+      const c = getCubeByUid(R.grid[selectedSlot]);
+      const cost = c.tier * 20;
+      if (R.shards < cost) { showToast(`Need ${cost} Shards`); return; }
+      R.shards -= cost; c.tier++; playSfx('synergy');
+      saveR(); renderRealm(); showToast(`${CUBE_DEFS[c.type].name} forged to Tier ${c.tier}!`);
+    });
+    const remBtn = document.getElementById('removeCubeBtn');
+    if (remBtn) remBtn.addEventListener('click', () => {
+      R.grid[selectedSlot] = null; selectedSlot = null; saveR(); renderRealm();
+    });
+    document.getElementById('testDummyBtn').addEventListener('click', () => runGridClash(true));
+    document.getElementById('draftFromGridBtn').addEventListener('click', openDraftModal);
+  }
+
+  function renderConstTab(body) {
+    const cDef = CONSTELLATIONS[activeConst];
+    const sk = R.skills[activeConst];
+    const tabsHtml = Object.entries(CONSTELLATIONS).map(([k, v]) =>
+      `<button class="const-pill ${k === activeConst ? 'active' : ''}" data-ck="${k}">${v.name} · L${R.skills[k].lvl}</button>`
+    ).join('');
+
+    const linesHtml = cDef.nodes.filter(n => n.req).map(n => {
+      const p = cDef.nodes.find(x => x.id === n.req);
+      const lit = hasPerk(n.id) && hasPerk(p.id);
+      return `<line class="star-line ${lit ? 'lit' : ''}" x1="${p.x}%" y1="${p.y}%" x2="${n.x}%" y2="${n.y}%"/>`;
+    }).join('');
+
+    const starsHtml = cDef.nodes.map(n => {
+      const lit = hasPerk(n.id);
+      const avail = !lit && (!n.req || hasPerk(n.req)) && R.perkPoints > 0;
+      return `<g class="star-node ${lit ? 'lit' : ''} ${avail ? 'avail' : ''}" data-pid="${n.id}">
+        <circle cx="${n.x}%" cy="${n.y}%" r="12"/>
+        <text x="${n.x}%" y="${n.y + 14}%">${n.name}</text>
+      </g>`;
+    }).join('');
+
+    const listHtml = cDef.nodes.map(n => {
+      const lit = hasPerk(n.id);
+      const avail = !lit && (!n.req || hasPerk(n.req));
+      return `<div class="cube-detail-bar" style="opacity:${lit || avail ? 1 : 0.45}">
+        <div><strong>${n.name}</strong><div style="color:var(--muted);font-size:10.5px;">${n.desc}</div></div>
+        ${lit ? '<span style="color:var(--blue);font-size:11px;">Unlocked</span>'
+          : (avail ? `<button class="mini-btn" data-buy="${n.id}">Unlock (1 PT)</button>` : '<span style="color:var(--muted);font-size:10px;">Locked</span>')}
+      </div>`;
+    }).join('');
+
+    body.innerHTML = `
+      <div class="const-tabs">${tabsHtml}</div>
+      <div class="cube-detail-bar">
+        <div><strong>${cDef.name} · Level ${sk.lvl}</strong><div style="color:var(--muted);font-size:10.5px;">${cDef.rule} (${sk.xp}/${sk.lvl * 45} XP)</div></div>
+        <span style="color:var(--amber);font-family:var(--font-clock);font-size:12px;">${R.perkPoints} PT</span>
+      </div>
+      <div class="star-canvas-wrap"><svg class="star-svg">${linesHtml}${starsHtml}</svg></div>
+      <div style="display:flex;flex-direction:column;gap:7px;">${listHtml}</div>
+    `;
+
+    body.querySelectorAll('.const-pill').forEach(b => b.addEventListener('click', () => { activeConst = b.dataset.ck; renderRealm(); }));
+    body.querySelectorAll('[data-buy], .star-node').forEach(el => {
+      el.addEventListener('click', () => {
+        const pid = el.dataset.buy || el.dataset.pid;
+        const n = cDef.nodes.find(x => x.id === pid);
+        if (!n || hasPerk(pid)) return;
+        if (n.req && !hasPerk(n.req)) { showToast('Unlock connected star first'); return; }
+        if (R.perkPoints < 1) { showToast('Level up any skill to earn Perk Points'); return; }
+        R.perkPoints--; R.perks[pid] = true;
+        if (pid === 'e1' || pid === 'e3') R.runHp = getMaxHp();
+        playSfx('synergy'); saveR(); renderRealm(); showToast(`Unlocked ${n.name}!`);
+      });
+    });
+  }
+
+  window.ChronoRealm = { open: openRealm, onSessionSaved, updateBadge: updateRealmBadge };
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('realmBtn');
+    if (btn) btn.addEventListener('click', openRealm);
+    updateRealmBadge();
+  });
+})();
