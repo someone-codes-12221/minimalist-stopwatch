@@ -11,7 +11,11 @@
     mend:     { id: 'mend',     name: 'Mend',     cls: 'ward',    glyph: '✚', desc: 'Restores Run HP during the clash.', base: 10 },
     prism:    { id: 'prism',    name: 'Prism',    cls: 'synergy', glyph: '◇', desc: 'Triggers Cubes directly ABOVE & BELOW again.', base: 1 },
     echo:     { id: 'echo',     name: 'Echo',     cls: 'synergy', glyph: '◎', desc: 'Copies the previous fired Cube in the grid.', base: 1 },
-    catalyst: { id: 'catalyst', name: 'Catalyst', cls: 'synergy', glyph: '✦', desc: 'Boosts adjacent 4-way Cubes by +50% (+15%/tier).', base: 0.5 }
+    catalyst: { id: 'catalyst', name: 'Catalyst', cls: 'synergy', glyph: '✦', desc: 'Boosts adjacent 4-way Cubes by +50% (+15%/tier).', base: 0.5 },
+    frost: { id: 'frost', name: 'Frost', cls: 'strike', glyph: '❄', desc: 'Deals damage and chills the enemy, reducing its next counterattack by 25%.', base: 11, unlock: { metric: 'minutes', target: 180, label: 'Study 3 hours total' } },
+    rupture: { id: 'rupture', name: 'Rupture', cls: 'strike', glyph: '⌁', desc: 'Deals damage and permanently strips 2 enemy Armor this fight.', base: 10, unlock: { metric: 'minutes', target: 600, label: 'Study 10 hours total' } },
+    siphon: { id: 'siphon', name: 'Siphon', cls: 'strike', glyph: '⟡', desc: 'Deals damage and restores HP equal to 30% of its damage.', base: 8, unlock: { metric: 'sessions', target: 20, label: 'Complete 20 saved sessions' } },
+    conduit: { id: 'conduit', name: 'Conduit', cls: 'synergy', glyph: '⌘', desc: 'Empowers the next Strike or Ward cube after it in left-to-right, top-to-bottom firing order by 25%.', base: 0, unlock: { metric: 'subjects', target: 3, label: 'Study 3 different subjects' } }
   };
 
   const CONSTELLATIONS = {
@@ -189,32 +193,32 @@
 
   function makeEnemy(kind, scale, zone = R && R.zone || 1) {
     const stats = {
-      monolith: ['Monolith', 70, 12, 8, 'Heavy armor · Slow, powerful hits'],
-      phantom: ['Phantom', 52, 20, 0, 'High attack · No armor'],
-      swarm: ['Swarm', 64, 8, 0, 'Strikes twice every turn'],
-      wraith: ['Wraith', 58, 15, 2, 'A relentless spirit with balanced stats'],
-      reaver: ['Reaver', 62, 11, 3, 'Two quick strikes every turn'],
-      thorn: ['Thorn Stalker', 82, 10, 5, 'Regains a little health after striking'],
-      hexcaller: ['Hexcaller', 66, 12, 2, 'Attack grows after every counterstrike'],
-      leech: ['Tide Leech', 76, 9, 2, 'Steals back health after striking']
+      monolith: ['Monolith', 84, 14, 8, 'Heavy armor · Crushing slam every third counterattack'],
+      phantom: ['Phantom', 60, 20, 0, 'Rotating phase guard · stronger every second counterattack'],
+      swarm: ['Swarm', 72, 10, 0, 'Strikes twice every turn · protects its corners'],
+      wraith: ['Wraith', 68, 16, 2, 'Balanced pressure · relentless counterattacks'],
+      reaver: ['Reaver', 72, 12, 3, 'Two quick strikes · bypasses 25% Shield every second turn'],
+      thorn: ['Thorn Stalker', 92, 12, 5, 'Regrows after striking · rotating root guard'],
+      hexcaller: ['Hexcaller', 74, 14, 2, 'Attack grows after every counterstrike · shifting columns'],
+      leech: ['Tide Leech', 84, 11, 2, 'Diagonal ward · steals back health after striking']
     };
     if (kind === 'boss') {
       const bosses = [
-        ['Cinder Tyrant', 150, 20, 8, 'Heavy armor · Burning counterstrike'],
-        ['The Drowned Scribe', 172, 18, 5, 'High vitality · Leeching tide'],
-        ['Briar Colossus', 185, 17, 7, 'Regrows between volleys'],
-        ['The Hollow Regent', 165, 21, 9, 'Attack escalates after each turn'],
-        ['Astral Devourer', 195, 22, 8, 'Elite guardian · Heavy final blow']
+        ['Cinder Tyrant', 178, 23, 9, 'Phase II: crushing cinder waves · heavy armor'],
+        ['The Drowned Scribe', 198, 20, 6, 'Phase II: stronger leeching tide · rotating veil'],
+        ['Briar Colossus', 210, 19, 8, 'Phase II: rapid regrowth · rotating root guard'],
+        ['The Hollow Regent', 190, 23, 10, 'Phase II: escalating attack and armor'],
+        ['Astral Devourer', 220, 24, 9, 'Phase II: double strikes · shield-piercing starfall']
       ];
       const b = bosses[(Math.max(1, zone) - 1) % bosses.length];
       const hp = Math.round(b[1] * scale);
-      return { kind: 'boss', name: b[0], hp, maxHp: hp, atk: Math.round(b[2] * scale), armor: Math.round(b[3] * scale), burn: 0, gimmick: b[4], bossStyle: (zone - 1) % 5 };
+      return { kind: 'boss', name: b[0], hp, maxHp: hp, atk: Math.round(b[2] * scale), armor: Math.round(b[3] * scale), baseArmor: Math.round(b[3] * scale), burn: 0, turns: 0, phase: 1, gimmick: b[4], bossStyle: (zone - 1) % 5 };
     }
     const d = stats[kind] || stats.monolith;
     const hp = Math.round(d[1] * scale);
     return {
       kind, name: d[0], hp, maxHp: hp, atk: Math.round(d[2] * scale),
-      armor: Math.round(d[3] * scale), burn: 0,
+      armor: Math.round(d[3] * scale), baseArmor: Math.round(d[3] * scale), burn: 0, turns: 0,
       hits: kind === 'swarm' || kind === 'reaver' ? 2 : 1,
       gimmick: d[4]
     };
@@ -236,7 +240,8 @@
         endurance: { xp: 0, lvl: 1 }, depth: { xp: 0, lvl: 1 },
         momentum: { xp: 0, lvl: 1 }, versatility: { xp: 0, lvl: 1 }, overclock: { xp: 0, lvl: 1 }
       },
-      perkPoints: 1, perks: {}
+      perkPoints: 1, perks: {},
+      bestiary: {}, bossRelics: [], studyCubeClaims: {}, studySessionCount: 0, surgeArmed: false, combatRulesVersion: 2
     };
   }
 
@@ -249,6 +254,32 @@
   if (!Number.isFinite(R.bossWins)) R.bossWins = 0;
   if (!Number.isFinite(R.cubesDrafted)) R.cubesDrafted = 0;
   if (!Array.isArray(R.equippedRelics)) R.equippedRelics = [];
+  if (!R.bestiary || typeof R.bestiary !== 'object' || Array.isArray(R.bestiary)) R.bestiary = {};
+  if (!Array.isArray(R.bossRelics)) R.bossRelics = [];
+  if (!R.studyCubeClaims || typeof R.studyCubeClaims !== 'object' || Array.isArray(R.studyCubeClaims)) R.studyCubeClaims = {};
+  if (!Number.isFinite(R.studySessionCount)) R.studySessionCount = 0;
+  if (typeof R.surgeArmed !== 'boolean') R.surgeArmed = false;
+  if (!Number.isFinite(R.combatRulesVersion)) R.combatRulesVersion = 0;
+  if (R.combatRulesVersion < 2) {
+    const tuneSavedEnemy = enemy => {
+      if (!enemy || typeof enemy !== 'object') return;
+      const oldMax = Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1);
+      const oldHp = Math.max(0, Number(enemy.hp) || 0);
+      const isBoss = enemy.kind === 'boss';
+      const hpScale = isBoss ? 1.10 : 1.18;
+      const attackScale = isBoss ? 1.10 : 1.14;
+      enemy.maxHp = Math.round(oldMax * hpScale);
+      enemy.hp = Math.min(enemy.maxHp, Math.round(enemy.maxHp * Math.min(1, oldHp / oldMax)));
+      enemy.atk = Math.max(1, Math.round((Number(enemy.atk) || 1) * attackScale));
+      if (!Number.isFinite(enemy.baseArmor)) enemy.baseArmor = Number(enemy.armor) || 0;
+      if (!Number.isFinite(enemy.turns)) enemy.turns = 0;
+      if (isBoss && !Number.isFinite(enemy.phase)) enemy.phase = 1;
+    };
+    if (Array.isArray(R.map)) R.map.forEach(node => tuneSavedEnemy(node && node.enemy));
+    if (R.worldEvent && R.worldEvent.node) tuneSavedEnemy(R.worldEvent.node.enemy);
+    R.combatRulesVersion = 2;
+    saveR();
+  }
   // Add the optional side-route to existing saves without replacing their current map.
   if ((R.zone || 1) >= 2 && Array.isArray(R.map) && !R.map.some(n => n.isSecretBoss)) {
     const scale = 1 + ((R.zone || 1) - 1) * 0.32;
@@ -327,6 +358,7 @@
     const mins = Math.max(0, info.durationMs / 60000);
     if (mins < 0.5) return;
     R.totalStudyMins += mins;
+    R.studySessionCount = (R.studySessionCount || 0) + 1;
 
     R.remChargeMin += mins;
     const newCharges = Math.floor(R.remChargeMin / 15);
@@ -365,7 +397,7 @@
     }
 
     const parts = [];
-    if (newCharges > 0) parts.push(`+${newCharges} Charge`);
+    if (newCharges > 0) parts.push(`+${newCharges} Surge`);
     if (newDrafts > 0) parts.push(`+${newDrafts} Draft`);
     if (newShards > 0) parts.push(`+${newShards} Shards`);
     if (mins >= 45) parts.push('Overcharged');
@@ -389,8 +421,6 @@
     const node = R.selectedNode === -1 && R.worldEvent ? R.worldEvent.node : R.map.find(n => n.id === R.selectedNode);
     if (!isTestDummy) {
       if (!node || (node.type !== 'hostile' && node.type !== 'boss') || node.cleared) return;
-      if (R.charges < 1) { showToast('Need 1 Battle Charge (Study 15m)'); return; }
-      R.charges--;
       const strikeBtn = document.getElementById('strikeBtn');
       if (strikeBtn) strikeBtn.disabled = true;
     }
@@ -415,12 +445,15 @@
 
     const relicBonuses = getEquippedRelicBonuses();
     const overMult = 1 + (R.overcharge || 0) + (R.overcharge > 0 && hasPerk('d2') ? 0.15 : 0);
-    const powerMult = getBasePowerMult() * overMult * (1 + relicBonuses.power);
+    const surgeActive = !isTestDummy && !!R.surgeArmed;
+    const powerMult = getBasePowerMult() * overMult * (1 + relicBonuses.power) * (surgeActive ? 1.3 : 1);
+    if (surgeActive) { R.surgeArmed = false; saveR(); }
     const strikeMult = (1 + (hasPerk('d1') ? 0.18 : 0) + (hasPerk('d4') ? 0.30 : 0)) * (1 + relicBonuses.strike);
     const wardMult = (1 + (hasPerk('m1') ? 0.20 : 0)) * (1 + relicBonuses.ward);
     const critChance = Math.min(0.6, (hasPerk('o1') ? 0.15 : 0) + (hasPerk('o3') ? 0.20 : 0) + relicBonuses.crit);
 
     let totalDmg = 0, totalBurn = 0, totalShield = hasPerk('m4') ? 12 : 0, totalHeal = 0, hasReflect = false;
+    let chilledPower = 0, conduitCharges = 0;
     const updateTallies = () => {
       if (tallyDmgEl) tallyDmgEl.textContent = `⚔ ${totalDmg}`;
       if (tallyShdEl) tallyShdEl.textContent = `⬡ ${totalShield}`;
@@ -429,6 +462,7 @@
     updateTallies();
 
     getGridSynergyInfo().labels.forEach(label => appendLog(`<span class="syn">✦ Grid combo: ${label}</span>`));
+    if (surgeActive) appendLog('<span class="syn">SURGE ARMED · This volley has +30% power.</span>');
 
     const formationBonus = getGridSynergyInfo().bonuses.map(b => 1 + b);
     const adjBonus = Array(9).fill(1);
@@ -450,12 +484,14 @@
       if (!c) return;
       const def = CUBE_DEFS[c.type];
       const tierMult = 1 + (c.tier - 1) * 0.45;
-      const mult = powerMult * tierMult * adjBonus[idx] * formationBonus[idx] * extraMult;
+      const conduitBoost = c.type !== 'conduit' && def.cls !== 'synergy' && conduitCharges > 0 ? 1.25 : 1;
+      if (conduitBoost > 1) conduitCharges--;
+      const mult = powerMult * tierMult * adjBonus[idx] * formationBonus[idx] * extraMult * conduitBoost;
 
       const slotEl = document.querySelector(`[data-clash-idx="${idx}"]`);
       if (slotEl) slotEl.classList.add('firing');
 
-      if (c.type === 'spike' || c.type === 'ember' || c.type === 'shatter') {
+      if (c.type === 'spike' || c.type === 'ember' || c.type === 'shatter' || c.type === 'frost' || c.type === 'rupture' || c.type === 'siphon') {
         let d = Math.round(def.base * mult * strikeMult);
         const tactic = !isTestDummy && node ? getEnemyTactic(node.enemy) : null;
         if (tactic && tactic.cells.includes(idx)) {
@@ -476,6 +512,16 @@
           const b = Math.round(def.burn * mult * (hasPerk('d3') ? 1.4 : 1));
           totalBurn += b;
           appendLog(`${labelPrefix}<span class="hl">Ember</span> → <span class="dmg">${d} DMG</span> + <span class="syn">${b} Burn</span>`);
+        } else if (c.type === 'frost') {
+          chilledPower = Math.min(0.5, chilledPower + 0.25);
+          appendLog(`${labelPrefix}<span class="hl">Frost</span> → <span class="dmg">${d} DMG</span> + <span class="syn">25% Chill</span>`);
+        } else if (c.type === 'rupture') {
+          if (!isTestDummy && node && node.enemy) node.enemy.armor = Math.max(0, (node.enemy.armor || 0) - 2);
+          appendLog(`${labelPrefix}<span class="hl">Rupture</span> → <span class="dmg">${d} DMG</span> + <span class="syn">−2 Armor</span>`);
+        } else if (c.type === 'siphon') {
+          const drain = Math.max(1, Math.round(d * 0.3));
+          totalHeal += drain;
+          appendLog(`${labelPrefix}<span class="hl">Siphon</span> → <span class="dmg">${d} DMG</span> + <span class="win">+${drain} HP</span>`);
         } else {
           appendLog(`${labelPrefix}<span class="hl">${def.name}</span> → <span class="dmg">${d} DMG</span>`);
         }
@@ -523,6 +569,11 @@
         playSfx('synergy');
         spawnFloat(miniGrid || slotEl, '✦ BOOST', 'syn');
         appendLog(`<span class="syn">✦ Catalyst</span> empowering adjacent tiles.`);
+      } else if (c.type === 'conduit') {
+        conduitCharges = Math.min(3, conduitCharges + 1);
+        playSfx('synergy');
+        spawnFloat(miniGrid || slotEl, '⌘ LINK', 'syn');
+        appendLog(`<span class="syn">⌘ Conduit</span> — next Strike or Ward fires at 125% power.`);
       }
 
       updateTallies();
@@ -572,6 +623,17 @@
     appendLog(`<span class="hl">Volley landed: <span class="dmg">${netDmg}</span>${burnTick ? ` + ${burnTick} Burn` : ''}${effArmor ? ` (${effArmor} Armor)` : ''}.</span>`);
     await wait(360);
 
+    if (node.type === 'boss' && en.hp > 0 && (en.phase || 1) < 2 && en.hp <= en.maxHp * 0.55) {
+      en.phase = 2;
+      en.atk = Math.round(en.atk * 1.18);
+      en.armor = Math.max(0, Math.round((en.armor || 0) * 0.8));
+      if (en.bossStyle === 4) en.hits = 2;
+      appendLog(`<span class="syn">PHASE II — ${en.name} reveals its true form. Attack rises; its guard changes.</span>`);
+      showToast(`${en.name} · PHASE II`);
+      const phaseEl = document.getElementById('enemyPhase');
+      if (phaseEl) phaseEl.textContent = 'PHASE II';
+    }
+
     if (en.hp <= 0) {
       playSfx('kill'); vibrate([30, 50, 40]);
       if (enemyVis) enemyVis.classList.add('shatter');
@@ -579,6 +641,17 @@
       node.cleared = true;
       R.combatWins = (R.combatWins || 0) + 1;
       if (node.type === 'boss') R.bossWins = (R.bossWins || 0) + 1;
+      const trophyKey = node.type === 'boss' ? `boss:${en.name}` : `enemy:${en.kind}`;
+      const previousKills = Number(R.bestiary[trophyKey]) || 0;
+      R.bestiary[trophyKey] = previousKills + 1;
+      const firstTrophy = previousKills === 0;
+      if (firstTrophy) R.drafts += 1;
+      let bossRelicDrop = null;
+      if (node.type === 'boss' && !node.isSecretBoss) {
+        const bossRelicIds = ['cinder_core', 'drowned_quill', 'briar_heart', 'hollow_signet', 'astral_lens'];
+        const bossRelicId = bossRelicIds[(en.bossStyle || 0) % bossRelicIds.length];
+        if (!R.bossRelics.includes(bossRelicId)) { R.bossRelics.push(bossRelicId); bossRelicDrop = bossRelicId; }
+      }
       const shardDrop = node.type === 'boss' ? 35 : 12;
       if (node.isWorldEvent) {
         R.worldEvent.completed = true;
@@ -594,22 +667,36 @@
       } else if (node.type === 'boss' && !node.isSecretBoss) {
         R.drafts += 2; R.zone++; R.zoneBuff = 0; R.runHp = getMaxHp();
         R.map = buildZoneMap(R.zone); R.selectedNode = 1;
-        showToast(`ZONE ${R.zone} UNLOCKED! +${shardDrop} Shards · +2 Drafts`);
+        showToast(`ZONE ${R.zone} UNLOCKED! +${shardDrop} Shards · +2 Drafts${firstTrophy ? ' · Trophy +1 Draft' : ''}`);
         showLegendaryMoment('A New Realm Awaits', `The boss has fallen. Zone ${R.zone} is now open.`, '♛');
       } else if (node.isSecretBoss) {
         R.shards += 50; R.drafts += 1;
         showToast('Secret boss defeated · +50 Shards · +1 Draft');
         showLegendaryMoment('The Hidden Path Revealed', 'The Veilbound Warden has fallen. A hidden chapter is yours to explore.', '⌘');
       } else {
-        showToast(`${en.name} Defeated! +${shardDrop} Shards`);
+        showToast(`${en.name} Defeated! +${shardDrop} Shards${firstTrophy ? ' · Trophy +1 Draft' : ''}`);
       }
+      if (firstTrophy) appendLog(`<span class="win">BESTIARY TROPHY RECORDED · ${en.name} · +1 Cube Draft</span>`);
+      if (bossRelicDrop) appendLog(`<span class="win">GUARDIAN RELIC DISCOVERED · ${bossRelicDrop.replace(/_/g, ' ').toUpperCase()} · Equip it in the Relic Vault.</span>`);
+      if (bossRelicDrop) showToast('Guardian Relic discovered · ' + bossRelicDrop.replace(/_/g, ' '));
     } else {
       // Enemy Counterattack Lunge
       if (enemyVis) { enemyVis.classList.remove('lunge'); void enemyVis.offsetWidth; enemyVis.classList.add('lunge'); }
       await wait(160);
-      const totalIncoming = en.atk * (en.hits || 1);
-      const blocked = Math.min(totalShield, totalIncoming);
-      const hpLoss = Math.max(0, totalIncoming - blocked);
+      const attackTurn = (en.turns || 0) + 1;
+      let totalIncoming = en.atk * (en.hits || 1);
+      if (en.kind === 'monolith' && attackTurn % 3 === 0) totalIncoming = Math.round(totalIncoming * 1.45);
+      if (en.kind === 'phantom' && attackTurn % 2 === 0) totalIncoming = Math.round(totalIncoming * 1.2);
+      if (node.type === 'boss' && en.bossStyle === 0 && attackTurn % 2 === 0) totalIncoming = Math.round(totalIncoming * (en.phase >= 2 ? 1.35 : 1.2));
+      const chillReduction = Math.min(0.5, chilledPower);
+      const chilledIncoming = Math.max(0, Math.round(totalIncoming * (1 - chillReduction)));
+      const bypassRatio = node.type === 'boss' && en.phase >= 2 && en.bossStyle === 4 && attackTurn % 2 === 0 ? 0.3
+        : en.kind === 'reaver' && attackTurn % 2 === 0 ? 0.25 : 0;
+      const bypass = Math.round(chilledIncoming * bypassRatio);
+      const blockable = chilledIncoming - bypass;
+      const blocked = Math.min(totalShield, blockable);
+      const wraithDrain = en.kind === 'wraith' && attackTurn % 3 === 0 ? Math.ceil(getMaxHp() * 0.06) : 0;
+      const hpLoss = bypass + Math.max(0, blockable - blocked) + wraithDrain;
       R.runHp = Math.max(0, R.runHp - hpLoss);
 
       if (hpLoss > 0) {
@@ -620,7 +707,7 @@
         playSfx('ward'); vibrate(12);
         if (miniGrid) { miniGrid.classList.add('shield-flash'); spawnFloat(miniGrid, 'BLOCKED', 'shd'); }
       }
-      appendLog(`${en.name} strikes (${totalIncoming}) → <span class="shd">${blocked} blocked</span>, <span class="dmg">-${hpLoss} HP</span>.`);
+      appendLog(`${en.name} ${en.kind === 'monolith' && attackTurn % 3 === 0 ? 'CRUSHING SLAM' : en.kind === 'wraith' && wraithDrain ? 'RESONANT DRAIN' : 'strikes'} (${totalIncoming}) → <span class="shd">${blocked} blocked</span>${bypass ? ` · ${bypass} bypassed` : ''}${wraithDrain ? ` · ${wraithDrain} drain` : ''}, <span class="dmg">-${hpLoss} HP</span>${chillReduction ? ` · Chill −${Math.round(chillReduction * 100)}%` : ''}.`);
 
       // Each region adds one readable battlefield rule on top of enemy traits.
       en.turns = (en.turns || 0) + 1;
@@ -651,12 +738,14 @@
         appendLog(`<span class="syn">${en.name} gathers power. Next attack: ${en.atk}.</span>`);
       }
       if (en.kind === 'thorn' || (node.type === 'boss' && en.bossStyle === 2)) {
-        const regrow = Math.min(Math.ceil(en.maxHp * 0.04), en.maxHp - en.hp);
+        const regrowPct = node.type === 'boss' && en.phase >= 2 ? 0.08 : 0.04;
+        const regrow = Math.min(Math.ceil(en.maxHp * regrowPct), en.maxHp - en.hp);
         en.hp += regrow;
         if (regrow) appendLog(`<span class="win">${en.name} regrows ${regrow} HP.</span>`);
       }
       if (en.kind === 'leech' || (node.type === 'boss' && en.bossStyle === 1)) {
-        const stolen = Math.min(Math.ceil(en.maxHp * 0.035), en.maxHp - en.hp);
+        const drainPct = node.type === 'boss' && en.phase >= 2 ? 0.065 : 0.035;
+        const stolen = Math.min(Math.ceil(en.maxHp * drainPct), en.maxHp - en.hp);
         en.hp += stolen;
         if (stolen) appendLog(`<span class="syn">${en.name} restores ${stolen} HP.</span>`);
       }
@@ -669,9 +758,22 @@
         appendLog(`<span class="shd">Reflect bounced ${refDmg} DMG back!</span>`);
       }
 
+      if (node.type === 'boss' && en.phase >= 2 && en.bossStyle === 0 && attackTurn % 2 === 0) {
+        R.runHp = Math.max(0, R.runHp - 6);
+        appendLog(`<span class="syn">Cinder wave burns for 6 additional HP.</span>`);
+      }
+      if (node.type === 'boss' && en.phase >= 2 && en.bossStyle === 3) {
+        const baseArmor = en.baseArmor == null ? (en.baseArmor = en.armor || 0) : en.baseArmor;
+        en.armor = Math.min(baseArmor + 10, (en.armor || 0) + 2);
+        en.atk = Math.round(en.atk * 1.08);
+        appendLog(`<span class="syn">Regent's decree: +2 Armor and rising attack (${en.atk}).</span>`);
+      }
       if (R.runHp <= 0) {
-        R.runHp = getMaxHp(); R.selectedNode = 0;
-        showToast('Respawned at Camp (Full HP · Zero items lost)');
+        R.runHp = Math.max(1, Math.ceil(getMaxHp() * 0.65));
+        en.hp = Math.min(en.maxHp, en.hp + Math.ceil(en.maxHp * 0.15));
+        R.selectedNode = 0;
+        appendLog(`<span class="dmg">Forced retreat. You return to camp at 65% HP; ${en.name} recovers 15% HP.</span>`);
+        showToast('Forced retreat · Rest at Camp or rebuild your grid');
       }
       await wait(380);
     }
@@ -763,7 +865,9 @@
 
   function openDraftModal() {
     if (R.drafts < 1) { showToast('Study 30m to earn a Cube Draft'); return; }
-    const keys = Object.keys(CUBE_DEFS), picks = [];
+    const keys = Object.keys(CUBE_DEFS).filter(key => isCubeUnlocked(CUBE_DEFS[key]));
+    if (keys.length < 3) { showToast('More cube types unlock through study milestones'); return; }
+    const picks = [];
     while (picks.length < 3) {
       const k = keys[Math.floor(Math.random() * keys.length)];
       if (!picks.includes(k)) picks.push(k);
@@ -798,7 +902,7 @@
   function renderRealm() {
     const resBar = document.getElementById('realmResBar');
     resBar.innerHTML = `
-      <div class="res-pill"><div class="res-val">${R.charges}</div><div class="res-lbl">Charges</div></div>
+      <div class="res-pill"><div class="res-val">${R.charges}</div><div class="res-lbl">Surge</div></div>
       <div class="res-pill clickable" id="openDraftPill"><div class="res-val">${R.drafts}</div><div class="res-lbl">Drafts</div></div>
       <div class="res-pill"><div class="res-val">${R.shards}</div><div class="res-lbl">Shards</div></div>
       <div class="res-pill"><div class="res-val">${R.runHp}/${getMaxHp()}</div><div class="res-lbl">Run HP</div></div>
@@ -1084,6 +1188,40 @@
     };
   }
 
+  function getCombatStudyMetrics() {
+    const rows = window.ChronoStudyData && Array.isArray(window.ChronoStudyData.allTimeSessions)
+      ? window.ChronoStudyData.allTimeSessions : [];
+    const recordMinutes = rows.reduce((sum, s) => sum + Math.max(0, Number(s.duration) || 0), 0) / 60000;
+    return {
+      minutes: Math.max(Number(R.totalStudyMins) || 0, recordMinutes),
+      sessions: Math.max(Number(R.studySessionCount) || 0, rows.length),
+      subjects: new Set(rows.map(s => String(s.subject || 'General').trim()).filter(Boolean)).size
+    };
+  }
+
+  function isCubeUnlocked(def, stats) {
+    if (!def || !def.unlock) return true;
+    const metrics = stats || getCombatStudyMetrics();
+    return Number(metrics[def.unlock.metric]) >= def.unlock.target;
+  }
+
+  function grantStudyCubeUnlocks() {
+    if (!Array.isArray(R.inventory)) R.inventory = [];
+    if (!R.studyCubeClaims || typeof R.studyCubeClaims !== 'object') R.studyCubeClaims = {};
+    const metrics = getCombatStudyMetrics();
+    const granted = [];
+    Object.values(CUBE_DEFS).forEach(def => {
+      if (!def.unlock || !isCubeUnlocked(def, metrics) || R.studyCubeClaims[def.id]) return;
+      const uid = 'study_unlock_' + def.id;
+      if (!R.inventory.some(c => c && c.uid === uid)) {
+        R.inventory.push({ uid, type: def.id, tier: 1 });
+      }
+      R.studyCubeClaims[def.id] = true;
+      granted.push(def.name);
+    });
+    return granted;
+  }
+
   const PROFILE_TITLES = [
     {id:'newcomer',name:'The Initiate',desc:'Your journey begins here',unlock:s=>true},
     {id:'focused',name:'The Focused',desc:'Study for 5 total hours',unlock:s=>s.minutes>=300},
@@ -1110,6 +1248,12 @@
     R.selectedTitle = selected.id;
     const frame = stats.bosses >= 5 ? 'ECLIPSE FRAME' : stats.minutes >= 1500 ? 'VIOLET FRAME' : stats.minutes >= 300 ? 'EMBER FRAME' : 'INITIATE FRAME';
     const pct = Math.min(100, Math.round(progress.remaining / progress.needed * 100));
+    const bestiaryEntries = Object.entries(R.bestiary || {}).filter(([, kills]) => Number(kills) > 0).sort((a, b) => a[0].localeCompare(b[0]));
+    const bestiaryTotal = bestiaryEntries.reduce((sum, [, kills]) => sum + Number(kills || 0), 0);
+    const bestiaryHtml = bestiaryEntries.length ? bestiaryEntries.map(([key, kills]) => {
+      const title = key.startsWith('boss:') ? key.slice(5) : key.replace(/^enemy:/, '').replace(/^./, ch => ch.toUpperCase());
+      return `<div class="bestiary-card"><strong>${title}</strong><span>${kills} ${Number(kills) === 1 ? 'victory' : 'victories'}</span></div>`;
+    }).join('') : '<div class="bestiary-empty">No trophies yet. Defeat an enemy for its first-record bounty.</div>';
     body.innerHTML = `
       <section class="player-profile">
         <div class="profile-card ${frame.toLowerCase().replace(/ /g,'-')}">
@@ -1130,6 +1274,8 @@
           <div class="profile-stat"><strong>${stats.streak}</strong><span>CURRENT STREAK</span></div>
           <div class="profile-stat"><strong>${stats.zone}</strong><span>HIGHEST ZONE</span></div>
         </div>
+        <div class="profile-section-label">BESTIARY · ${bestiaryEntries.length} SPECIES · ${bestiaryTotal} VICTORIES</div>
+        <div class="bestiary-grid">${bestiaryHtml}</div>
         <div class="profile-section-label">TITLE COLLECTION · ${unlocked.length}/${PROFILE_TITLES.length} UNLOCKED</div>
         <div class="profile-title-list">${PROFILE_TITLES.map(t => { const open=t.unlock(stats), active=t.id===selected.id; return `<button class="profile-title-option ${open?'':'locked'} ${active?'selected':''}" data-profile-title="${t.id}" ${open?'':'disabled'}><span class="profile-title-name">${open?'✦':'◇'} ${t.name}</span><span class="profile-title-desc">${open?t.desc:'LOCKED · '+t.desc}</span>${active?'<span class="profile-title-equipped">EQUIPPED</span>':''}</button>`; }).join('')}</div>
       </section>`;
@@ -1147,12 +1293,23 @@
     {id:'star_lens',name:'Star Lens',glyph:'✧',rarity:'Rare',desc:'+5% critical chance',unlock:s=>s.zone>=2,requirement:'Reach Zone 2',stat:'crit',value:0.05},
     {id:'phoenix',name:'Phoenix Thread',glyph:'♨',rarity:'Epic',desc:'+12% healing from Mend cubes',unlock:s=>s.bosses>=1,requirement:'Defeat a boss',stat:'heal',value:0.12}
   ];
-  function getUnlockedRelics() { const stats=getAchievementStats(); return RELIC_DEFS.filter(relic=>relic.unlock(stats)); }
+  const BOSS_RELIC_DEFS = [
+    {id:'cinder_core',name:'Cinder Tyrant’s Core',glyph:'♨',rarity:'Legendary',desc:'+10% Strike damage. A fragment of the Tyrant’s furnace.',requirement:'Defeat the Cinder Tyrant',stat:'strike',value:0.10},
+    {id:'drowned_quill',name:'Scribe’s Last Quill',glyph:'⌁',rarity:'Legendary',desc:'+12% Ward strength. Ink that remembers every blow.',requirement:'Defeat the Drowned Scribe',stat:'ward',value:0.12},
+    {id:'briar_heart',name:'Briar Heart',glyph:'❧',rarity:'Legendary',desc:'+12% healing. It keeps growing after the battle.',requirement:'Defeat the Briar Colossus',stat:'heal',value:0.12},
+    {id:'hollow_signet',name:'Hollow Signet',glyph:'♛',rarity:'Legendary',desc:'+8% overall cube power. The crown still commands.',requirement:'Defeat the Hollow Regent',stat:'power',value:0.08},
+    {id:'astral_lens',name:'Astral Lens',glyph:'✧',rarity:'Legendary',desc:'+7% critical chance. A shard of the Devourer’s sight.',requirement:'Defeat the Astral Devourer',stat:'crit',value:0.07}
+  ];
+  function getAllRelicDefs() { return RELIC_DEFS.concat(BOSS_RELIC_DEFS); }
+  function getUnlockedRelics() {
+    const stats=getAchievementStats();
+    return RELIC_DEFS.filter(relic=>relic.unlock(stats)).concat(BOSS_RELIC_DEFS.filter(relic=>R.bossRelics.includes(relic.id)));
+  }
   function getEquippedRelicBonuses() {
     const bonuses={strike:0,ward:0,power:0,crit:0,heal:0};
     const unlocked=getUnlockedRelics();
     R.equippedRelics=(Array.isArray(R.equippedRelics)?R.equippedRelics:[]).filter((id,i,a)=>a.indexOf(id)===i&&unlocked.some(r=>r.id===id)).slice(0,2);
-    R.equippedRelics.forEach(id=>{const relic=RELIC_DEFS.find(r=>r.id===id);if(relic)bonuses[relic.stat]+=relic.value;});
+    R.equippedRelics.forEach(id=>{const relic=getAllRelicDefs().find(r=>r.id===id);if(relic)bonuses[relic.stat]+=relic.value;});
     return bonuses;
   }
   function renderRelicsTab(body) {
@@ -1160,15 +1317,15 @@
     getEquippedRelicBonuses();
     body.innerHTML=`<section class="relic-workshop">
       <div class="relic-hero"><div class="relic-hero-mark">✧</div><div class="relic-hero-title">RELIC VAULT</div><div class="relic-hero-copy">Ancient keepsakes. Small advantages. Your build, your choice.</div>
-      <div class="relic-slot-row">${[0,1].map(i=>{const relic=RELIC_DEFS.find(r=>r.id===R.equippedRelics[i]);return `<div class="relic-slot ${relic?'filled':''}"><span>${relic?relic.glyph:'◇'}</span><small>${relic?relic.name:'EMPTY SLOT'}</small></div>`;}).join('')}</div><div class="relic-slot-note">${R.equippedRelics.length}/2 RELICS EQUIPPED</div></div>
-      <div class="relic-list-head"><span>RELIC COLLECTION</span><span>${unlocked.length}/${RELIC_DEFS.length} FOUND</span></div>
-      <div class="relic-list">${RELIC_DEFS.map(relic=>{const open=relic.unlock(stats),active=R.equippedRelics.includes(relic.id);return `<article class="relic-card ${open?'':'locked'} ${active?'equipped':''}"><div class="relic-icon">${open?relic.glyph:'?'}</div><div class="relic-info"><strong>${open?relic.name:'Unknown Relic'}</strong><span class="relic-rarity">${open?relic.rarity:'UNDISCOVERED'}</span><p>${open?relic.desc:'Unlock: '+relic.requirement}</p></div><button class="mini-btn relic-action" data-relic="${relic.id}" ${!open||(!active&&R.equippedRelics.length>=2)?'disabled':''}>${active?'Unequip':open?'Equip':'Locked'}</button></article>`;}).join('')}</div>
+      <div class="relic-slot-row">${[0,1].map(i=>{const relic=getAllRelicDefs().find(r=>r.id===R.equippedRelics[i]);return `<div class="relic-slot ${relic?'filled':''}"><span>${relic?relic.glyph:'◇'}</span><small>${relic?relic.name:'EMPTY SLOT'}</small></div>`;}).join('')}</div><div class="relic-slot-note">${R.equippedRelics.length}/2 RELICS EQUIPPED</div></div>
+      <div class="relic-list-head"><span>RELIC COLLECTION</span><span>${unlocked.length}/${getAllRelicDefs().length} FOUND</span></div>
+      <div class="relic-list">${getAllRelicDefs().map(relic=>{const open=relic.unlock ? relic.unlock(stats) : R.bossRelics.includes(relic.id),active=R.equippedRelics.includes(relic.id);return `<article class="relic-card ${open?'':'locked'} ${active?'equipped':''}"><div class="relic-icon">${open?relic.glyph:'?'}</div><div class="relic-info"><strong>${open?relic.name:'Unknown Relic'}</strong><span class="relic-rarity">${open?relic.rarity:'UNDISCOVERED'}</span><p>${open?relic.desc:'Unlock: '+relic.requirement}</p></div><button class="mini-btn relic-action" data-relic="${relic.id}" ${!open||(!active&&R.equippedRelics.length>=2)?'disabled':''}>${active?'Unequip':open?'Equip':'Locked'}</button></article>`;}).join('')}</div>
       <div class="relic-footnote">Relics only change battle calculations. They do not affect study rewards, shard costs, or saved progress.</div></section>`;
     body.querySelectorAll('[data-relic]').forEach(btn=>btn.addEventListener('click',()=>{
       const id=btn.dataset.relic;if(!getUnlockedRelics().some(r=>r.id===id))return;
       if(R.equippedRelics.includes(id))R.equippedRelics=R.equippedRelics.filter(x=>x!==id);
       else if(R.equippedRelics.length<2)R.equippedRelics.push(id);else{showToast('Both relic slots are full. Unequip one first.');return;}
-      saveR();renderRealm();showToast(RELIC_DEFS.find(r=>r.id===id).name+(R.equippedRelics.includes(id)?' equipped':' unequipped'));
+      saveR();renderRealm();showToast(getAllRelicDefs().find(r=>r.id===id).name+(R.equippedRelics.includes(id)?' equipped':' unequipped'));
     }));
   }
   const WORLD_EVENT_DEFS = [
@@ -1226,10 +1383,10 @@
       <div class="world-event-hero"><div class="world-event-kicker">THE REALM · DAILY ROTATION</div><div class="world-event-emblem">✧</div><h2>${event.name}</h2><p>${event.rule}</p><div class="world-event-reward"><span>✦ ${event.rewardShards} SHARDS</span><span>◇ ${event.rewardDrafts} DRAFT</span></div><div class="world-event-refresh">A new encounter arrives tomorrow.</div></div>
       <div class="world-event-enemy"><div><small>FEATURED ENCOUNTER</small><strong>${enemy.name}</strong><span>${enemy.hp}/${enemy.maxHp} HP · ${enemy.atk} ATK · ${enemy.armor} ARMOR</span></div><div class="world-event-status ${completed?'complete':''}">${completed?'CLEARED':'ACTIVE'}</div></div>
       <div class="world-event-note">${completed?'You have claimed today’s event rewards. Come back for the next rotation.':'A special encounter with its own enemy setup and bonus rewards. Your normal map progress is safe.'}</div>
-      <button class="btn btn-primary world-event-enter" id="enterWorldEventBtn" ${completed?'disabled':''}>${completed?'Event Cleared':'Enter Encounter · 1 Charge'}</button>
+      <button class="btn btn-primary world-event-enter" id="enterWorldEventBtn" ${completed?'disabled':''}>${completed?'Event Cleared':'Enter Encounter · Free'}</button>
     </section>`;
     const enter=document.getElementById('enterWorldEventBtn');
-    if(enter)enter.addEventListener('click',()=>{if(isClashing||event.completed)return;if(R.charges<1){showToast('Need 1 Battle Charge (Study 15m)');return;}R.selectedNode=-1;activeTab='map';document.querySelectorAll('.realm-tab').forEach(b=>b.classList.toggle('active',b.dataset.rtab==='map'));saveR();renderRealm();});
+    if(enter)enter.addEventListener('click',()=>{if(isClashing||event.completed)return;R.selectedNode=-1;activeTab='map';document.querySelectorAll('.realm-tab').forEach(b=>b.classList.toggle('active',b.dataset.rtab==='map'));saveR();renderRealm();});
   }
   function renderAchievementsTab(body) {
     const stats = getAchievementStats();
@@ -1277,32 +1434,56 @@
     return `<svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="#ff453a" stroke-width="1.7"><polygon points="18,3 33,12 28,31 8,31 3,12"/><polygon points="18,10 25,18 18,26 11,18"/></svg>`;
   }
 
-  // Enemy tactics mark protected cells in the 3×3 board. Strike cubes
-  // placed in those cells deal 40% less damage, so grid placement matters.
+  // Enemy guards rotate on later turns, so the same static grid is not always safe.
   function getEnemyTactic(en) {
     if (!en) return null;
     const turn = Math.max(0, en.turns || 0);
-    const column = turn % 3;
+    const row = turn % 3, column = turn % 3;
+    const rowCells = r => [r * 3, r * 3 + 1, r * 3 + 2];
+    const colCells = c => [c, c + 3, c + 6];
     const tactics = {
       monolith: { label: 'Stoneguard · middle column weakens strikes by 40%', cells: [1, 4, 7] },
-      phantom: { label: 'Phase Veil · middle row weakens strikes by 40%', cells: [3, 4, 5] },
+      phantom: { label: `Phase Veil · row ${row + 1} weakens strikes by 40%`, cells: rowCells(row) },
+      wraith: { label: 'Echo Ward · center cell weakens strikes by 40%', cells: [4] },
       swarm: { label: 'Swarm Screen · corner cells weaken strikes by 40%', cells: [0, 2, 6, 8] },
-      reaver: { label: 'Duelist Guard · left column weakens strikes by 40%', cells: [0, 3, 6] },
-      thorn: { label: 'Root Snare · bottom row weakens strikes by 40%', cells: [6, 7, 8] },
-      leech: { label: 'Tidal Ward · diagonal cells weaken strikes by 40%', cells: [0, 4, 8] },
-      hexcaller: { label: `Shifting Hex · column ${column + 1} weakens strikes by 40%`, cells: [column, column + 3, column + 6] }
+      reaver: { label: `Duelist Guard · column ${column + 1} weakens strikes by 40%`, cells: colCells(column) },
+      thorn: { label: `Root Snare · row ${3 - row} weakens strikes by 40%`, cells: rowCells(2 - row) },
+      leech: { label: turn % 2 ? 'Tidal Ward · counter-diagonal weakens strikes by 40%' : 'Tidal Ward · main diagonal weakens strikes by 40%', cells: turn % 2 ? [2, 4, 6] : [0, 4, 8] },
+      hexcaller: { label: `Shifting Hex · column ${column + 1} weakens strikes by 40%`, cells: colCells(column) }
     };
     if (en.kind === 'boss') {
       const bosses = [
         { label: 'Tyrant Guard · middle column weakens strikes by 40%', cells: [1, 4, 7] },
-        { label: 'Scribe Veil · middle row weakens strikes by 40%', cells: [3, 4, 5] },
-        { label: 'Briar Roots · bottom row weakens strikes by 40%', cells: [6, 7, 8] },
-        { label: `Regent Hex · column ${column + 1} weakens strikes by 40%`, cells: [column, column + 3, column + 6] },
-        { label: 'Astral Ward · corners weaken strikes by 40%', cells: [0, 2, 6, 8] }
+        { label: `Scribe Veil · row ${((turn + 1) % 3) + 1} weakens strikes by 40%`, cells: rowCells((turn + 1) % 3) },
+        { label: `Briar Roots · row ${3 - row} weakens strikes by 40%`, cells: rowCells(2 - row) },
+        { label: `Regent Hex · column ${((column + (en.phase >= 2 ? 1 : 0)) % 3) + 1} weakens strikes by 40%`, cells: colCells((column + (en.phase >= 2 ? 1 : 0)) % 3) },
+        { label: en.phase >= 2 ? 'Astral Ward · cross and corners weaken strikes by 40%' : 'Astral Ward · corners weaken strikes by 40%', cells: en.phase >= 2 ? [0, 2, 4, 6, 8] : [0, 2, 6, 8] }
       ];
-      return bosses[(en.bossStyle || 0) % bosses.length];
+      return bosses[(en.bossStyle || 0) % 5];
     }
     return tactics[en.kind] || null;
+  }
+
+  function getEnemyIntent(en) {
+    if (!en) return 'NEXT: Unknown';
+    const turn = (en.turns || 0) + 1;
+    if (en.kind === 'boss') {
+      const intents = (en.phase || 1) >= 2
+        ? ['CINDER WAVE · heavy hit every second turn', 'LEECHING TIDE · restores more HP after striking', 'RAMPANT ROOTS · rapid regeneration', 'ROYAL DECREE · armor and attack escalate', 'STARFALL · double strike; every second turn pierces shields']
+        : ['ARMORED SLAM · heavy counter every second turn', 'DRAINING TIDE · restores HP after striking', 'ROOT GUARD · regenerates after striking', 'ROYAL GUARD · hardens after striking', 'ASTRAL WARD · protected corners'];
+      return 'PHASE ' + (en.phase || 1) + ' · ' + intents[(en.bossStyle || 0) % 5];
+    }
+    const intents = {
+      monolith: turn % 3 === 0 ? 'CRUSHING SLAM · 45% stronger this turn' : 'STONE HAMMER · heavy counterattack',
+      phantom: turn % 2 === 0 ? 'PHASE SURGE · 20% stronger this turn' : 'PHASE SHIFT · guard changes each turn',
+      swarm: 'FLURRY · two strikes each turn',
+      wraith: turn % 3 === 0 ? 'RESONANT DRAIN · 6% of max HP bypasses Shield' : 'RELENTLESS STRIKE · balanced pressure',
+      reaver: turn % 2 === 0 ? 'DUAL LUNGE · two hits; second bypasses 25% Shield' : 'DUAL LUNGE · two hits',
+      thorn: 'ROOT REGEN · restores HP after striking',
+      leech: 'TIDAL DRAIN · steals HP after striking',
+      hexcaller: 'HEX GROWTH · attack rises after each counter'
+    };
+    return 'NEXT: ' + (intents[en.kind] || 'COUNTERATTACK');
   }
 
   function renderMapTab(body) {
@@ -1330,7 +1511,7 @@
     let actionHtml = '';
 
     if (node.type === 'start') {
-      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Tap any lit node on the map to explore or fight.</div></div>`;
+      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Every encounter is free. Spend a Surge Charge to empower one volley.</div><div class="camp-recovery">RUN HP · ${R.runHp}/${getMaxHp()}</div>${R.runHp < getMaxHp() ? `<button class="btn btn-secondary" id="restCampBtn" ${R.shards < 12 && R.runHp >= Math.ceil(getMaxHp() * 0.75) ? 'disabled' : ''}>${R.shards >= 12 ? 'Rest · 12 Shards' : R.runHp < Math.ceil(getMaxHp() * 0.75) ? 'Emergency Rest · 75% HP' : 'Need 12 Shards · 75% HP reached'}</button>` : '<div class="enemy-gimmick">You are fully rested.</div>'}</div>`;
     } else if (node.type === 'shrine') {
       actionHtml = `<div class="battle-card">
         <div class="enemy-name">${node.name}</div>
@@ -1365,11 +1546,13 @@
               <div class="enemy-info">
                 <div class="enemy-name">${en.name} ${R.overcharge > 0 ? `<span class="milestone-pill" style="color:var(--amber)">+${Math.round(R.overcharge*100)}% OC</span>` : ''}</div>
                 <div class="enemy-gimmick">${en.gimmick}</div>
+                ${node.type === 'boss' ? `<div class="enemy-phase" id="enemyPhase">PHASE ${en.phase || 1}</div>` : ''}
+                <div class="enemy-intent">${getEnemyIntent(en)}</div>
                 ${tactic ? `<div class="enemy-tactic">${tactic.label}</div>` : ''}
               </div>
             </div>
             <div class="hp-track"><div class="hp-fill" id="enemyHpFill" style="width:${pct}%"></div></div>
-            <div class="hp-meta"><span id="enemyHpText">HP ${en.hp}/${en.maxHp}</span><span>ATK ${en.atk}${en.hits ? '×' + en.hits : ''}</span></div>
+            <div class="hp-meta"><span id="enemyHpText">HP ${en.hp}/${en.maxHp}</span><span>ATK ${en.atk}${en.hits ? '×' + en.hits : ''} · ARMOR ${en.armor || 0}</span></div>
           </div>
         </div>
         <div class="live-tallies">
@@ -1378,9 +1561,10 @@
           <span style="color:var(--green)" id="tallyHeal">✚ 0</span>
         </div>
         <div class="clash-log" id="clashLog"><div>Tap Strike to fire your 3×3 Grid in an Auto-Clash.</div></div>
-        <div class="modal-btns">
-          <button class="btn btn-secondary" id="editGridQuickBtn">3×3 Grid</button>
-          <button class="btn btn-primary" id="strikeBtn" ${node.cleared ? 'disabled' : ''}>${node.cleared ? 'Cleared' : 'Strike (1 Charge)'}</button>
+        <div class="combat-action-row">
+          <button class="btn btn-secondary" id="editGridQuickBtn">Edit Grid</button>
+          <button class="btn btn-secondary" id="surgeBtn" ${R.charges < 1 && !R.surgeArmed ? 'disabled' : ''}>${R.surgeArmed ? 'Surge Armed · Cancel' : 'Arm Surge · 1 Charge'}</button>
+          <button class="btn btn-primary" id="strikeBtn" ${node.cleared ? 'disabled' : ''}>${node.cleared ? 'Cleared' : 'Fight · Free'}</button>
         </div>
       </div>`;
     }
@@ -1423,6 +1607,15 @@
       });
     });
 
+    const restCampBtn = document.getElementById('restCampBtn');
+    if (restCampBtn) restCampBtn.addEventListener('click', () => {
+      if (R.runHp >= getMaxHp()) return;
+      if (R.shards >= 12) { R.shards -= 12; R.runHp = getMaxHp(); saveR(); renderRealm(); showToast('Camp rest complete · Run HP restored'); return; }
+      const recovery = Math.ceil(getMaxHp() * 0.75);
+      if (R.runHp < recovery) { R.runHp = recovery; saveR(); renderRealm(); showToast('Emergency rest · Recovered to 75% HP'); }
+      else showToast('You need 12 Shards for a full rest');
+    });
+
     const claimBtn = document.getElementById('claimNodeBtn');
     if (claimBtn) {
       claimBtn.addEventListener('click', () => {
@@ -1434,6 +1627,12 @@
     }
     const strikeBtn = document.getElementById('strikeBtn');
     if (strikeBtn) strikeBtn.addEventListener('click', () => runGridClash(false));
+    const surgeBtn = document.getElementById('surgeBtn');
+    if (surgeBtn) surgeBtn.addEventListener('click', () => {
+      if (R.surgeArmed) { R.surgeArmed = false; R.charges++; saveR(); renderRealm(); showToast('Surge cancelled · Charge refunded'); return; }
+      if (R.charges < 1) { showToast('Earn a Surge Charge with 15 minutes of study'); return; }
+      R.charges--; R.surgeArmed = true; saveR(); renderRealm(); showToast('Surge armed · Next volley deals +30% power');
+    });
     const quickGrid = document.getElementById('editGridQuickBtn');
     if (quickGrid) quickGrid.addEventListener('click', () => {
       if (isClashing) return;
@@ -1470,9 +1669,13 @@
     ];
     lines.forEach(line => {
       const role = roleAt(line.cells[0]);
+      const roles = new Set(line.cells.map(roleAt));
       if (role && line.cells.every(idx => roleAt(idx) === role)) {
         line.cells.forEach(idx => bonuses[idx] += 0.18);
         labels.push(line.name + ' ' + role + ' formation (+18%)');
+      } else if (line.cells.every(idx => roleAt(idx)) && roles.size === 3) {
+        line.cells.forEach(idx => bonuses[idx] += 0.12);
+        labels.push(line.name + ' tactical triad (+12%)');
       }
     });
     [[0,4,8],[2,4,6]].forEach((cells, i) => {
@@ -1489,6 +1692,15 @@
 
   function renderGridTab(body) {
     const synergy = getGridSynergyInfo();
+    const studyMetrics = getCombatStudyMetrics();
+    const unlockCardsHtml = Object.values(CUBE_DEFS).filter(def => def.unlock).map(def => {
+      const value = Number(studyMetrics[def.unlock.metric]) || 0;
+      const done = isCubeUnlocked(def, studyMetrics);
+      const current = def.unlock.metric === 'minutes' ? Math.floor(value) + ' / ' + def.unlock.target + ' min'
+        : Math.floor(value) + ' / ' + def.unlock.target + (def.unlock.metric === 'sessions' ? ' sessions' : ' subjects');
+      const pct = Math.min(100, Math.round(value / def.unlock.target * 100));
+      return `<article class="cube-unlock-card ${done ? 'unlocked' : 'locked'}"><div class="cube-unlock-head"><strong>${def.glyph} ${def.name}</strong><span>${done ? 'UNLOCKED' : 'LOCKED'}</span></div><p>${def.desc}</p><div class="cube-unlock-track"><i style="width:${pct}%"></i></div><small>${done ? 'Added to your collection' : def.unlock.label + ' · ' + current}</small></article>`;
+    }).join('');
     const linkedSlots = new Set(synergy.links.flat());
     const gridHtml = R.grid.map((uid, idx) => {
       const c = getCubeByUid(uid);
@@ -1533,26 +1745,28 @@
 
     body.innerHTML = `
       <div class="grid-3x3">${gridHtml}</div>
-      <div class="synergy-summary">${synergy.labels.length ? synergy.labels.map(label => `<span class="synergy-chip">${label}</span>`).join('') : 'Match cube roles side-by-side or complete a row, column, or diagonal to activate combos.'}</div>
+      <div class="synergy-summary">${synergy.labels.length ? synergy.labels.map(label => `<span class="synergy-chip">${label}</span>`).join('') : 'Match roles for adjacent links, make a same-role line, or use three different roles in a full line for a Tactical Triad.'}</div>
       ${detailHtml}
-      <div class="clash-log" id="clashLog"><div>Tap Test Grid anytime (0 Charges) to watch your synergy chain fire.</div></div>
+      <div class="clash-log" id="clashLog"><div>Tap Test Grid anytime (0 Surge) to check your formation and cube effects.</div></div>
       <div class="modal-btns">
         <button class="btn btn-secondary" id="testDummyBtn">Test Grid (Free)</button>
         <button class="btn btn-primary" id="draftFromGridBtn">Draft Cube (${R.drafts})</button>
       </div>
       <div class="sec-head"><span>Cube Inventory</span><span>Tap slot, then cube</span></div>
       <div class="inv-grid">${invHtml}</div>
+      <div class="sec-head"><span>STUDY DISCOVERIES</span><span>Permanent cube unlocks</span></div>
+      <div class="cube-unlock-grid">${unlockCardsHtml}</div>
       <div class="sec-head"><span>Shard Forge</span><span>${R.shards} ◈ available</span></div>
       <div class="shard-forge">
         <div class="cube-detail-bar">
-          <div><strong>Battle Charge</strong><div style="color:var(--muted);font-size:10.5px;">Enter one additional battle</div></div>
+          <div><strong>Surge Charge</strong><div style="color:var(--muted);font-size:10.5px;">Empower one volley by +30%. Battles themselves are always free.</div></div>
           <button class="mini-btn" id="buyChargeBtn" ${R.shards < 18 ? 'disabled' : ''}>18 ◈</button>
         </div>
         <div class="cube-detail-bar">
           <div><strong>Cube Draft</strong><div style="color:var(--muted);font-size:10.5px;">Choose one of three random Cubes</div></div>
           <button class="mini-btn" id="buyDraftBtn" ${R.shards < 45 ? 'disabled' : ''}>45 ◈</button>
         </div>
-        <div style="color:var(--muted);font-size:10px;line-height:1.45;">Repeatable purchases. Study still earns Charges and Drafts for free; the Forge is an optional shortcut when you have spare Shards.</div>
+        <div style="color:var(--muted);font-size:10px;line-height:1.45;">Study earns optional Surge Charges every 15 minutes and Cube Drafts every 30 minutes. Encounters never require a charge.</div>
       </div>
     `;
 
@@ -1597,7 +1811,7 @@
     document.getElementById('buyChargeBtn').addEventListener('click', () => {
       if (R.shards < 18) { showToast('Need 18 Shards'); return; }
       R.shards -= 18; R.charges++; saveR(); renderRealm();
-      showToast('Battle Charge forged · −18 Shards');
+      showToast('Surge Charge forged · −18 Shards');
     });
     document.getElementById('buyDraftBtn').addEventListener('click', () => {
       if (R.shards < 45) { showToast('Need 45 Shards'); return; }
@@ -1664,13 +1878,19 @@
   }
 
 
-  window.ChronoRealm = { open: openRealm, onSessionSaved, updateBadge: updateRealmBadge, syncDailyStudySnapshot: (snapshot) => { window.ChronoStudyData = snapshot; } };
+  window.ChronoRealm = { open: openRealm, onSessionSaved, updateBadge: updateRealmBadge, syncDailyStudySnapshot: (snapshot) => {
+    window.ChronoStudyData = snapshot;
+    const granted = grantStudyCubeUnlocks();
+    if (granted.length) { saveR(); showToast('Study milestone unlocked: ' + granted.join(', ')); }
+  } };
   document.addEventListener('DOMContentLoaded', () => {
     if (!R.dailyMissionClaims || typeof R.dailyMissionClaims !== 'object') R.dailyMissionClaims = {};
     const claimDays = Object.keys(R.dailyMissionClaims).sort();
     claimDays.slice(0, Math.max(0, claimDays.length - 45)).forEach(day => delete R.dailyMissionClaims[day]);
     const btn = document.getElementById('realmBtn');
     if (btn) btn.addEventListener('click', openRealm);
+    const initialUnlocks = grantStudyCubeUnlocks();
+    if (initialUnlocks.length) showToast('Study milestone unlocked: ' + initialUnlocks.join(', '));
     updateRealmBadge();
     saveR();
   });
