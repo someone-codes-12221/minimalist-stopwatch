@@ -144,11 +144,11 @@
   }
 
   const ZONE_THEMES = [
-    { name: 'Ashen March', subtitle: 'A scorched frontier of broken fortresses', boss: 'Cinder Tyrant', bossGimmick: 'Heavy armor · Burning counterstrike' },
-    { name: 'Drowned Archive', subtitle: 'A sunken library guarded by restless echoes', boss: 'The Drowned Scribe', bossGimmick: 'High vitality · Leeching tide' },
-    { name: 'Thornwild', subtitle: 'An overgrown maze that fights back', boss: 'Briar Colossus', bossGimmick: 'Rapid attacks · Regrows between volleys' },
-    { name: 'Hollow Crown', subtitle: 'A fallen kingdom under a watchful curse', boss: 'The Hollow Regent', bossGimmick: 'Escalating attack · Royal guard' },
-    { name: 'Starfall Citadel', subtitle: 'A fortress carved from fallen stars', boss: 'Astral Devourer', bossGimmick: 'Balanced elite · Heavy final blow' }
+    { name: 'Ashen March', subtitle: 'A scorched frontier of broken fortresses', boss: 'Cinder Tyrant', bossGimmick: 'Heavy armor · Burning counterstrike', rule: 'Ashfall: take 4 scorch damage after each enemy counterattack.' },
+    { name: 'Drowned Archive', subtitle: 'A sunken library guarded by restless echoes', boss: 'The Drowned Scribe', bossGimmick: 'High vitality · Leeching tide', rule: 'Leeching tide: enemies recover 3% of their maximum HP after attacking.' },
+    { name: 'Thornwild', subtitle: 'An overgrown maze that fights back', boss: 'Briar Colossus', bossGimmick: 'Rapid attacks · Regrows between volleys', rule: 'Overgrowth: every second enemy counterattack restores 4% of its maximum HP.' },
+    { name: 'Hollow Crown', subtitle: 'A fallen kingdom under a watchful curse', boss: 'The Hollow Regent', bossGimmick: 'Escalating attack · Royal guard', rule: 'Royal guard: enemies gain 1 armor after each counterattack, up to +6.' },
+    { name: 'Starfall Citadel', subtitle: 'A fortress carved from fallen stars', boss: 'Astral Devourer', bossGimmick: 'Balanced elite · Heavy final blow', rule: 'Falling star: every third enemy counterattack deals 8 extra damage.' }
   ];
 
   function getZoneTheme(zone) { return ZONE_THEMES[(Math.max(1, zone) - 1) % ZONE_THEMES.length]; }
@@ -538,6 +538,30 @@
         if (miniGrid) { miniGrid.classList.add('shield-flash'); spawnFloat(miniGrid, 'BLOCKED', 'shd'); }
       }
       appendLog(`${en.name} strikes (${totalIncoming}) → <span class="shd">${blocked} blocked</span>, <span class="dmg">-${hpLoss} HP</span>.`);
+
+      // Each region adds one readable battlefield rule on top of enemy traits.
+      en.turns = (en.turns || 0) + 1;
+      const biome = (R.zone - 1) % 5;
+      if (biome === 0) {
+        R.runHp = Math.max(0, R.runHp - 4);
+        appendLog(`<span class="syn">Ashfall scorches you for 4 extra damage.</span>`);
+      } else if (biome === 1) {
+        const tideHeal = Math.min(Math.ceil(en.maxHp * 0.03), en.maxHp - en.hp);
+        en.hp += tideHeal;
+        if (tideHeal) appendLog(`<span class="syn">The tide restores ${tideHeal} enemy HP.</span>`);
+      } else if (biome === 2 && en.turns % 2 === 0) {
+        const rootsHeal = Math.min(Math.ceil(en.maxHp * 0.04), en.maxHp - en.hp);
+        en.hp += rootsHeal;
+        if (rootsHeal) appendLog(`<span class="win">Overgrowth restores ${rootsHeal} enemy HP.</span>`);
+      } else if (biome === 3) {
+        const baseArmor = en.baseArmor == null ? (en.baseArmor = en.armor || 0) : en.baseArmor;
+        en.armor = Math.min(baseArmor + 6, (en.armor || 0) + 1);
+        appendLog(`<span class="syn">Royal Guard hardens: ${en.armor} armor.</span>`);
+      } else if (biome === 4 && en.turns % 3 === 0) {
+        const starDamage = 8;
+        R.runHp = Math.max(0, R.runHp - starDamage);
+        appendLog(`<span class="syn">A falling star hits for ${starDamage} unblocked damage.</span>`);
+      }
 
       if (en.kind === 'hexcaller' || (node.type === 'boss' && en.bossStyle === 3)) {
         en.atk = Math.round(en.atk * 1.12);
@@ -1067,6 +1091,7 @@
       <div class="map-canvas-wrap">
         <div class="map-zone-tag">Zone ${R.zone} · ${theme.name} · Power ×${getBasePowerMult().toFixed(2)}</div>
         <div class="map-zone-subtitle">${theme.subtitle}</div>
+        <div class="map-zone-rule">${theme.rule}</div>
         <svg class="map-svg">${edgesHtml.join('')}${nodesHtml}</svg>
       </div>
       ${actionHtml}
