@@ -1278,7 +1278,7 @@
       </div>
       <div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:5px;">Duration in minutes (edit to trim idle time)</div>
-        <input class="input" id="trimMinsInput" type="number" min="1" max="960" />
+        <input class="input" id="trimMinsInput" type="number" min="1" max="960" step="1" />
       </div>
       <input class="input" id="noteInput" type="text" placeholder="What did you finish? (optional)" maxlength="90" />
       <div class="modal-btns">
@@ -1292,7 +1292,7 @@
   <div class="modal-wrap" id="editModal">
     <div class="modal-card">
       <div class="modal-title">Edit Session</div>
-      <input class="input" id="editMins" type="number" min="1" max="960" placeholder="Duration (minutes)" />
+      <input class="input" id="editMins" type="number" min="1" max="960" step="1" placeholder="Duration (minutes)" />
       <select class="input" id="editSubj"></select>
       <input class="input" id="editNote" type="text" placeholder="Session note" maxlength="90" />
       <div class="modal-btns">
@@ -1321,7 +1321,7 @@
     <div class="modal-card">
       <div class="modal-title">Manual Study Log</div>
       <input class="input" id="manDate" type="date" />
-      <input class="input" id="manMins" type="number" min="1" max="960" placeholder="Duration in minutes (e.g. 45)" />
+      <input class="input" id="manMins" type="number" min="1" max="960" step="1" placeholder="Duration in minutes (e.g. 45)" />
       <select class="input" id="manSubj"></select>
       <input class="input" id="manNote" type="text" placeholder="Short note (optional)" maxlength="90" />
       <div class="modal-btns">
@@ -1455,6 +1455,44 @@
 
     let store = loadStore();
     function saveStore() { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+
+    // Shared validation for every path that creates or edits a study record.
+    // Keep the existing 16-hour per-entry limit and prevent a day's total
+    // from exceeding 24 hours. Existing over-limit days may still be reduced.
+    function validateStudyMinutes(input, dayKey, excludeSessionId = null) {
+      const raw = String(input.value || '').trim();
+      const mins = Number(raw);
+      let error = '';
+
+      if (!raw || !Number.isFinite(mins) || !Number.isInteger(mins)) {
+        error = 'Enter a whole number of minutes.';
+      } else if (mins < 1 || mins > 960) {
+        error = 'Duration must be between 1 and 960 minutes.';
+      } else {
+        const entries = store.days[dayKey] || [];
+        const dayTotalMs = entries.reduce((total, session) => {
+          const duration = Number(session.duration);
+          return total + (session.id !== excludeSessionId && Number.isFinite(duration) && duration > 0 ? duration : 0);
+        }, 0);
+        const currentDayMs = entries.reduce((total, session) => {
+          const duration = Number(session.duration);
+          return total + (Number.isFinite(duration) && duration > 0 ? duration : 0);
+        }, 0);
+        const proposedDayMs = dayTotalMs + mins * 60000;
+
+        if (proposedDayMs > 24 * 60 * 60000 && proposedDayMs > currentDayMs) {
+          error = 'Daily study time cannot exceed 1,440 minutes.';
+        }
+      }
+
+      input.setCustomValidity(error);
+      if (error) {
+        input.reportValidity();
+        return null;
+      }
+      return mins;
+    }
+
     function buzz(p = 12) { if (store.settings.haptics && navigator.vibrate) navigator.vibrate(p); }
 
     // ---------- Build Rolling Digit Strips ----------
@@ -2125,11 +2163,13 @@
 
     function commitSession(noteText, customMins) {
       const tk = dateKey();
+      const validatedMins = validateStudyMinutes(trimMinsInput, tk);
+      if (validatedMins === null) return;
       if (!store.days[tk]) store.days[tk] = [];
       const sub = getActiveSubject();
       const now = new Date();
-      const finalMs = (customMins && customMins !== pendingDefaultMins && customMins > 0)
-        ? customMins * 60000 : pendingRawMs;
+      const finalMs = validatedMins !== pendingDefaultMins
+        ? validatedMins * 60000 : pendingRawMs;
 
       store.days[tk].push({
         id: 's_' + Date.now(),
@@ -2173,7 +2213,7 @@
       renderTime(0);
     }
 
-    document.getElementById('noteSaveBtn').addEventListener('click', () => commitSession(noteInput.value, parseInt(trimMinsInput.value, 10)));
+    document.getElementById('noteSaveBtn').addEventListener('click', () => commitSession(noteInput.value, Number(trimMinsInput.value)));
     document.getElementById('noteDiscardBtn').addEventListener('click', () => { noteModal.classList.remove('open'); clearCurrentTimer(); });
 
     // ---------- Break Mode ----------
@@ -2607,8 +2647,9 @@
     document.getElementById('editSaveBtn').addEventListener('click', () => {
       if (!editingTarget) return;
       const item = (store.days[editingTarget.dk] || []).find(x => x.id === editingTarget.sid);
-      const mins = parseInt(editMins.value, 10);
-      if (item && mins > 0) {
+      const mins = validateStudyMinutes(editMins, editingTarget.dk, editingTarget.sid);
+      if (mins === null) return;
+      if (item) {
         item.duration = mins * 60000;
         item.subject = editSubj.value;
         const foundSub = store.subjects.find(s => s.name === editSubj.value);
@@ -2686,8 +2727,9 @@
     });
     document.getElementById('manCancelBtn').addEventListener('click', () => manualModal.classList.remove('open'));
     document.getElementById('manSaveBtn').addEventListener('click', () => {
-      const mins = parseInt(manMins.value, 10), dk = manDate.value || dateKey();
-      if (!mins || mins <= 0) return;
+      const dk = manDate.value || dateKey();
+      const mins = validateStudyMinutes(manMins, dk);
+      if (mins === null) return;
       const sub = store.subjects.find(s => s.id === manSubj.value) || store.subjects[0];
       if (!store.days[dk]) store.days[dk] = [];
       const now = new Date();
