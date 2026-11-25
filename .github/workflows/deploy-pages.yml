@@ -21,7 +21,7 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url || steps.final_deployment_retry.outputs.page_url }}
+      url: https://someone-codes-12221.github.io/minimalist-stopwatch/
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -60,3 +60,9 @@ jobs:
         uses: actions/deploy-pages@v4
         with:
           artifact_name: github-pages
+
+      - name: Publish live site link
+        if: success()
+        run: |
+          echo "## Chrono Obsidian is live" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Open the latest deployed site](https://someone-codes-12221.github.io/minimalist-stopwatch/)" >> "$GITHUB_STEP_SUMMARY"
