@@ -1950,12 +1950,19 @@
       goalBarFill.style.width = Math.min(100, (totalMs / (store.goalMins * 60000)) * 100).toFixed(1) + '%';
 
       sessionsList.innerHTML = '';
-      [...todayArr].reverse().forEach(s => {
+      sessionsList.classList.toggle('has-sessions', todayArr.length > 0);
+      if (!todayArr.length) {
+        const empty = document.createElement('div');
+        empty.className = 'sessions-empty';
+        empty.innerHTML = '<span class="empty-mark">✦</span><strong>Your next chapter starts here.</strong><span>Start a focus session and your study log will appear here.</span>';
+        sessionsList.appendChild(empty);
+      }
+      [...todayArr].reverse().forEach((s, index) => {
         const f = formatHMS(s.duration);
         const durText = f.h > 0 ? `${f.h}h ${f.m}m` : `${f.m}m ${f.s}s`;
         const eDot = s.energy ? `<span class="energy-dot energy-${s.energy}"></span>` : '';
         const row = document.createElement('div');
-        row.className = 'session-row';
+        row.className = 'session-row' + (index === 0 ? ' latest-session' : '');
         row.innerHTML = `
           <div class="s-top">
             <div class="s-left">
