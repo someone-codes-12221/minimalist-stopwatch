@@ -682,6 +682,7 @@
 
   // ---------- UI Rendering ----------
   let activeTab = 'map', activeJournalTab = 'missions', selectedSlot = null, activeConst = 'endurance';
+  let skipNextRealmEntrance = false;
 
   function injectRealmDOM() {
     if (document.getElementById('realmOverlay')) return;
@@ -830,10 +831,15 @@
     else if (activeTab === 'atlas') renderWorldAtlasTab(body);
     else renderConstTab(body);
 
-    // Re-trigger a lightweight entrance transition whenever Realm content changes.
-    body.classList.remove('tab-enter');
-    void body.offsetWidth;
-    body.classList.add('tab-enter');
+    // Map enemy selection should feel immediate; keep entrance motion for actual tab changes.
+    if (skipNextRealmEntrance) {
+      skipNextRealmEntrance = false;
+      body.classList.remove('tab-enter');
+    } else {
+      body.classList.remove('tab-enter');
+      void body.offsetWidth;
+      body.classList.add('tab-enter');
+    }
   }
 
   // Daily mission progress is derived from the stopwatch's saved records.
@@ -1408,7 +1414,9 @@
       el.addEventListener('click', () => {
         if (isClashing) return;
         R.selectedNode = Number(el.dataset.nid);
-        saveR(); renderRealm();
+        saveR();
+        skipNextRealmEntrance = true;
+        renderRealm();
       });
     });
 
