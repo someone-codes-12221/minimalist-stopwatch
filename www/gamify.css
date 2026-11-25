@@ -581,3 +581,7 @@
 /* Shard Forge */
 .shard-forge { display:flex; flex-direction:column; gap:7px; padding-bottom:12px; }
 .shard-forge .mini-btn:disabled { opacity:.35; cursor:not-allowed; }
+
+
+/* ChronoRealm biome header */
+.map-zone-subtitle{position:absolute;left:12px;top:31px;color:rgba(255,255,255,.48);font-size:9px;letter-spacing:.04em;pointer-events:none;max-width:75%;}
