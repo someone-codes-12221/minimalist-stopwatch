@@ -42,18 +42,20 @@ jobs:
       - name: Deploy website
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
         with:
           artifact_name: github-pages
 
       - name: Retry deployment
         id: deployment_retry
-        if: failure() && steps.deployment.outcome == 'failure'
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
+        continue-on-error: true
         with:
           artifact_name: github-pages
 
       - name: Final deployment retry
-        if: failure() && steps.deployment_retry.outcome == 'failure'
+        if: steps.deployment_retry.outcome == 'failure'
         uses: actions/deploy-pages@v4
         with:
           artifact_name: github-pages
