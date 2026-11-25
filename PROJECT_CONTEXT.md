@@ -308,3 +308,10 @@ This pass is deliberately presentation-only:
 - Replaced pseudo-element-only portal effects with a dedicated, absolute VFX layer injected into the overlay. This keeps the bloom and scan visibly above the overlay background and below the Realm UI.
 - Opening now reveals the overlay before restarting the animation, with a stronger bloom, scan sweep, and staggered content entrance.
 - No game state, combat, timer, or persistence behavior is changed. Reduced-motion preferences remain respected.
+
+
+## 14. Immediate enemy selection
+
+- Selecting a map node now updates the selected encounter immediately without replaying the Realm content entrance/stagger animation.
+- Tab switches and other Realm content transitions retain their existing entrance motion.
+- The selected-node atlas highlight and all combat hit/shake effects remain unchanged.
