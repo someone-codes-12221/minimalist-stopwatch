@@ -330,3 +330,11 @@ This pass is deliberately presentation-only:
 - Map-node selection sets skipNextRealmEntrance before rerendering, so selecting an enemy no longer triggers the content stagger from the global visual-polish stylesheet.
 - The visual-polish stylesheet cache key is bumped so deployed browsers fetch the corrected selector rules.
 - Ordinary Realm tab changes retain their entrance animation; the selected-node highlight remains a static visual state.
+
+
+## 17. Static selected enemy highlight
+
+- The remaining map-node animation was the selected-node atlas pulse (atlasNodePulse), separate from the Realm content stagger.
+- Selected nodes now keep their highlighted border/glow but do not pulse or animate.
+- The Realm content stagger remains scoped to explicit tab transitions only; map-node selection bypasses it.
+- Bumped the gamify.css cache key so deployed browsers fetch the static selected-node styling.
