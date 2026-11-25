@@ -421,9 +421,15 @@
     const node = R.selectedNode === -1 && R.worldEvent ? R.worldEvent.node : R.map.find(n => n.id === R.selectedNode);
     if (!isTestDummy) {
       if (!node || (node.type !== 'hostile' && node.type !== 'boss') || node.cleared) return;
-      if (R.charges < 1) { showToast('Need 1 Battle Charge · Earn one with 15 minutes of study'); return; }
-      R.charges--;
-      saveR();
+      const eventEntryPaid = R.selectedNode === -1 && R.worldEvent && R.worldEvent.chargePaid === true;
+      if (!eventEntryPaid) {
+        if (R.charges < 1) { showToast('Need 1 Battle Charge · Earn one with 15 minutes of study'); return; }
+        R.charges--;
+        saveR();
+      } else {
+        R.worldEvent.chargePaid = false;
+        saveR();
+      }
       const strikeBtn = document.getElementById('strikeBtn');
       if (strikeBtn) strikeBtn.disabled = true;
     }
@@ -902,7 +908,7 @@
   function renderRealm() {
     const resBar = document.getElementById('realmResBar');
     resBar.innerHTML = `
-      <div class="res-pill"><div class="res-val">${R.charges}</div><div class="res-lbl">Surge</div></div>
+      <div class="res-pill"><div class="res-val">${R.charges}</div><div class="res-lbl">Charges</div></div>
       <div class="res-pill clickable" id="openDraftPill"><div class="res-val">${R.drafts}</div><div class="res-lbl">Drafts</div></div>
       <div class="res-pill"><div class="res-val">${R.shards}</div><div class="res-lbl">Shards</div></div>
       <div class="res-pill"><div class="res-val">${R.runHp}/${getMaxHp()}</div><div class="res-lbl">Run HP</div></div>
@@ -1386,7 +1392,7 @@
       <button class="btn btn-primary world-event-enter" id="enterWorldEventBtn" ${completed || R.charges < 1 ? 'disabled' : ''}>${completed?'Event Cleared':R.charges < 1 ? 'Need 1 Battle Charge' : 'Enter Encounter · 1 Charge'}</button>
     </section>`;
     const enter=document.getElementById('enterWorldEventBtn');
-    if(enter)enter.addEventListener('click',()=>{if(isClashing||event.completed)return;if(R.charges<1){showToast('Need 1 Battle Charge · Earn one with 15 minutes of study');return;}R.charges--;R.selectedNode=-1;activeTab='map';document.querySelectorAll('.realm-tab').forEach(b=>b.classList.toggle('active',b.dataset.rtab==='map'));saveR();renderRealm();});
+    if(enter)enter.addEventListener('click',()=>{if(isClashing||event.completed)return;if(R.charges<1){showToast('Need 1 Battle Charge · Earn one with 15 minutes of study');return;}R.charges--;R.worldEvent.chargePaid=true;R.selectedNode=-1;activeTab='map';document.querySelectorAll('.realm-tab').forEach(b=>b.classList.toggle('active',b.dataset.rtab==='map'));saveR();renderRealm();});
   }
   function renderAchievementsTab(body) {
     const stats = getAchievementStats();
@@ -1511,7 +1517,7 @@
     let actionHtml = '';
 
     if (node.type === 'start') {
-      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Every encounter is free. Spend a Surge Charge to empower one volley.</div><div class="camp-recovery">RUN HP · ${R.runHp}/${getMaxHp()}</div>${R.runHp < getMaxHp() ? `<button class="btn btn-secondary" id="restCampBtn" ${R.shards < 12 && R.runHp >= Math.ceil(getMaxHp() * 0.75) ? 'disabled' : ''}>${R.shards >= 12 ? 'Rest · 12 Shards' : R.runHp < Math.ceil(getMaxHp() * 0.75) ? 'Emergency Rest · 75% HP' : 'Need 12 Shards · 75% HP reached'}</button>` : '<div class="enemy-gimmick">You are fully rested.</div>'}</div>`;
+      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Spend 1 Battle Charge to enter an encounter. Study earns charges every 15 minutes.</div><div class="camp-recovery">RUN HP · ${R.runHp}/${getMaxHp()}</div>${R.runHp < getMaxHp() ? `<button class="btn btn-secondary" id="restCampBtn" ${R.shards < 12 && R.runHp >= Math.ceil(getMaxHp() * 0.75) ? 'disabled' : ''}>${R.shards >= 12 ? 'Rest · 12 Shards' : R.runHp < Math.ceil(getMaxHp() * 0.75) ? 'Emergency Rest · 75% HP' : 'Need 12 Shards · 75% HP reached'}</button>` : '<div class="enemy-gimmick">You are fully rested.</div>'}</div>`;
     } else if (node.type === 'shrine') {
       actionHtml = `<div class="battle-card">
         <div class="enemy-name">${node.name}</div>
@@ -1740,7 +1746,7 @@
       <div class="grid-3x3">${gridHtml}</div>
       <div class="synergy-summary">${synergy.labels.length ? synergy.labels.map(label => `<span class="synergy-chip">${label}</span>`).join('') : 'Match roles for adjacent links, make a same-role line, or use three different roles in a full line for a Tactical Triad.'}</div>
       ${detailHtml}
-      <div class="clash-log" id="clashLog"><div>Tap Test Grid anytime (0 Surge) to check your formation and cube effects.</div></div>
+      <div class="clash-log" id="clashLog"><div>Tap Test Grid anytime (0 Charges) to check your formation and cube effects.</div></div>
       <div class="modal-btns">
         <button class="btn btn-secondary" id="testDummyBtn">Test Grid (Free)</button>
         <button class="btn btn-primary" id="draftFromGridBtn">Draft Cube (${R.drafts})</button>
