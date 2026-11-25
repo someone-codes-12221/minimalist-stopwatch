@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#000000" />
   <title>Chrono Obsidian</title>
   <link rel="stylesheet" href="fonts/fonts.css" />
-  <link rel="stylesheet" href="gamify.css?v=achievements-50-v1" />
+  <link rel="stylesheet" href="gamify.css?v=journal-backup-v1" />
   
   <style>
     :root {
@@ -2642,7 +2642,17 @@
     });
     document.getElementById('settingsAddSubjBtn').addEventListener('click', () => openSubjModal(null));
     document.getElementById('openBackupFromSettings').addEventListener('click', () => {
-      backupText.value = JSON.stringify(store);
+      const storageSnapshot = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key !== null) storageSnapshot[key] = localStorage.getItem(key);
+      }
+      backupText.value = JSON.stringify({
+        format: 'chrono-obsidian-backup',
+        version: 2,
+        createdAt: new Date().toISOString(),
+        storage: storageSnapshot
+      }, null, 2);
       backupModal.classList.add('open');
     });
 
@@ -2777,15 +2787,31 @@
     document.getElementById('backupImportBtn').addEventListener('click', () => {
       try {
         const parsed = JSON.parse(backupText.value);
+        if (parsed && parsed.format === 'chrono-obsidian-backup' && parsed.version === 2 &&
+            parsed.storage && typeof parsed.storage === 'object' && !Array.isArray(parsed.storage) &&
+            typeof parsed.storage[STORE_KEY] === 'string') {
+          const restoredStore = JSON.parse(parsed.storage[STORE_KEY]);
+          if (!restoredStore || typeof restoredStore !== 'object' ||
+              !restoredStore.days || typeof restoredStore.days !== 'object' ||
+              !Array.isArray(restoredStore.subjects)) throw new Error('Invalid study data');
+          Object.entries(parsed.storage).forEach(([key, value]) => {
+            if (typeof key !== 'string' || typeof value !== 'string') throw new Error('Invalid storage entry');
+          });
+          Object.entries(parsed.storage).forEach(([key, value]) => localStorage.setItem(key, value));
+          alert('Backup restored. Chrono Obsidian will reload.');
+          window.location.reload();
+          return;
+        }
         if (parsed && parsed.days && parsed.subjects) {
           store = { ...parsed, settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) } };
           if (!Array.isArray(store.parkingLot)) store.parkingLot = [];
-          saveStore(); applyAppearance(); renderSubjects(); updateTodayUI(); renderParkingLot();
-          if (historyDrawer.classList.contains('open')) renderHistoryDrawer();
-          if (settingsDrawer.classList.contains('open')) renderSubjectManager();
-          backupModal.classList.remove('open');
+          saveStore();
+          alert('Study records restored. Older backups do not contain Realm or timer data.');
+          window.location.reload();
+          return;
         }
-      } catch (_) { alert('Invalid backup JSON'); }
+        throw new Error('Unrecognized backup format');
+      } catch (_) { alert('Invalid backup JSON. No data was changed.'); }
     });
     document.getElementById('backupCloseBtn').addEventListener('click', () => backupModal.classList.remove('open'));
 
@@ -2937,7 +2963,7 @@
       renderTime(getElapsed());
     }
   </script>
-          <script src="gamify.js?v=achievements-50-v1"></script>
+          <script src="gamify.js?v=journal-backup-v1"></script>
         
 </body>
 </html>
