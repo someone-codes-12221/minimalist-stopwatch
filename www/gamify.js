@@ -356,7 +356,7 @@
 
   async function runGridClash(isTestDummy) {
     if (isClashing) return;
-    const node = R.map.find(n => n.id === R.selectedNode);
+    const node = R.selectedNode === -1 && R.worldEvent ? R.worldEvent.node : R.map.find(n => n.id === R.selectedNode);
     if (!isTestDummy) {
       if (!node || (node.type !== 'hostile' && node.type !== 'boss') || node.cleared) return;
       if (R.charges < 1) { showToast('Need 1 Battle Charge (Study 15m)'); return; }
@@ -550,8 +550,18 @@
       R.combatWins = (R.combatWins || 0) + 1;
       if (node.type === 'boss') R.bossWins = (R.bossWins || 0) + 1;
       const shardDrop = node.type === 'boss' ? 35 : 12;
-      R.shards += shardDrop;
-      if (node.type === 'boss') {
+      if (node.isWorldEvent) {
+        R.worldEvent.completed = true;
+        R.shards += R.worldEvent.rewardShards;
+        R.drafts += R.worldEvent.rewardDrafts;
+        showToast(`World Event cleared! +${R.worldEvent.rewardShards} Shards · +${R.worldEvent.rewardDrafts} Draft`);
+        showLegendaryMoment('World Event Conquered', `${R.worldEvent.name} has been overcome. The Realm remembers.`, '✧');
+      } else {
+        R.shards += shardDrop;
+      }
+      if (node.isWorldEvent) {
+        // Event rewards are handled above; the main zone map remains untouched.
+      } else if (node.type === 'boss') {
         R.drafts += 2; R.zone++; R.zoneBuff = 0; R.runHp = getMaxHp();
         R.map = buildZoneMap(R.zone); R.selectedNode = 1;
         showToast(`ZONE ${R.zone} UNLOCKED! +${shardDrop} Shards · +2 Drafts`);
@@ -658,6 +668,7 @@
         <button class="realm-tab" data-rtab="journal">Journal</button>
         <button class="realm-tab" data-rtab="profile">Profile</button>
         <button class="realm-tab" data-rtab="relics">Relics</button>
+        <button class="realm-tab" data-rtab="events">Events</button>
       </div>
       <div class="realm-body" id="realmBody"></div>
     `;
@@ -766,6 +777,7 @@
     }
     else if (activeTab === 'profile') renderProfileTab(body);
     else if (activeTab === 'relics') renderRelicsTab(body);
+    else if (activeTab === 'events') renderWorldEventsTab(body);
     else renderConstTab(body);
   }
 
@@ -1095,6 +1107,39 @@
       saveR();renderRealm();showToast(RELIC_DEFS.find(r=>r.id===id).name+(R.equippedRelics.includes(id)?' equipped':' unequipped'));
     }));
   }
+  const WORLD_EVENT_DEFS = [
+    {id:'rift_hunt',name:'Rift Hunt',kind:'reaver',hp:1.18,atk:1.08,armor:2,shards:28,rule:'A fast hunter emerges from a widening rift. Two quick strikes; extra armor.'},
+    {id:'emberfall',name:'Emberfall Trial',kind:'wraith',hp:1.08,atk:1.22,armor:0,shards:30,rule:'The ash storm empowers its attack. Prepare a strong Ward.'},
+    {id:'iron_oath',name:'Iron Oath',kind:'monolith',hp:1.22,atk:1.05,armor:4,shards:32,rule:'A plated guardian with extra health and armor.'},
+    {id:'tidebound',name:'Tidebound Pursuit',kind:'leech',hp:1.16,atk:1.12,armor:1,shards:32,rule:'A resilient leech with a punishing counterstrike.'},
+    {id:'starfall',name:'Starfall Gauntlet',kind:'hexcaller',hp:1.12,atk:1.18,armor:2,shards:36,rule:'A hexcaller grows stronger after every counterattack.'}
+  ];
+  function getWorldEventRecord() {
+    const today=dateKey();
+    if(!R.worldEvent||R.worldEvent.date!==today){
+      const day=Math.floor(new Date(today+'T00:00:00').getTime()/86400000);
+      const def=WORLD_EVENT_DEFS[((day%WORLD_EVENT_DEFS.length)+WORLD_EVENT_DEFS.length)%WORLD_EVENT_DEFS.length];
+      const enemy=makeEnemy(def.kind,1.12+Math.max(0,R.zone-1)*0.08,R.zone);
+      enemy.hp=Math.round(enemy.hp*def.hp);enemy.maxHp=enemy.hp;enemy.atk=Math.round(enemy.atk*def.atk);enemy.armor+=def.armor;
+      enemy.gimmick+=' · World Event';
+      R.worldEvent={date:today,id:def.id,name:def.name,rule:def.rule,node:{id:-1,type:'hostile',isWorldEvent:true,cleared:false,enemy},rewardShards:def.shards+Math.max(0,R.zone-1)*2,rewardDrafts:1,completed:false};
+      saveR();
+    }
+    return R.worldEvent;
+  }
+  function renderWorldEventsTab(body) {
+    const event=getWorldEventRecord();
+    const completed=!!event.completed;
+    const enemy=event.node.enemy;
+    body.innerHTML=`<section class="world-events">
+      <div class="world-event-hero"><div class="world-event-kicker">THE REALM · DAILY ROTATION</div><div class="world-event-emblem">✧</div><h2>${event.name}</h2><p>${event.rule}</p><div class="world-event-reward"><span>✦ ${event.rewardShards} SHARDS</span><span>◇ ${event.rewardDrafts} DRAFT</span></div><div class="world-event-refresh">A new encounter arrives tomorrow.</div></div>
+      <div class="world-event-enemy"><div><small>FEATURED ENCOUNTER</small><strong>${enemy.name}</strong><span>${enemy.hp}/${enemy.maxHp} HP · ${enemy.atk} ATK · ${enemy.armor} ARMOR</span></div><div class="world-event-status ${completed?'complete':''}">${completed?'CLEARED':'ACTIVE'}</div></div>
+      <div class="world-event-note">${completed?'You have claimed today’s event rewards. Come back for the next rotation.':'A special encounter with its own enemy setup and bonus rewards. Your normal map progress is safe.'}</div>
+      <button class="btn btn-primary world-event-enter" id="enterWorldEventBtn" ${completed?'disabled':''}>${completed?'Event Cleared':'Enter Encounter · 1 Charge'}</button>
+    </section>`;
+    const enter=document.getElementById('enterWorldEventBtn');
+    if(enter)enter.addEventListener('click',()=>{if(isClashing||event.completed)return;if(R.charges<1){showToast('Need 1 Battle Charge (Study 15m)');return;}R.selectedNode=-1;activeTab='map';document.querySelectorAll('.realm-tab').forEach(b=>b.classList.toggle('active',b.dataset.rtab==='map'));saveR();renderRealm();});
+  }
   function renderAchievementsTab(body) {
     const stats = getAchievementStats();
     const claimed = R.achievementClaims;
@@ -1190,7 +1235,7 @@
       return `<g class="${cls}" data-nid="${n.id}"><circle class="node-bg" cx="${n.x}%" cy="${n.y}%" r="14"/><text x="${n.x}%" y="${n.y}%">${n.cleared ? '✓' : sym}</text></g>`;
     }).join('');
 
-    const node = R.map.find(n => n.id === R.selectedNode) || R.map[0];
+    const node = R.selectedNode === -1 && R.worldEvent ? R.worldEvent.node : (R.map.find(n => n.id === R.selectedNode) || R.map[0]);
     let actionHtml = '';
 
     if (node.type === 'start') {
@@ -1219,7 +1264,8 @@
         return `<div class="mini-slot ${d.cls}${guarded}" data-clash-idx="${idx}">${d.glyph}</div>`;
       }).join('');
 
-      actionHtml = `<div class="battle-card" id="battleCard">
+      actionHtml = `<div class="battle-card ${node.isWorldEvent ? 'world-event-battle' : ''}" id="battleCard">
+        ${node.isWorldEvent ? `<div class="event-battle-tag">✧ DAILY WORLD EVENT · ${R.worldEvent.name}</div>` : ''}
         <div class="combat-stage">
           <div class="mini-grid-3x3" id="miniGrid">${miniSlotsHtml}</div>
           <div class="enemy-stage">

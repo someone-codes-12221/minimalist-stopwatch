@@ -268,3 +268,25 @@ body.running .quick-strip:focus-within,body.running .sessions:focus-within {opac
 .relic-action{flex:0 0 auto;min-width:60px;padding:7px 9px;font-size:9px}.relic-action:disabled{opacity:.42}
 .relic-footnote{padding:10px 11px;border-radius:10px;background:rgba(255,255,255,.025);color:var(--muted);font-size:9px;line-height:1.5}
 @media(max-width:360px){.relic-card{gap:7px;padding:8px}.relic-icon{width:32px;height:32px;flex-basis:32px}.relic-info strong{font-size:9px}.relic-action{min-width:54px;padding:6px}}
+/* Daily World Events */
+.world-events{display:flex;flex-direction:column;gap:11px;padding-bottom:18px}
+.world-event-hero{position:relative;overflow:hidden;padding:22px 16px 16px;text-align:center;border:1px solid rgba(190,165,255,.27);border-radius:17px;background:radial-gradient(ellipse at 50% 0%,rgba(150,105,230,.23),transparent 68%),linear-gradient(155deg,#1b192b,#0c0d14)}
+.world-event-kicker{color:#b9a8e5;font:8px var(--font-clock);letter-spacing:.2em}
+.world-event-emblem{margin:10px auto 2px;color:#e0d0ff;font-size:34px;text-shadow:0 0 22px rgba(183,150,255,.45)}
+.world-event-hero h2{margin:4px 0 7px;color:#eee7ff;font-size:17px;font-weight:650}
+.world-event-hero p{max-width:300px;margin:0 auto;color:var(--muted);font-size:10px;line-height:1.5}
+.world-event-reward{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+.world-event-reward span{padding:7px 10px;border:1px solid rgba(190,170,255,.18);border-radius:20px;background:rgba(155,125,235,.09);color:#d7c8ff;font:9px var(--font-clock);letter-spacing:.06em}
+.world-event-refresh{margin-top:11px;color:rgba(205,195,225,.55);font-size:9px}
+.world-event-enemy{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px;border:1px solid var(--glass-border);border-radius:12px;background:rgba(255,255,255,.035)}
+.world-event-enemy>div:first-child{display:flex;min-width:0;flex-direction:column;gap:4px}
+.world-event-enemy small{color:#ad9ed2;font:8px var(--font-clock);letter-spacing:.13em}
+.world-event-enemy strong{color:var(--text);font-size:12px}
+.world-event-enemy span{color:var(--muted);font-size:9px}
+.world-event-status{padding:6px 8px;border:1px solid rgba(225,175,115,.24);border-radius:8px;color:#e7c18f;font:8px var(--font-clock);letter-spacing:.1em}
+.world-event-status.complete{border-color:rgba(115,210,160,.25);color:var(--green)}
+.world-event-note{padding:10px 11px;border-radius:10px;background:rgba(255,255,255,.025);color:var(--muted);font-size:9px;line-height:1.5}
+.world-event-enter{width:100%}.world-event-enter:disabled{opacity:.55}
+.event-battle-tag{margin-bottom:12px;color:#c9b8f3;font:8px var(--font-clock);letter-spacing:.16em}
+.world-event-battle{border-color:rgba(180,150,255,.3)}
+@media(max-width:360px){.world-event-hero{padding:18px 12px}.world-event-enemy{padding:10px}}
