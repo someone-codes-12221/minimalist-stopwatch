@@ -569,3 +569,17 @@ button:active,.icon-btn:active,.subj-pill:active,.chip:active {
   .realm-body.tab-enter > *, .legendary-emblem, .realm-toast.show { animation:none!important; }
   .legendary-moment.open::before,.legendary-moment.open .legendary-card::before { animation:none!important; }
 }
+
+
+/* === REALM: MOTION-FREE MODE ===
+   Remove every animation and transition inside ChronoRealm.
+   Keep the rest of the stopwatch's motion and feedback untouched.
+*/
+.realm-overlay,
+.realm-overlay *,
+.realm-overlay *::before,
+.realm-overlay *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
