@@ -385,6 +385,7 @@
 
   async function runGridClash(isTestDummy) {
     if (isClashing) return;
+    document.getElementById('realmBody')?.classList.remove('enemy-selection-static');
     const node = R.selectedNode === -1 && R.worldEvent ? R.worldEvent.node : R.map.find(n => n.id === R.selectedNode);
     if (!isTestDummy) {
       if (!node || (node.type !== 'hostile' && node.type !== 'boss') || node.cleared) return;
@@ -835,7 +836,9 @@
     if (skipNextRealmEntrance) {
       skipNextRealmEntrance = false;
       body.classList.remove('tab-enter');
+      body.classList.add('enemy-selection-static');
     } else {
+      body.classList.remove('enemy-selection-static');
       body.classList.remove('tab-enter');
       void body.offsetWidth;
       body.classList.add('tab-enter');
