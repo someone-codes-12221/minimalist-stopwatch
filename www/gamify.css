@@ -713,7 +713,7 @@
 .map-node circle.node-bg{fill:rgba(12,13,17,.94);stroke:color-mix(in srgb,var(--map-accent) 52%,transparent);stroke-width:1.2;transition:all .22s ease}
 .map-node text{font-size:10px;fill:#f3eadb}
 .map-node.selected circle.node-bg{stroke:#fff1d6;stroke-width:2.2;filter:drop-shadow(0 0 7px var(--map-accent))}
-.map-node.selected{animation:atlasNodePulse 2.8s ease-in-out infinite}
+.map-node.selected{animation:none!important}
 .map-node.cleared circle.node-bg{fill:rgba(139,174,116,.22);stroke:#a8c58b}
 .map-node.boss circle.node-bg{stroke:#d77d72;stroke-width:1.8}
 .map-node.shrine circle.node-bg{stroke:#80c5d4}
@@ -726,7 +726,7 @@
 .legend-dot.active{background:var(--map-accent);box-shadow:0 0 5px var(--map-accent)}
 @keyframes atlasNodePulse{0%,100%{filter:drop-shadow(0 0 1px var(--map-accent))}50%{filter:drop-shadow(0 0 7px var(--map-accent))}}
 @media(max-width:380px){.map-canvas-wrap{height:clamp(320px,46dvh,380px)!important;min-height:320px!important}.map-zone-title{font-size:23px}}
-@media(prefers-reduced-motion:reduce){.map-node.selected{animation:none}}
+/* Selected map nodes stay visually highlighted without pulsing. */
 
 /* Soft page transition for Realm tab changes */
 .realm-body.tab-enter > * {
