@@ -1888,6 +1888,13 @@
     function updateTodayUI() {
       const tk = dateKey();
       const todayArr = store.days[tk] || [];
+      window.ChronoStudyData = {
+        dateKey: tk,
+        sessions: todayArr.map(s => ({ duration: Number(s.duration) || 0, subject: s.subject || 'General' }))
+      };
+      if (window.ChronoRealm && window.ChronoRealm.syncDailyStudySnapshot) {
+        window.ChronoRealm.syncDailyStudySnapshot(window.ChronoStudyData);
+      }
       const totalMs = getDayMs(tk);
       todayTotalEl.textContent = formatHM(totalMs);
       goalBarFill.style.width = Math.min(100, (totalMs / (store.goalMins * 60000)) * 100).toFixed(1) + '%';
