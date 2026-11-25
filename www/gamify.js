@@ -461,6 +461,7 @@
     updateTallies();
 
     getGridSynergyInfo().labels.forEach(label => appendLog(`<span class="syn">✦ Grid combo: ${label}</span>`));
+    if (surgeActive) appendLog('<span class="syn">SURGE ARMED · This volley has +30% power.</span>');
 
     const formationBonus = getGridSynergyInfo().bonuses.map(b => 1 + b);
     const adjBonus = Array(9).fill(1);
@@ -685,7 +686,8 @@
       const bypass = Math.round(chilledIncoming * bypassRatio);
       const blockable = chilledIncoming - bypass;
       const blocked = Math.min(totalShield, blockable);
-      const hpLoss = bypass + Math.max(0, blockable - blocked);
+      const wraithDrain = en.kind === 'wraith' && attackTurn % 3 === 0 ? Math.ceil(getMaxHp() * 0.06) : 0;
+      const hpLoss = bypass + Math.max(0, blockable - blocked) + wraithDrain;
       R.runHp = Math.max(0, R.runHp - hpLoss);
 
       if (hpLoss > 0) {
@@ -696,7 +698,7 @@
         playSfx('ward'); vibrate(12);
         if (miniGrid) { miniGrid.classList.add('shield-flash'); spawnFloat(miniGrid, 'BLOCKED', 'shd'); }
       }
-      appendLog(`${en.name} ${en.kind === 'monolith' && attackTurn % 3 === 0 ? 'CRUSHING SLAM' : 'strikes'} (${totalIncoming}) → <span class="shd">${blocked} blocked</span>${bypass ? ` · ${bypass} bypassed` : ''}, <span class="dmg">-${hpLoss} HP</span>${chillReduction ? ` · Chill −${Math.round(chillReduction * 100)}%` : ''}.`);
+      appendLog(`${en.name} ${en.kind === 'monolith' && attackTurn % 3 === 0 ? 'CRUSHING SLAM' : en.kind === 'wraith' && wraithDrain ? 'RESONANT DRAIN' : 'strikes'} (${totalIncoming}) → <span class="shd">${blocked} blocked</span>${bypass ? ` · ${bypass} bypassed` : ''}${wraithDrain ? ` · ${wraithDrain} drain` : ''}, <span class="dmg">-${hpLoss} HP</span>${chillReduction ? ` · Chill −${Math.round(chillReduction * 100)}%` : ''}.`);
 
       // Each region adds one readable battlefield rule on top of enemy traits.
       en.turns = (en.turns || 0) + 1;
@@ -1422,6 +1424,7 @@
     const tactics = {
       monolith: { label: 'Stoneguard · middle column weakens strikes by 40%', cells: [1, 4, 7] },
       phantom: { label: `Phase Veil · row ${row + 1} weakens strikes by 40%`, cells: rowCells(row) },
+      wraith: { label: 'Echo Ward · center cell weakens strikes by 40%', cells: [4] },
       swarm: { label: 'Swarm Screen · corner cells weaken strikes by 40%', cells: [0, 2, 6, 8] },
       reaver: { label: `Duelist Guard · column ${column + 1} weakens strikes by 40%`, cells: colCells(column) },
       thorn: { label: `Root Snare · row ${3 - row} weakens strikes by 40%`, cells: rowCells(2 - row) },
@@ -1454,7 +1457,7 @@
       monolith: turn % 3 === 0 ? 'CRUSHING SLAM · 45% stronger this turn' : 'STONE HAMMER · heavy counterattack',
       phantom: turn % 2 === 0 ? 'PHASE SURGE · 20% stronger this turn' : 'PHASE SHIFT · guard changes each turn',
       swarm: 'FLURRY · two strikes each turn',
-      wraith: 'RELENTLESS STRIKE · balanced pressure',
+      wraith: turn % 3 === 0 ? 'RESONANT DRAIN · 6% of max HP bypasses Shield' : 'RELENTLESS STRIKE · balanced pressure',
       reaver: turn % 2 === 0 ? 'ARMOR-PIERCING LUNGE · bypasses 25% Shield' : 'DUAL LUNGE · two quick strikes',
       thorn: 'ROOT REGEN · restores HP after striking',
       leech: 'TIDAL DRAIN · steals HP after striking',
@@ -1488,7 +1491,7 @@
     let actionHtml = '';
 
     if (node.type === 'start') {
-      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Every encounter is free. Spend a Surge Charge to empower one volley.</div><div class="camp-recovery">RUN HP · ${R.runHp}/${getMaxHp()}</div>${R.runHp < getMaxHp() ? `<button class="btn btn-secondary" id="restCampBtn" ${R.shards < 12 ? '' : ''}>${R.shards >= 12 ? 'Rest · 12 Shards' : 'Emergency Rest · 75% HP'}</button>` : '<div class="enemy-gimmick">You are fully rested.</div>'}</div>`;
+      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Every encounter is free. Spend a Surge Charge to empower one volley.</div><div class="camp-recovery">RUN HP · ${R.runHp}/${getMaxHp()}</div>${R.runHp < getMaxHp() ? `<button class="btn btn-secondary" id="restCampBtn" >${R.shards >= 12 ? 'Rest · 12 Shards' : 'Emergency Rest · 75% HP'}</button>` : '<div class="enemy-gimmick">You are fully rested.</div>'}</div>`;
     } else if (node.type === 'shrine') {
       actionHtml = `<div class="battle-card">
         <div class="enemy-name">${node.name}</div>
