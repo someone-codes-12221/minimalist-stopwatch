@@ -688,7 +688,7 @@
     const overlay = document.createElement('div');
     overlay.id = 'realmOverlay';
     overlay.className = 'realm-overlay';
-    overlay.innerHTML = `
+    overlay.innerHTML = `<div class="realm-arrival-vfx" aria-hidden="true"><i></i><b></b></div>
       <div class="realm-head">
         <div class="realm-title">The Realm</div>
         <button class="mini-btn" id="realmCloseBtn">Close</button>
@@ -746,11 +746,11 @@
     const overlay = document.getElementById('realmOverlay');
     renderRealm();
     overlay.classList.remove('realm-arriving');
+    // Make the overlay visible first, then restart the arrival sequence from frame zero.
     overlay.classList.add('open');
-    // Restart the portal sequence on every entry, including re-entry after closing.
     void overlay.offsetWidth;
     overlay.classList.add('realm-arriving');
-    window.setTimeout(() => overlay.classList.remove('realm-arriving'), 1500);
+    window.setTimeout(() => overlay.classList.remove('realm-arriving'), 1800);
   }
 
   function closeRealm() {
