@@ -368,6 +368,9 @@
     };
     updateTallies();
 
+    getGridSynergyInfo().labels.forEach(label => appendLog(`<span class="syn">✦ Grid combo: ${label}</span>`));
+
+    const formationBonus = getGridSynergyInfo().bonuses.map(b => 1 + b);
     const adjBonus = Array(9).fill(1);
     for (let i = 0; i < 9; i++) {
       const c = getCubeByUid(R.grid[i]);
@@ -387,7 +390,7 @@
       if (!c) return;
       const def = CUBE_DEFS[c.type];
       const tierMult = 1 + (c.tier - 1) * 0.45;
-      const mult = powerMult * tierMult * adjBonus[idx] * extraMult;
+      const mult = powerMult * tierMult * adjBonus[idx] * formationBonus[idx] * extraMult;
 
       const slotEl = document.querySelector(`[data-clash-idx="${idx}"]`);
       if (slotEl) slotEl.classList.add('firing');
@@ -1161,15 +1164,62 @@
     });
   }
 
+
+  function getGridSynergyInfo() {
+    const bonuses = Array(9).fill(0);
+    const labels = [];
+    const cubes = R.grid.map(uid => getCubeByUid(uid));
+    const roleAt = idx => cubes[idx] ? CUBE_DEFS[cubes[idx].type].cls : null;
+    const links = [];
+    for (let i = 0; i < 9; i++) {
+      if (!roleAt(i)) continue;
+      const r = Math.floor(i / 3), c = i % 3;
+      [[r + 1, c], [r, c + 1]].forEach(([nr, nc]) => {
+        if (nr > 2 || nc > 2) return;
+        const next = nr * 3 + nc;
+        if (roleAt(i) === roleAt(next)) {
+          bonuses[i] += 0.10;
+          bonuses[next] += 0.10;
+          links.push([i, next]);
+        }
+      });
+    }
+    const lines = [
+      { cells:[0,1,2], name:'Top row' }, { cells:[3,4,5], name:'Middle row' },
+      { cells:[6,7,8], name:'Bottom row' }, { cells:[0,3,6], name:'Left column' },
+      { cells:[1,4,7], name:'Middle column' }, { cells:[2,5,8], name:'Right column' }
+    ];
+    lines.forEach(line => {
+      const role = roleAt(line.cells[0]);
+      if (role && line.cells.every(idx => roleAt(idx) === role)) {
+        line.cells.forEach(idx => bonuses[idx] += 0.18);
+        labels.push(line.name + ' ' + role + ' formation (+18%)');
+      }
+    });
+    [[0,4,8],[2,4,6]].forEach((cells, i) => {
+      const role = roleAt(cells[0]);
+      if (role && cells.every(idx => roleAt(idx) === role)) {
+        cells.forEach(idx => bonuses[idx] += 0.22);
+        labels.push((i === 0 ? 'Main' : 'Counter') + ' diagonal ' + role + ' combo (+22%)');
+      }
+    });
+    for (let i = 0; i < 9; i++) bonuses[i] = Math.min(0.35, bonuses[i]);
+    if (links.length) labels.unshift(links.length + ' adjacent ' + (links.length === 1 ? 'link' : 'links') + ' (+10% each, capped)');
+    return { bonuses, labels, links };
+  }
+
   function renderGridTab(body) {
+    const synergy = getGridSynergyInfo();
+    const linkedSlots = new Set(synergy.links.flat());
     const gridHtml = R.grid.map((uid, idx) => {
       const c = getCubeByUid(uid);
       if (!c) {
         return `<div class="cube-slot ${selectedSlot === idx ? 'selected' : ''}" data-idx="${idx}" data-clash-idx="${idx}"><span style="color:var(--muted);font-size:18px;">+</span></div>`;
       }
       const d = CUBE_DEFS[c.type];
-      return `<div class="cube-slot filled ${d.cls} ${selectedSlot === idx ? 'selected' : ''}" data-idx="${idx}" data-clash-idx="${idx}">
+      return `<div class="cube-slot filled ${d.cls} ${selectedSlot === idx ? 'selected' : ''} ${linkedSlots.has(idx) ? 'synergy-linked' : ''} ${synergy.bonuses[idx] > 0.18 ? 'synergy-boosted' : ''}" data-idx="${idx}" data-clash-idx="${idx}">
         <span class="cube-tier">T${c.tier}</span>
+        ${synergy.bonuses[idx] > 0 ? `<span class="cube-bonus">+${Math.round(synergy.bonuses[idx] * 100)}%</span>` : ''}
         <div class="cube-glyph">${d.glyph}</div>
         <div class="cube-name">${d.name}</div>
       </div>`;
@@ -1204,6 +1254,7 @@
 
     body.innerHTML = `
       <div class="grid-3x3">${gridHtml}</div>
+      <div class="synergy-summary">${synergy.labels.length ? synergy.labels.map(label => `<span class="synergy-chip">${label}</span>`).join('') : 'Match cube roles side-by-side or complete a row, column, or diagonal to activate combos.'}</div>
       ${detailHtml}
       <div class="clash-log" id="clashLog"><div>Tap Test Grid anytime (0 Charges) to watch your synergy chain fire.</div></div>
       <div class="modal-btns">
