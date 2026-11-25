@@ -394,6 +394,11 @@
 
       if (c.type === 'spike' || c.type === 'ember' || c.type === 'shatter') {
         let d = Math.round(def.base * mult * strikeMult);
+        const tactic = !isTestDummy && node ? getEnemyTactic(node.enemy) : null;
+        if (tactic && tactic.cells.includes(idx)) {
+          d = Math.round(d * 0.6);
+          appendLog(`<span class="syn">Enemy tactic weakens ${def.name} in this cell.</span>`);
+        }
         if (c.type === 'shatter' && R.overcharge > 0) d = Math.round(d * 1.8);
         totalDmg += d;
         playSfx('strike'); vibrate(14);
@@ -1010,6 +1015,34 @@
     return `<svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="#ff453a" stroke-width="1.7"><polygon points="18,3 33,12 28,31 8,31 3,12"/><polygon points="18,10 25,18 18,26 11,18"/></svg>`;
   }
 
+  // Enemy tactics mark protected cells in the 3×3 board. Strike cubes
+  // placed in those cells deal 40% less damage, so grid placement matters.
+  function getEnemyTactic(en) {
+    if (!en) return null;
+    const turn = Math.max(0, en.turns || 0);
+    const column = turn % 3;
+    const tactics = {
+      monolith: { label: 'Stoneguard · middle column weakens strikes by 40%', cells: [1, 4, 7] },
+      phantom: { label: 'Phase Veil · middle row weakens strikes by 40%', cells: [3, 4, 5] },
+      swarm: { label: 'Swarm Screen · corner cells weaken strikes by 40%', cells: [0, 2, 6, 8] },
+      reaver: { label: 'Duelist Guard · left column weakens strikes by 40%', cells: [0, 3, 6] },
+      thorn: { label: 'Root Snare · bottom row weakens strikes by 40%', cells: [6, 7, 8] },
+      leech: { label: 'Tidal Ward · diagonal cells weaken strikes by 40%', cells: [0, 4, 8] },
+      hexcaller: { label: `Shifting Hex · column ${column + 1} weakens strikes by 40%`, cells: [column, column + 3, column + 6] }
+    };
+    if (en.kind === 'boss') {
+      const bosses = [
+        { label: 'Tyrant Guard · middle column weakens strikes by 40%', cells: [1, 4, 7] },
+        { label: 'Scribe Veil · middle row weakens strikes by 40%', cells: [3, 4, 5] },
+        { label: 'Briar Roots · bottom row weakens strikes by 40%', cells: [6, 7, 8] },
+        { label: `Regent Hex · column ${column + 1} weakens strikes by 40%`, cells: [column, column + 3, column + 6] },
+        { label: 'Astral Ward · corners weaken strikes by 40%', cells: [0, 2, 6, 8] }
+      ];
+      return bosses[(en.bossStyle || 0) % bosses.length];
+    }
+    return tactics[en.kind] || null;
+  }
+
   function renderMapTab(body) {
     const unlocked = getUnlockedNodes();
     const edgesHtml = [], seen = new Set();
@@ -1051,11 +1084,13 @@
     } else {
       const en = node.enemy;
       const pct = Math.round((en.hp / en.maxHp) * 100);
+      const tactic = getEnemyTactic(en);
       const miniSlotsHtml = R.grid.map((uid, idx) => {
         const c = getCubeByUid(uid);
-        if (!c) return `<div class="mini-slot" data-clash-idx="${idx}">·</div>`;
+        const guarded = tactic && tactic.cells.includes(idx) ? ' tactic-guarded' : '';
+        if (!c) return `<div class="mini-slot${guarded}" data-clash-idx="${idx}">·</div>`;
         const d = CUBE_DEFS[c.type];
-        return `<div class="mini-slot ${d.cls}" data-clash-idx="${idx}">${d.glyph}</div>`;
+        return `<div class="mini-slot ${d.cls}${guarded}" data-clash-idx="${idx}">${d.glyph}</div>`;
       }).join('');
 
       actionHtml = `<div class="battle-card" id="battleCard">
@@ -1067,6 +1102,7 @@
               <div class="enemy-info">
                 <div class="enemy-name">${en.name} ${R.overcharge > 0 ? `<span class="milestone-pill" style="color:var(--amber)">+${Math.round(R.overcharge*100)}% OC</span>` : ''}</div>
                 <div class="enemy-gimmick">${en.gimmick}</div>
+                ${tactic ? `<div class="enemy-tactic">${tactic.label}</div>` : ''}
               </div>
             </div>
             <div class="hp-track"><div class="hp-fill" id="enemyHpFill" style="width:${pct}%"></div></div>
