@@ -1128,7 +1128,7 @@
         <div class="map-zone-tag">Zone ${R.zone} · ${theme.name} · Power ×${getBasePowerMult().toFixed(2)}</div>
         <div class="map-zone-subtitle">${theme.subtitle}</div>
         <div class="map-zone-rule">${theme.rule}</div>
-        <svg class="map-svg">${edgesHtml.join('')}${nodesHtml}</svg>
+        <svg class="map-svg" viewBox="0 0 300 150" preserveAspectRatio="none" role="img" aria-label="Zone exploration map">${edgesHtml.join('')}${nodesHtml}</svg>
       </div>
       ${actionHtml}
     `;
