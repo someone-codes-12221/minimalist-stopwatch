@@ -346,3 +346,11 @@ This pass is deliberately presentation-only:
 - A high-specificity CSS override disables animations throughout the selected encounter content, including the enemy idle-float animation and any child entrance animations.
 - The static-selection class is cleared when switching tabs or before combat starts, so normal tab transitions and combat hit effects remain available.
 - Bumped the gamify.css cache key to `enemy-selection-hard-stop-v4`.
+
+
+## 19. ChronoRealm motion-free mode
+
+- All CSS animations and transitions inside `.realm-overlay` are globally disabled, including nested elements and pseudo-elements.
+- This removes Realm entrance effects, tab transitions, selected-node pulses, enemy idle motion, combat shakes/hit effects, reward reveals, and toast motion.
+- Stopwatch UI outside ChronoRealm keeps its existing animations.
+- Cache-busted visual-polish.css with `realm-motion-free-v1`.
