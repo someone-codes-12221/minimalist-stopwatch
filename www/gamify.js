@@ -1467,7 +1467,7 @@
     let actionHtml = '';
 
     if (node.type === 'start') {
-      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Every encounter is free. Spend a Surge Charge to empower one volley.</div><div class="camp-recovery">RUN HP · ${R.runHp}/${getMaxHp()}</div>${R.runHp < getMaxHp() ? `<button class="btn btn-secondary" id="restCampBtn" ${R.shards < 18 ? 'disabled' : ''}>Rest · 18 Shards</button>` : '<div class="enemy-gimmick">You are fully rested.</div>'}</div>`;
+      actionHtml = `<div class="battle-card"><div class="enemy-name">Camp · Zone ${R.zone}</div><div class="enemy-gimmick">Every encounter is free. Spend a Surge Charge to empower one volley.</div><div class="camp-recovery">RUN HP · ${R.runHp}/${getMaxHp()}</div>${R.runHp < getMaxHp() ? `<button class="btn btn-secondary" id="restCampBtn" ${R.shards < 12 ? '' : ''}>${R.shards >= 12 ? 'Rest · 12 Shards' : 'Emergency Rest · 75% HP'}</button>` : '<div class="enemy-gimmick">You are fully rested.</div>'}</div>`;
     } else if (node.type === 'shrine') {
       actionHtml = `<div class="battle-card">
         <div class="enemy-name">${node.name}</div>
@@ -1566,8 +1566,10 @@
     const restCampBtn = document.getElementById('restCampBtn');
     if (restCampBtn) restCampBtn.addEventListener('click', () => {
       if (R.runHp >= getMaxHp()) return;
-      if (R.shards < 18) { showToast('Need 18 Shards to rest'); return; }
-      R.shards -= 18; R.runHp = getMaxHp(); saveR(); renderRealm(); showToast('Camp rest complete · Run HP restored');
+      if (R.shards >= 12) { R.shards -= 12; R.runHp = getMaxHp(); saveR(); renderRealm(); showToast('Camp rest complete · Run HP restored'); return; }
+      const recovery = Math.ceil(getMaxHp() * 0.75);
+      if (R.runHp < recovery) { R.runHp = recovery; saveR(); renderRealm(); showToast('Emergency rest · Recovered to 75% HP'); }
+      else showToast('You need 12 Shards for a full rest');
     });
 
     const claimBtn = document.getElementById('claimNodeBtn');
