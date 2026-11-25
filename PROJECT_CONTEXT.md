@@ -157,11 +157,11 @@ Already includes:
 - Core cubes: Spike, Ember, Shatter, Aegis, Reflect, Mend, Prism, Echo, and Catalyst.
 - Study-unlocked cubes: Frost (180 saved study minutes), Rupture (600 saved study minutes), Siphon (20 saved sessions), and Conduit (3 distinct saved subjects).
 - Inventory, placement, swapping, removal, tier upgrades, and grid synergy.
-- Free Test Grid action and Shard Forge purchases for optional Surge Charges/Drafts.
+- Free Test Grid action and Shard Forge purchases for Battle Charges/Drafts.
 - Enemy-specific tactics with rotating guarded cells, telegraphed attack intent, and archetype-specific counterattacks.
 - Boss phase transitions at 55% HP, with phase-specific behavior.
 - Five boss-exclusive Legendary relics, each dropped by its matching zone guardian and equipable through the existing two relic slots.
-- Free real encounters; study-earned Charges are optional Surge fuel (+30% to one volley).
+- Real map and daily World Event encounters each consume 1 Battle Charge on entry. Charges are earned through study (15 minutes per Charge); the Test Grid remains free.
 - Branching zone maps with hostile nodes, shrines, vaults, bosses, and optional secret boss route.
 - Five region themes: Ashen March, Drowned Archive, Thornwild, Hollow Crown, Starfall Citadel.
 - Zone progression and boss rewards.
@@ -365,11 +365,11 @@ This pass is deliberately presentation-only:
 - Adds four study-history unlocks: Frost at 180 saved minutes, Rupture at 600 saved minutes, Siphon at 20 saved sessions, and Conduit after 3 distinct saved subjects. Each is granted once into inventory and remains available in future drafts.
 - Frost reduces the next enemy counterattack by 25% per Frost cube (capped at 50%); Rupture permanently removes 2 Armor per cube for the current encounter; Siphon heals 30% of its damage; Conduit empowers the next Strike or Ward cube by 25%.
 - Fully occupied mixed-role rows/columns grant a Tactical Triad (+12%) in addition to existing same-role formations.
-- Encounters no longer consume entry Charges. Charges are now optional Surge resources: arm one before a fight for +30% volley power; cancellation refunds the charge.
+- Real map and daily World Event encounters consume 1 Battle Charge on entry. Test Grid practice is free. Study-earned Charges retain their original role as battle-entry currency.
 - Enemy guard cells rotate for selected archetypes. Counterattacks include Monolith slams, Phantom surges, Reaver shield bypass, and existing Swarm/Thorn/Leech/Hexcaller traits.
 - Zone bosses have two phases; Phase II begins at 55% HP and changes their attack/guard behavior.
 - Defeat returns the player to camp at 65% HP and restores 15% enemy HP. Camp offers a full rest for 12 Shards or an emergency recovery to 75% HP when the player cannot afford it.
 - First victories against each enemy archetype or named boss add a Bestiary record and one bonus Cube Draft. Repeat victories increase the recorded count without repeating the first-trophy reward.
 - Study-derived cube unlocks read saved study snapshots and cumulative Realm study/session counters. Existing study save/import/session pathways remain unchanged.
 - One-time combat-rules migration raises remaining enemy HP/attack in saved maps and the current daily event while preserving current HP ratio, armor, node-cleared flags, zone, and inventory.
-- New combat UI uses static intent, phase, unlock-progress, Surge, and Bestiary panels. No ChronoRealm animation or transition was added.
+- New combat UI uses static intent, phase, unlock-progress, Battle Charge, and Bestiary panels. No ChronoRealm animation or transition was added.
