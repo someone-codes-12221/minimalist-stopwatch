@@ -692,6 +692,7 @@
         <button class="realm-tab" data-rtab="relics">Relics</button>
         <button class="realm-tab" data-rtab="events">Events</button>
         <button class="realm-tab" data-rtab="atlas">Atlas</button>
+        <button class="realm-tab" data-rtab="exam">Exam Board</button>
       </div>
       <div class="realm-body" id="realmBody"></div>
     `;
@@ -802,6 +803,7 @@
     else if (activeTab === 'relics') renderRelicsTab(body);
     else if (activeTab === 'events') renderWorldEventsTab(body);
     else if (activeTab === 'atlas') renderWorldAtlasTab(body);
+    else if (activeTab === 'exam') renderExamBoard(body);
     else renderConstTab(body);
   }
 
@@ -1602,6 +1604,66 @@
         playSfx('synergy'); saveR(); renderRealm(); showToast(`Unlocked ${n.name}!`);
       });
     });
+  }
+
+
+  // Exam Board uses its own localStorage key; timer and Realm saves remain untouched.
+  const EXAM_KEY = 'chrono_exam_board_v1';
+  const EXAM_SYLLABUS = {
+    Physics: ['Units & Dimensions','Vectors','Kinematics','Laws of Motion','Work, Energy & Power','Centre of Mass','Rotational Motion','Gravitation','Properties of Matter','Thermal Physics','Thermodynamics','Kinetic Theory','Oscillations','Waves','Electrostatics','Current Electricity','Magnetism','EMI & AC','Optics','Modern Physics'],
+    Chemistry: ['Mole Concept','Atomic Structure','Periodic Table','Chemical Bonding','States of Matter','Thermodynamics','Equilibrium','Redox','Hydrogen','s-Block','p-Block','Organic Chemistry Basics','Hydrocarbons','Solutions','Electrochemistry','Chemical Kinetics','Coordination Compounds','d/f Block','Carbonyl Compounds','Biomolecules'],
+    Maths: ['Sets & Relations','Functions','Trigonometry','Quadratic Equations','Complex Numbers','Sequences & Series','Permutations & Combinations','Binomial Theorem','Straight Lines','Circles','Conic Sections','Limits','Continuity & Differentiability','Differentiation','Application of Derivatives','Indefinite Integration','Definite Integration','Differential Equations','Vectors','3D Geometry','Probability']
+  };
+  function examData() {
+    try {
+      const d = JSON.parse(localStorage.getItem(EXAM_KEY) || '{}');
+      return { done: d.done || {}, tests: Array.isArray(d.tests) ? d.tests : [], upcoming: Array.isArray(d.upcoming) ? d.upcoming : [] };
+    } catch (_) { return { done: {}, tests: [], upcoming: [] }; }
+  }
+  function saveExam(d) { localStorage.setItem(EXAM_KEY, JSON.stringify(d)); }
+  function examEsc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function renderExamBoard(body) {
+    const d = examData(), subjects = Object.keys(EXAM_SYLLABUS);
+    const total = subjects.reduce((n,s) => n + EXAM_SYLLABUS[s].length, 0);
+    const completed = Object.values(d.done).filter(Boolean).length;
+    const avg = d.tests.length ? d.tests.reduce((n,t) => n + t.score / t.max * 100, 0) / d.tests.length : 0;
+    const today = new Date().toISOString().slice(0,10);
+    body.innerHTML = `
+      <section class="exam-overview">
+        <div><small>SYLLABUS</small><strong>${completed}/${total}</strong><span>chapters completed</span></div>
+        <div><small>TEST AVERAGE</small><strong>${d.tests.length ? avg.toFixed(1)+'%' : '—'}</strong><span>${d.tests.length} tests logged</span></div>
+        <div><small>UPCOMING</small><strong>${d.upcoming.length}</strong><span>planned tests</span></div>
+      </section>
+      <section class="exam-panel">
+        <h3>Upcoming tests</h3>
+        <form id="exam-upcoming-form" class="exam-form">
+          <input name="title" maxlength="60" placeholder="Test name" required>
+          <input name="date" type="date" min="${today}" required>
+          <button class="exam-action" type="submit">Add test</button>
+        </form>
+        <div class="exam-list">${d.upcoming.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(t=>`<div class="exam-row"><span><b>${examEsc(t.title)}</b><small>${examEsc(t.date)} · ${Math.max(0,Math.ceil((new Date(t.date+'T00:00:00')-new Date(today+'T00:00:00'))/86400000))} days left</small></span><button data-exam-remove-up="${examEsc(t.id)}" aria-label="Remove test">×</button></div>`).join('') || '<p class="exam-empty">No tests scheduled yet.</p>'}</div>
+      </section>
+      <section class="exam-panel">
+        <h3>Log a test result</h3>
+        <form id="exam-score-form" class="exam-form exam-score-form">
+          <input name="title" maxlength="60" placeholder="Test name" required>
+          <select name="subject"><option>Full Test</option><option>Physics</option><option>Chemistry</option><option>Maths</option></select>
+          <input name="score" type="number" min="0" step="any" placeholder="Score" required>
+          <input name="max" type="number" min="0.01" step="any" placeholder="Max marks" required>
+          <button class="exam-action" type="submit">Save result</button>
+        </form>
+        <div class="exam-list">${d.tests.slice().reverse().slice(0,12).map(t=>`<div class="exam-row"><span><b>${examEsc(t.title)}</b><small>${examEsc(t.subject)} · ${t.score}/${t.max} · ${(t.score/t.max*100).toFixed(1)}%</small></span><button data-exam-remove-test="${examEsc(t.id)}" aria-label="Remove result">×</button></div>`).join('') || '<p class="exam-empty">Your test history will appear here.</p>'}</div>
+      </section>
+      <section class="exam-panel">
+        <h3>Syllabus tracker</h3>
+        <p class="exam-hint">Tap a chapter when you have completed its study and practice.</p>
+        ${subjects.map(s=>{const done=EXAM_SYLLABUS[s].filter(ch=>d.done[s+'|'+ch]).length;return `<details class="exam-subject" ${s==='Physics'?'open':''}><summary><span>${s}</span><small>${done}/${EXAM_SYLLABUS[s].length}</small></summary><div class="exam-progress"><i style="width:${done/EXAM_SYLLABUS[s].length*100}%"></i></div><div class="exam-chapters">${EXAM_SYLLABUS[s].map(ch=>`<label><input type="checkbox" data-exam-chapter="${examEsc(s+'|'+ch)}" ${d.done[s+'|'+ch]?'checked':''}><span>${examEsc(ch)}</span></label>`).join('')}</div></details>`}).join('')}
+      </section>`;
+    body.querySelector('#exam-upcoming-form').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;const title=f.title.value.trim(),date=f.date.value;if(!title||!date)return;d.upcoming.push({id:Date.now().toString(36),title,date});saveExam(d);renderRealm();});
+    body.querySelector('#exam-score-form').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget,score=Number(f.score.value),max=Number(f.max.value),title=f.title.value.trim();if(!title||!Number.isFinite(score)||!Number.isFinite(max)||max<=0||score<0||score>max){showToast('Check the score and maximum marks.');return;}d.tests.push({id:Date.now().toString(36),title,subject:f.subject.value,score,max,date:new Date().toISOString().slice(0,10)});saveExam(d);renderRealm();});
+    body.querySelectorAll('[data-exam-chapter]').forEach(el=>el.addEventListener('change',()=>{d.done[el.dataset.examChapter]=el.checked;saveExam(d);renderRealm();}));
+    body.querySelectorAll('[data-exam-remove-up]').forEach(el=>el.addEventListener('click',()=>{d.upcoming=d.upcoming.filter(x=>x.id!==el.dataset.examRemoveUp);saveExam(d);renderRealm();}));
+    body.querySelectorAll('[data-exam-remove-test]').forEach(el=>el.addEventListener('click',()=>{d.tests=d.tests.filter(x=>x.id!==el.dataset.examRemoveTest);saveExam(d);renderRealm();}));
   }
 
   window.ChronoRealm = { open: openRealm, onSessionSaved, updateBadge: updateRealmBadge, syncDailyStudySnapshot: (snapshot) => { window.ChronoStudyData = snapshot; } };
