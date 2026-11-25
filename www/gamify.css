@@ -801,3 +801,17 @@
   .realm-overlay.realm-arriving .realm-tabs,
   .realm-overlay.realm-arriving .realm-body { animation:none!important;opacity:0!important; }
 }
+
+
+/* Hard stop: map enemy selection must render without entrance/floating motion. */
+.realm-body.enemy-selection-static > *,
+.realm-body.enemy-selection-static > * *,
+.realm-body.enemy-selection-static > *::before,
+.realm-body.enemy-selection-static > *::after,
+.realm-body.enemy-selection-static > * *::before,
+.realm-body.enemy-selection-static > * *::after {
+  animation: none !important;
+}
+.realm-body.enemy-selection-static .enemy-visual.idle svg {
+  animation: none !important;
+}
