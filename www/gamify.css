@@ -744,52 +744,60 @@
 }
 
 
-/* === CINEMATIC REALM ARRIVAL === */
-.realm-overlay { isolation:isolate; }
-.realm-overlay::before,
-.realm-overlay::after { content:"";position:absolute;inset:0;pointer-events:none;opacity:0;z-index:0; }
-.realm-overlay::before {
+/* === VISIBLE CINEMATIC REALM ARRIVAL === */
+.realm-overlay { position:fixed; isolation:isolate; }
+.realm-arrival-vfx {
+  position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none;
+  opacity:0;contain:paint;
+}
+.realm-arrival-vfx i,
+.realm-arrival-vfx b { position:absolute;display:block;inset:-25%;opacity:0; }
+.realm-arrival-vfx i {
   background:
-    radial-gradient(ellipse at 50% 48%,rgba(190,157,103,.2),transparent 28%),
-    radial-gradient(ellipse at 50% 50%,rgba(111,75,164,.18),transparent 56%),
-    radial-gradient(ellipse at 50% 50%,transparent 34%,rgba(0,0,0,.94) 100%);
-  transform:scale(.42);filter:blur(18px);
+    radial-gradient(ellipse at 50% 48%,rgba(225,194,132,.42),transparent 22%),
+    radial-gradient(ellipse at 50% 50%,rgba(132,91,194,.34),transparent 54%),
+    radial-gradient(ellipse at 50% 50%,transparent 30%,rgba(0,0,0,.88) 78%);
+  filter:blur(10px);transform:scale(.2);
 }
-.realm-overlay::after {
-  background:linear-gradient(180deg,transparent 0%,rgba(220,198,151,.08) 48%,transparent 52%),
-    repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 5px);
-  clip-path:inset(50% 0 50% 0);mix-blend-mode:screen;
+.realm-arrival-vfx b {
+  inset:0;
+  background:linear-gradient(180deg,transparent 0%,rgba(231,207,157,.28) 49.5%,rgba(176,139,224,.2) 50.5%,transparent 100%);
+  transform:scaleY(.02);transform-origin:center;
 }
-.realm-overlay.realm-arriving::before { animation:realm-portal-bloom 1.18s cubic-bezier(.16,1,.3,1) both; }
-.realm-overlay.realm-arriving::after { animation:realm-portal-scan .82s .08s cubic-bezier(.2,.8,.2,1) both; }
+.realm-overlay > :not(.realm-arrival-vfx) { position:relative;z-index:2; }
+.realm-overlay.realm-arriving .realm-arrival-vfx { opacity:1; }
+.realm-overlay.realm-arriving .realm-arrival-vfx i { animation:realm-visible-bloom 1.45s cubic-bezier(.16,1,.3,1) both; }
+.realm-overlay.realm-arriving .realm-arrival-vfx b { animation:realm-visible-scan 1.05s .06s cubic-bezier(.2,.8,.2,1) both; }
 .realm-overlay.realm-arriving .realm-head,
 .realm-overlay.realm-arriving .realm-res-bar,
 .realm-overlay.realm-arriving .realm-tabs,
-.realm-overlay.realm-arriving .realm-body {
-  animation:realm-arrival-content .78s cubic-bezier(.16,1,.3,1) both;
-}
+.realm-overlay.realm-arriving .realm-body { animation:realm-visible-content .82s cubic-bezier(.16,1,.3,1) both; }
 .realm-overlay.realm-arriving .realm-head { animation-delay:.12s; }
-.realm-overlay.realm-arriving .realm-res-bar { animation-delay:.22s; }
-.realm-overlay.realm-arriving .realm-tabs { animation-delay:.31s; }
-.realm-overlay.realm-arriving .realm-body { animation-delay:.4s; }
-@keyframes realm-portal-bloom {
-  0% { opacity:0;transform:scale(.42);filter:blur(18px); }
-  28% { opacity:1; }
-  68% { opacity:.72;transform:scale(1.16);filter:blur(2px); }
-  100% { opacity:0;transform:scale(1.55);filter:blur(12px); }
+.realm-overlay.realm-arriving .realm-res-bar { animation-delay:.23s; }
+.realm-overlay.realm-arriving .realm-tabs { animation-delay:.34s; }
+.realm-overlay.realm-arriving .realm-body { animation-delay:.45s; }
+@keyframes realm-visible-bloom {
+  0% { opacity:0;transform:scale(.2) rotate(-8deg); }
+  24% { opacity:1; }
+  66% { opacity:.82;transform:scale(1.08) rotate(2deg); }
+  100% { opacity:0;transform:scale(1.45) rotate(5deg); }
 }
-@keyframes realm-portal-scan {
-  0% { opacity:0;clip-path:inset(50% 0 50% 0); }
-  28% { opacity:.9;clip-path:inset(0 0 0 0); }
-  100% { opacity:0;clip-path:inset(0 0 0 0); }
+@keyframes realm-visible-scan {
+  0% { opacity:0;transform:scaleY(.02); }
+  25% { opacity:.9;transform:scaleY(1); }
+  100% { opacity:0;transform:scaleY(1); }
 }
-@keyframes realm-arrival-content {
-  0% { opacity:0;transform:translateY(24px) scale(.975);filter:blur(7px); }
-  62% { opacity:1;filter:blur(0); }
+@keyframes realm-visible-content {
+  0% { opacity:0;transform:translateY(30px) scale(.97);filter:blur(9px); }
+  65% { opacity:1;filter:blur(0); }
   100% { opacity:1;transform:translateY(0) scale(1);filter:blur(0); }
 }
 @media(prefers-reduced-motion:reduce) {
-  .realm-overlay.realm-arriving::before,.realm-overlay.realm-arriving::after,
-  .realm-overlay.realm-arriving .realm-head,.realm-overlay.realm-arriving .realm-res-bar,
-  .realm-overlay.realm-arriving .realm-tabs,.realm-overlay.realm-arriving .realm-body { animation:none!important; }
+  .realm-overlay.realm-arriving .realm-arrival-vfx,
+  .realm-overlay.realm-arriving .realm-arrival-vfx i,
+  .realm-overlay.realm-arriving .realm-arrival-vfx b,
+  .realm-overlay.realm-arriving .realm-head,
+  .realm-overlay.realm-arriving .realm-res-bar,
+  .realm-overlay.realm-arriving .realm-tabs,
+  .realm-overlay.realm-arriving .realm-body { animation:none!important;opacity:0!important; }
 }
