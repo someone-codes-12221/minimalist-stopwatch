@@ -23,12 +23,251 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Bundle Offline Google Fonts into www/fonts
+        run: |
+          python3 - << 'EOF'
+          import os, re, urllib.request
+
+          os.makedirs("www/fonts", exist_ok=True)
+          url = (
+              "https://fonts.googleapis.com/css2?"
+              "family=JetBrains+Mono:wght@200;300;400;500&"
+              "family=Instrument+Serif:ital@0;1&"
+              "family=Outfit:wght@200;300;400;500&"
+              "family=Space+Grotesk:wght@300;400;500&display=swap"
+          )
+          headers = {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+          }
+          req = urllib.request.Request(url, headers=headers)
+          css = urllib.request.urlopen(req).read().decode("utf-8")
+
+          urls = sorted(set(re.findall(r"https://fonts\.gstatic\.com/[^\s\)\"']+", css)))
+          for idx, font_url in enumerate(urls):
+              fname = f"font_{idx}.woff2"
+              urllib.request.urlretrieve(font_url, os.path.join("www/fonts", fname))
+              css = css.replace(font_url, fname)
+
+          with open("www/fonts/fonts.css", "w") as f:
+              f.write(css)
+          print(f"Bundled {len(urls)} offline font files.")
+          EOF
+
       - name: Init Capacitor & Add Android
         run: |
           npm init -y
           npm install @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
           npx cap init "Chrono" "com.minimal.chrono" --web-dir www
           npx cap add android
+
+      - name: Inject Native Notification Timer, Immersive Mode, Icon & AMOLED Theme
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 - << 'EOF'
+          import os, glob
+          from PIL import Image, ImageDraw
+
+          res_dir = "android/app/src/main/res"
+
+          # 1. Custom Minimalist Obsidian Icon
+          def make_icon(size, fg_only=False):
+              img = Image.new("RGBA", (size, size), (0, 0, 0, 0) if fg_only else (0, 0, 0, 255))
+              draw = ImageDraw.Draw(img)
+              pad = int(size * (0.24 if fg_only else 0.18))
+              box = [pad, pad, size - pad, size - pad]
+              w = max(2, int(size * 0.045))
+              draw.ellipse(box, outline=(42, 42, 48, 255), width=w)
+              draw.arc(box, start=-90, end=165, fill=(255, 255, 255, 255), width=w)
+              r = max(2, int(size * 0.042))
+              cx, cy = size // 2, pad
+              draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 255, 255, 255))
+              return img
+
+          densities = {
+              "mipmap-mdpi": (48, 108),
+              "mipmap-hdpi": (72, 162),
+              "mipmap-xhdpi": (96, 216),
+              "mipmap-xxhdpi": (144, 324),
+              "mipmap-xxxhdpi": (192, 432),
+          }
+
+          for folder, (legacy_sz, fg_sz) in densities.items():
+              p = os.path.join(res_dir, folder)
+              if os.path.isdir(p):
+                  icon = make_icon(legacy_sz, fg_only=False)
+                  icon.save(os.path.join(p, "ic_launcher.png"))
+                  icon.save(os.path.join(p, "ic_launcher_round.png"))
+                  fg = make_icon(fg_sz, fg_only=True)
+                  fg.save(os.path.join(p, "ic_launcher_foreground.png"))
+
+          with open(os.path.join(res_dir, "values", "ic_launcher_background.xml"), "w") as f:
+              f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="ic_launcher_background">#000000</color>\n</resources>\n')
+
+          for sp in glob.glob(os.path.join(res_dir, "drawable*", "splash.png")):
+              Image.new("RGB", (512, 512), (0, 0, 0)).save(sp)
+
+          with open(os.path.join(res_dir, "values", "styles.xml"), "w") as f:
+              f.write('''<?xml version="1.0" encoding="utf-8"?>
+          <resources>
+            <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+              <item name="colorPrimary">#000000</item>
+              <item name="colorPrimaryDark">#000000</item>
+              <item name="colorAccent">#FFFFFF</item>
+              <item name="android:windowBackground">#000000</item>
+              <item name="android:statusBarColor">#000000</item>
+              <item name="android:navigationBarColor">#000000</item>
+              <item name="android:windowLightStatusBar">false</item>
+            </style>
+            <style name="AppTheme.NoActionBar" parent="AppTheme">
+              <item name="windowActionBar">false</item>
+              <item name="windowNoTitle">true</item>
+              <item name="android:background">@null</item>
+            </style>
+            <style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar">
+              <item name="android:background">#000000</item>
+            </style>
+          </resources>
+          ''')
+
+          # 2. Add POST_NOTIFICATIONS permission to AndroidManifest.xml
+          manifest_path = "android/app/src/main/AndroidManifest.xml"
+          with open(manifest_path, "r") as f:
+              manifest = f.read()
+          if "POST_NOTIFICATIONS" not in manifest:
+              manifest = manifest.replace(
+                  "<application",
+                  '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <application',
+                  1
+              )
+              with open(manifest_path, "w") as f:
+                  f.write(manifest)
+
+          # 3. Write Native Bridge into MainActivity.java (Live Chronometer Notification + Fullscreen)
+          main_act_path = "android/app/src/main/java/com/minimal/chrono/MainActivity.java"
+          with open(main_act_path, "w") as f:
+              f.write('''package com.minimal.chrono;
+
+          import android.Manifest;
+          import android.app.Notification;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.pm.PackageManager;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.WindowInsets;
+          import android.view.WindowInsetsController;
+          import android.webkit.JavascriptInterface;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              private static final String CHANNEL_ID = "chrono_live_timer";
+              private static final int NOTIF_ID = 1001;
+
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  createTimerChannel();
+                  if (Build.VERSION.SDK_INT >= 33) {
+                      if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                          requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
+                      }
+                  }
+                  if (getBridge() != null && getBridge().getWebView() != null) {
+                      getBridge().getWebView().addJavascriptInterface(new ChronoNativeBridge(), "ChronoNative");
+                  }
+              }
+
+              private void createTimerChannel() {
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      NotificationChannel ch = new NotificationChannel(
+                          CHANNEL_ID,
+                          "Active Study Timer",
+                          NotificationManager.IMPORTANCE_LOW
+                      );
+                      ch.setSound(null, null);
+                      ch.enableVibration(false);
+                      NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                      if (nm != null) nm.createNotificationChannel(ch);
+                  }
+              }
+
+              public class ChronoNativeBridge {
+                  @JavascriptInterface
+                  public void updateNotification(String title, String subtitle, long whenMs, boolean isCountDown) {
+                      try {
+                          NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                          if (nm == null) return;
+                          Intent openIntent = new Intent(MainActivity.this, MainActivity.class);
+                          openIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                          int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0);
+                          PendingIntent pi = PendingIntent.getActivity(MainActivity.this, 0, openIntent, flags);
+
+                          Notification.Builder b = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                              ? new Notification.Builder(MainActivity.this, CHANNEL_ID)
+                              : new Notification.Builder(MainActivity.this);
+
+                          b.setContentTitle(title)
+                           .setContentText(subtitle)
+                           .setSmallIcon(R.mipmap.ic_launcher)
+                           .setOngoing(true)
+                           .setOnlyAlertOnce(true)
+                           .setShowWhen(true)
+                           .setWhen(whenMs)
+                           .setUsesChronometer(true)
+                           .setContentIntent(pi);
+
+                          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                              b.setChronometerCountDown(isCountDown);
+                          }
+                          nm.notify(NOTIF_ID, b.build());
+                      } catch (Exception ignored) {}
+                  }
+
+                  @JavascriptInterface
+                  public void stopNotification() {
+                      try {
+                          NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                          if (nm != null) nm.cancel(NOTIF_ID);
+                      } catch (Exception ignored) {}
+                  }
+
+                  @JavascriptInterface
+                  public void setImmersive(boolean enabled) {
+                      runOnUiThread(() -> {
+                          try {
+                              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                  WindowInsetsController c = getWindow().getInsetsController();
+                                  if (c != null) {
+                                      if (enabled) {
+                                          c.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                                          c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                                      } else {
+                                          c.show(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                                      }
+                                  }
+                              } else {
+                                  View decor = getWindow().getDecorView();
+                                  if (enabled) {
+                                      decor.setSystemUiVisibility(
+                                          View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                          | View.SYSTEM_UI_FLAG_FULLSCREEN
+                                          | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                      );
+                                  } else {
+                                      decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+                                  }
+                              }
+                          } catch (Exception ignored) {}
+                      });
+                  }
+              }
+          }
+          ''')
+          EOF
 
       - name: Build Debug APK
         run: |
