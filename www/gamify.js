@@ -1346,12 +1346,29 @@
     }
 
     const theme = getZoneTheme(R.zone);
+    const clearedCount = R.map.filter(n => n.cleared).length;
+    const visibleCount = unlocked.size;
+    const biomeClass = ['ashen','drowned','thornwild','hollow','starfall'][(Math.max(1, R.zone) - 1) % 5];
     body.innerHTML = `
-      <div class="map-canvas-wrap">
-        <div class="map-zone-tag">Zone ${R.zone} · ${theme.name} · Power ×${getBasePowerMult().toFixed(2)}</div>
+      <div class="map-canvas-wrap ${biomeClass}">
+        <div class="map-topline"><span class="map-zone-tag">FIELD ATLAS <i>／</i> ZONE ${String(R.zone).padStart(2, '0')}</span><span class="map-power">POWER ×${getBasePowerMult().toFixed(2)}</span></div>
+        <div class="map-zone-title">${theme.name}</div>
         <div class="map-zone-subtitle">${theme.subtitle}</div>
-        <div class="map-zone-rule">${theme.rule}</div>
-        <svg class="map-svg" viewBox="0 0 300 150" preserveAspectRatio="none" role="img" aria-label="Zone exploration map">${edgesHtml.join('')}${nodesHtml}</svg>
+        <div class="map-zone-rule"><span class="map-rule-mark">✧</span>${theme.rule}</div>
+        <div class="map-progress"><span>PATHFINDER'S RECORD</span><strong>${clearedCount} / ${R.map.length} CLEARED</strong><i><b style="width:${Math.round(clearedCount / Math.max(1, R.map.length) * 100)}%"></b></i></div>
+        <svg class="map-svg" viewBox="0 0 300 150" preserveAspectRatio="none" role="img" aria-label="Zone exploration map">
+          <defs>
+            <linearGradient id="mapMist" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e0b77b" stop-opacity=".12"/><stop offset="1" stop-color="#8b79c9" stop-opacity=".015"/></linearGradient>
+            <pattern id="mapDots" width="13" height="13" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".65" fill="#e7d4ad" opacity=".22"/></pattern>
+          </defs>
+          <rect width="300" height="150" fill="url(#mapDots)" opacity=".5"/>
+          <path class="map-landform" d="M-8 105 Q28 62 62 92 T128 75 T198 88 T310 42 L310 160 L-8 160Z"/>
+          <path class="map-ridge" d="M-5 118 Q36 82 72 107 T145 91 T220 103 T310 62"/>
+          <path class="map-ridge secondary" d="M-5 129 Q36 93 72 118 T145 102 T220 114 T310 73"/>
+          <circle class="map-compass" cx="276" cy="24" r="12"/><path class="map-compass-needle" d="M276 13 L279 25 L276 22 L273 25Z"/><text class="map-compass-n" x="276" y="8">N</text>
+          <g class="map-route-halo">${edgesHtml.join('')}</g>${nodesHtml}
+        </svg>
+        <div class="map-legend"><span><i class="legend-dot cleared"></i> CLEARED</span><span><i class="legend-dot active"></i> DISCOVERED</span><span><i class="legend-dot sealed"></i> UNEXPLORED</span></div>
       </div>
       ${actionHtml}
     `;
