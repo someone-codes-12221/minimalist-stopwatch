@@ -1,11 +1,17 @@
-/* === CHRONO EXAM BOARD ===
-   Independent module for upcoming tests, result history, and syllabus tracking.
-   Data is stored separately from the stopwatch and ChronoRealm saves.
+/* === CHRONO SYLLABUS TRACKER ===
+   Chapter-by-chapter study checklist. Existing Exam Board progress is migrated
+   from the old chapter-complete flags without deleting the user's saved data.
 */
 (function () {
   'use strict';
 
   const STORAGE_KEY = 'chrono_exam_board_v1';
+  const CHECKLIST = [
+    { id: 'step1', label: 'STEP 1', detail: 'Learn the theory and understand the concepts' },
+    { id: 'step2', label: 'STEP 2', detail: 'Study notes, formulas and solved examples' },
+    { id: 'step3', label: 'STEP 3', detail: 'Complete practice questions' },
+    { id: 'pyqs', label: 'PYQs', detail: 'Solve previous-year questions' }
+  ];
 
   const SYLLABUS = {
     Physics: [
@@ -35,16 +41,24 @@
   };
 
   function readData() {
-    try {
-      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      return {
-        done: raw.done && typeof raw.done === 'object' ? raw.done : {},
-        tests: Array.isArray(raw.tests) ? raw.tests : [],
-        upcoming: Array.isArray(raw.upcoming) ? raw.upcoming : []
-      };
-    } catch (_) {
-      return { done: {}, tests: [], upcoming: [] };
+    let raw = {};
+    try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (_) {}
+    const data = {
+      steps: raw.steps && typeof raw.steps === 'object' ? raw.steps : {},
+      // Retain older fields in case a user still has an older build open.
+      done: raw.done && typeof raw.done === 'object' ? raw.done : {},
+      tests: Array.isArray(raw.tests) ? raw.tests : [],
+      upcoming: Array.isArray(raw.upcoming) ? raw.upcoming : []
+    };
+
+    // One-time migration: an old completed chapter becomes fully checked.
+    if (!raw.steps) {
+      Object.keys(SYLLABUS).forEach(subject => SYLLABUS[subject].forEach(chapter => {
+        const key = subject + '|' + chapter;
+        if (data.done[key]) data.steps[key] = { step1: true, step2: true, step3: true, pyqs: true };
+      }));
     }
+    return data;
   }
 
   function saveData(data, toast) {
@@ -52,178 +66,100 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       return true;
     } catch (_) {
-      if (typeof toast === 'function') toast('Could not save Exam Board data on this device.');
+      if (typeof toast === 'function') toast('Could not save syllabus progress on this device.');
       return false;
     }
   }
 
   function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, character => ({
+    return String(value ?? '').replace(/[&<>"']/g, c => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[character]));
-  }
-
-  function localDateKey(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return year + '-' + month + '-' + day;
-  }
-
-  function daysUntil(dateString, today) {
-    const target = new Date(dateString + 'T00:00:00');
-    const current = new Date(today + 'T00:00:00');
-    if (Number.isNaN(target.getTime())) return null;
-    return Math.max(0, Math.ceil((target - current) / 86400000));
+    }[c]));
   }
 
   function renderExamBoard(body, rerender, toast) {
     if (!body) return;
-
     const data = readData();
     const subjects = Object.keys(SYLLABUS);
-    const totalChapters = subjects.reduce((sum, subject) => sum + SYLLABUS[subject].length, 0);
-    const completedChapters = Object.values(data.done).filter(Boolean).length;
-    const validResults = data.tests.filter(test =>
-      Number.isFinite(Number(test.score)) &&
-      Number.isFinite(Number(test.max)) &&
-      Number(test.max) > 0
-    );
-    const average = validResults.length
-      ? validResults.reduce((sum, test) => sum + Number(test.score) / Number(test.max) * 100, 0) / validResults.length
-      : 0;
-    const today = localDateKey(new Date());
+    const totalChapters = subjects.reduce((n, s) => n + SYLLABUS[s].length, 0);
+    const totalTasks = totalChapters * CHECKLIST.length;
+    let completedTasks = 0;
+    let completedChapters = 0;
 
+    subjects.forEach(subject => SYLLABUS[subject].forEach(chapter => {
+      const checks = data.steps[subject + '|' + chapter] || {};
+      const count = CHECKLIST.filter(item => !!checks[item.id]).length;
+      completedTasks += count;
+      if (count === CHECKLIST.length) completedChapters++;
+    }));
+
+    const overall = totalTasks ? completedTasks / totalTasks * 100 : 0;
     body.innerHTML = `
-      <section class="exam-overview">
-        <div><small>SYLLABUS</small><strong>${completedChapters}/${totalChapters}</strong><span>chapters completed</span></div>
-        <div><small>TEST AVERAGE</small><strong>${validResults.length ? average.toFixed(1) + '%' : '—'}</strong><span>${validResults.length} tests logged</span></div>
-        <div><small>UPCOMING</small><strong>${data.upcoming.length}</strong><span>planned tests</span></div>
+      <section class="exam-overview syllabus-overview">
+        <div><small>CHAPTERS DONE</small><strong>${completedChapters}/${totalChapters}</strong><span>fully completed</span></div>
+        <div><small>CHECKLIST</small><strong>${completedTasks}/${totalTasks}</strong><span>tasks completed</span></div>
+        <div><small>OVERALL</small><strong>${overall.toFixed(0)}%</strong><span>syllabus progress</span></div>
       </section>
-
-      <section class="exam-panel">
-        <h3>Upcoming tests</h3>
-        <form id="exam-upcoming-form" class="exam-form">
-          <input name="title" maxlength="60" placeholder="Test name" autocomplete="off" required>
-          <input name="date" type="date" min="${today}" required>
-          <button class="exam-action" type="submit">Add test</button>
-        </form>
-        <div class="exam-list">
-          ${data.upcoming.slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).map(test => {
-            const remaining = daysUntil(String(test.date || ''), today);
-            return `<div class="exam-row">
-              <span><b>${escapeHtml(test.title)}</b><small>${escapeHtml(test.date)} · ${remaining === null ? 'Date unavailable' : remaining + ' days left'}</small></span>
-              <button type="button" data-exam-remove-up="${escapeHtml(test.id)}" aria-label="Remove test">×</button>
-            </div>`;
-          }).join('') || '<p class="exam-empty">No tests scheduled yet.</p>'}
+      <section class="exam-panel syllabus-panel">
+        <div class="syllabus-heading">
+          <div><h3>Your syllabus</h3><p class="exam-hint">Open a subject, choose a chapter, and tick off each stage.</p></div>
         </div>
-      </section>
-
-      <section class="exam-panel">
-        <h3>Log a test result</h3>
-        <form id="exam-score-form" class="exam-form exam-score-form">
-          <input name="title" maxlength="60" placeholder="Test name" autocomplete="off" required>
-          <select name="subject">
-            <option>Full Test</option><option>Physics</option><option>Chemistry</option><option>Maths</option>
-          </select>
-          <input name="score" type="number" min="0" step="any" placeholder="Score" required>
-          <input name="max" type="number" min="0.01" step="any" placeholder="Max marks" required>
-          <button class="exam-action" type="submit">Save result</button>
-        </form>
-        <div class="exam-list">
-          ${data.tests.slice().reverse().slice(0, 12).map(test => {
-            const score = Number(test.score);
-            const max = Number(test.max);
-            const percentage = Number.isFinite(score) && Number.isFinite(max) && max > 0
-              ? (score / max * 100).toFixed(1) + '%' : '—';
-            return `<div class="exam-row">
-              <span><b>${escapeHtml(test.title)}</b><small>${escapeHtml(test.subject)} · ${escapeHtml(test.score)}/${escapeHtml(test.max)} · ${percentage}</small></span>
-              <button type="button" data-exam-remove-test="${escapeHtml(test.id)}" aria-label="Remove result">×</button>
-            </div>`;
-          }).join('') || '<p class="exam-empty">Your test history will appear here.</p>'}
-        </div>
-      </section>
-
-      <section class="exam-panel">
-        <h3>Syllabus tracker</h3>
-        <p class="exam-hint">Tap a chapter when you have completed its study and practice.</p>
-        ${subjects.map(subject => {
+        <div class="syllabus-total-progress"><i style="width:${overall}%"></i></div>
+        ${subjects.map((subject, index) => {
           const chapters = SYLLABUS[subject];
-          const done = chapters.filter(chapter => data.done[subject + '|' + chapter]).length;
-          return `<details class="exam-subject" ${subject === 'Physics' ? 'open' : ''}>
-            <summary><span>${subject}</span><small>${done}/${chapters.length}</small></summary>
-            <div class="exam-progress"><i style="width:${done / chapters.length * 100}%"></i></div>
-            <div class="exam-chapters">
-              ${chapters.map(chapter => {
-                const key = subject + '|' + chapter;
-                return `<label><input type="checkbox" data-exam-chapter="${escapeHtml(key)}" ${data.done[key] ? 'checked' : ''}><span>${escapeHtml(chapter)}</span></label>`;
-              }).join('')}
-            </div>
-          </details>`;
+          const subjectTasks = chapters.reduce((n, chapter) => {
+            const checks = data.steps[subject + '|' + chapter] || {};
+            return n + CHECKLIST.filter(item => !!checks[item.id]).length;
+          }, 0);
+          const subjectTotal = chapters.length * CHECKLIST.length;
+          const subjectDone = chapters.filter(chapter => {
+            const checks = data.steps[subject + '|' + chapter] || {};
+            return CHECKLIST.every(item => !!checks[item.id]);
+          }).length;
+          return `
+            <details class="exam-subject syllabus-subject" ${index === 0 ? 'open' : ''}>
+              <summary>
+                <span>${subject}</span>
+                <small>${subjectDone}/${chapters.length} chapters · ${Math.round(subjectTasks / subjectTotal * 100)}%</small>
+              </summary>
+              <div class="exam-progress"><i style="width:${subjectTasks / subjectTotal * 100}%"></i></div>
+              <div class="syllabus-chapter-list">
+                ${chapters.map(chapter => {
+                  const key = subject + '|' + chapter;
+                  const checks = data.steps[key] || {};
+                  const done = CHECKLIST.filter(item => !!checks[item.id]).length;
+                  const isComplete = done === CHECKLIST.length;
+                  return `
+                    <details class="syllabus-chapter" ${done > 0 && !isComplete ? 'data-in-progress="true"' : ''}>
+                      <summary>
+                        <span class="syllabus-chapter-name">${escapeHtml(chapter)}</span>
+                        <span class="syllabus-chapter-count ${isComplete ? 'is-complete' : ''}">${done}/4</span>
+                      </summary>
+                      <div class="syllabus-checklist">
+                        ${CHECKLIST.map(item => `
+                          <label class="syllabus-check ${checks[item.id] ? 'checked' : ''}">
+                            <input type="checkbox" data-chapter="${escapeHtml(key)}" data-step="${item.id}" ${checks[item.id] ? 'checked' : ''}>
+                            <span class="syllabus-check-copy"><b>${item.label}</b><small>${item.detail}</small></span>
+                          </label>
+                        `).join('')}
+                      </div>
+                    </details>`;
+                }).join('')}
+              </div>
+            </details>`;
         }).join('')}
       </section>
     `;
 
-    const upcomingForm = body.querySelector('#exam-upcoming-form');
-    upcomingForm.addEventListener('submit', event => {
-      event.preventDefault();
-      const form = event.currentTarget;
-      const title = form.elements.namedItem('title').value.trim();
-      const date = form.elements.namedItem('date').value;
-      if (!title || !date || date < today) {
-        if (typeof toast === 'function') toast('Enter a test name and a valid future date.');
-        return;
-      }
-      data.upcoming.push({ id: Date.now().toString(36), title, date });
-      if (saveData(data, toast) && typeof rerender === 'function') rerender();
-    });
-
-    const scoreForm = body.querySelector('#exam-score-form');
-    scoreForm.addEventListener('submit', event => {
-      event.preventDefault();
-      const form = event.currentTarget;
-      const title = form.elements.namedItem('title').value.trim();
-      const score = Number(form.elements.namedItem('score').value);
-      const max = Number(form.elements.namedItem('max').value);
-      if (!title || !Number.isFinite(score) || !Number.isFinite(max) || max <= 0 || score < 0 || score > max) {
-        if (typeof toast === 'function') toast('Check the score and maximum marks.');
-        return;
-      }
-      data.tests.push({
-        id: Date.now().toString(36),
-        title,
-        subject: form.elements.namedItem('subject').value,
-        score,
-        max,
-        date: today
-      });
-      if (saveData(data, toast) && typeof rerender === 'function') rerender();
-    });
-
-    body.querySelectorAll('[data-exam-chapter]').forEach(input => {
+    body.querySelectorAll('[data-chapter][data-step]').forEach(input => {
       input.addEventListener('change', () => {
-        data.done[input.dataset.examChapter] = input.checked;
-        if (saveData(data, toast) && typeof rerender === 'function') rerender();
-      });
-    });
-
-    body.querySelectorAll('[data-exam-remove-up]').forEach(button => {
-      button.addEventListener('click', () => {
-        data.upcoming = data.upcoming.filter(test => String(test.id) !== button.dataset.examRemoveUp);
-        if (saveData(data, toast) && typeof rerender === 'function') rerender();
-      });
-    });
-
-    body.querySelectorAll('[data-exam-remove-test]').forEach(button => {
-      button.addEventListener('click', () => {
-        data.tests = data.tests.filter(test => String(test.id) !== button.dataset.examRemoveTest);
+        const key = input.dataset.chapter;
+        if (!data.steps[key]) data.steps[key] = {};
+        data.steps[key][input.dataset.step] = input.checked;
         if (saveData(data, toast) && typeof rerender === 'function') rerender();
       });
     });
   }
 
-  window.ChronoExamBoard = {
-    render: renderExamBoard,
-    syllabus: SYLLABUS
-  };
+  window.ChronoExamBoard = { render: renderExamBoard, syllabus: SYLLABUS };
 })();

@@ -699,3 +699,31 @@
 .exam-chapters label{display:flex;align-items:flex-start;gap:7px;font-size:11px;color:var(--muted)}
 .exam-chapters input{accent-color:var(--accent);margin:1px 0 0}
 @media(max-width:380px){.exam-overview{gap:5px}.exam-overview>div{padding:9px}.exam-overview strong{font-size:17px}.exam-form{grid-template-columns:1fr}.exam-chapters{grid-template-columns:1fr}}
+
+/* Syllabus tracker — chapter-by-chapter checklist */
+.syllabus-overview>div{min-width:0}
+.syllabus-overview strong{font-variant-numeric:tabular-nums}
+.syllabus-panel{margin-top:10px}
+.syllabus-heading h3{margin-bottom:4px}
+.syllabus-heading .exam-hint{margin:0 0 12px}
+.syllabus-total-progress{height:6px;background:rgba(255,255,255,.08);border-radius:8px;overflow:hidden;margin:0 0 12px}
+.syllabus-total-progress i{display:block;height:100%;background:var(--accent);border-radius:8px;transition:width .2s ease}
+.syllabus-subject{padding:12px 0}
+.syllabus-subject>summary{align-items:center;gap:10px}
+.syllabus-subject>summary>span{font-size:13px}
+.syllabus-subject>summary>small{font-size:10px;text-align:right;letter-spacing:0}
+.syllabus-chapter-list{display:flex;flex-direction:column;gap:6px}
+.syllabus-chapter{border:1px solid var(--glass-border);border-radius:10px;background:rgba(255,255,255,.025);overflow:hidden}
+.syllabus-chapter>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 11px;cursor:pointer;list-style:none;font-size:11px}
+.syllabus-chapter>summary::-webkit-details-marker,.syllabus-subject>summary::-webkit-details-marker{display:none}
+.syllabus-chapter-name{font-weight:600;color:var(--text)}
+.syllabus-chapter-count{flex:none;min-width:30px;text-align:center;padding:3px 6px;border-radius:20px;background:rgba(255,255,255,.07);color:var(--muted);font-size:10px}
+.syllabus-chapter-count.is-complete{background:rgba(70,190,130,.16);color:#65d6a0}
+.syllabus-checklist{padding:0 10px 9px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.syllabus-check{display:flex;align-items:flex-start;gap:8px;padding:9px 8px;border-radius:8px;background:rgba(255,255,255,.035);border:1px solid transparent;cursor:pointer;min-width:0}
+.syllabus-check.checked{border-color:rgba(70,190,130,.25);background:rgba(70,190,130,.07)}
+.syllabus-check input{accent-color:var(--accent);margin:2px 0 0;flex:none}
+.syllabus-check-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.syllabus-check-copy b{font-size:10px;letter-spacing:.04em;color:var(--text)}
+.syllabus-check-copy small{font-size:9px;line-height:1.35;color:var(--muted)}
+@media(max-width:380px){.syllabus-checklist{grid-template-columns:1fr}.syllabus-overview>div{padding:8px 7px}.syllabus-overview strong{font-size:16px}}
