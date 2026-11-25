@@ -173,7 +173,8 @@
       { id: 5, x: 56, y: 80, type: 'vault', name: 'Relic Vault', cleared: false, edges: [2, 7] },
       { id: 6, x: 75, y: 34, type: 'hostile', enemy: makeEnemy(packs[3], s * 1.25), cleared: false, edges: [3, 4, 8] },
       { id: 7, x: 75, y: 66, type: 'hostile', enemy: makeEnemy(packs[4], s * 1.25), cleared: false, edges: [4, 5, 8] },
-      { id: 8, x: 90, y: 50, type: 'boss', enemy: makeEnemy('boss', s * 1.6, zone), cleared: false, edges: [6, 7] }
+      { id: 8, x: 90, y: 50, type: 'boss', enemy: makeEnemy('boss', s * 1.6, zone), cleared: false, edges: [6, 7] },
+      { id: 9, x: 70, y: 92, type: 'boss', isSecretBoss: true, name: 'The Veilbound Warden', enemy: makeEnemy('boss', s * 1.9, zone), cleared: false, edges: [4] }
     ];
   }
 
@@ -251,7 +252,14 @@
   function getCubeByUid(uid) { return R.inventory.find(c => c.uid === uid) || null; }
   function getUnlockedNodes() {
     const set = new Set();
-    R.map.forEach(n => { if (n.cleared) { set.add(n.id); n.edges.forEach(e => set.add(e)); } });
+    R.map.forEach(n => {
+      if (!n.cleared) return;
+      set.add(n.id);
+      n.edges.forEach(e => {
+        const target = R.map[e];
+        if (target && (!target.isSecretBoss || (R.bossWins || 0) >= 1)) set.add(e);
+      });
+    });
     return set;
   }
 
@@ -561,11 +569,15 @@
       }
       if (node.isWorldEvent) {
         // Event rewards are handled above; the main zone map remains untouched.
-      } else if (node.type === 'boss') {
+      } else if (node.type === 'boss' && !node.isSecretBoss) {
         R.drafts += 2; R.zone++; R.zoneBuff = 0; R.runHp = getMaxHp();
         R.map = buildZoneMap(R.zone); R.selectedNode = 1;
         showToast(`ZONE ${R.zone} UNLOCKED! +${shardDrop} Shards · +2 Drafts`);
         showLegendaryMoment('A New Realm Awaits', `The boss has fallen. Zone ${R.zone} is now open.`, '♛');
+      } else if (node.isSecretBoss) {
+        R.shards += 50; R.drafts += 1;
+        showToast('Secret boss defeated · +50 Shards · +1 Draft');
+        showLegendaryMoment('The Hidden Path Revealed', 'The Veilbound Warden has fallen. A hidden chapter is yours to explore.', '⌘');
       } else {
         showToast(`${en.name} Defeated! +${shardDrop} Shards`);
       }
@@ -669,6 +681,7 @@
         <button class="realm-tab" data-rtab="profile">Profile</button>
         <button class="realm-tab" data-rtab="relics">Relics</button>
         <button class="realm-tab" data-rtab="events">Events</button>
+        <button class="realm-tab" data-rtab="atlas">Atlas</button>
       </div>
       <div class="realm-body" id="realmBody"></div>
     `;
@@ -778,6 +791,7 @@
     else if (activeTab === 'profile') renderProfileTab(body);
     else if (activeTab === 'relics') renderRelicsTab(body);
     else if (activeTab === 'events') renderWorldEventsTab(body);
+    else if (activeTab === 'atlas') renderWorldAtlasTab(body);
     else renderConstTab(body);
   }
 
@@ -1127,6 +1141,33 @@
     }
     return R.worldEvent;
   }
+  const WORLD_REGIONS = [
+    { name: 'Ashen March', detail: 'A scorched frontier of broken fortresses.', unlock: 1, emblem: '♨' },
+    { name: 'Drowned Archive', detail: 'A sunken library guarded by restless echoes.', unlock: 2, emblem: '⌁' },
+    { name: 'Thornwild', detail: 'An overgrown maze that fights back.', unlock: 3, emblem: '❧' },
+    { name: 'Hollow Crown', detail: 'A fallen kingdom beneath a watchful curse.', unlock: 4, emblem: '♛' },
+    { name: 'Starfall Citadel', detail: 'A fortress carved from fallen stars.', unlock: 5, emblem: '✧' }
+  ];
+  function renderWorldAtlasTab(body) {
+    const regions = WORLD_REGIONS.map((region, index) => {
+      const unlocked = R.zone >= region.unlock;
+      const current = R.zone === region.unlock;
+      return `<article class="atlas-region ${unlocked ? 'unlocked' : 'locked'} ${current ? 'current' : ''}">
+        <div class="atlas-region-emblem">${unlocked ? region.emblem : '◇'}</div>
+        <div class="atlas-region-copy"><div class="atlas-region-kicker">REGION 0${index + 1} · ${unlocked ? (current ? 'CURRENT REGION' : 'DISCOVERED') : 'SEALED'}</div><h3>${region.name}</h3><p>${region.detail}</p></div>
+        <div class="atlas-region-state">${unlocked ? 'OPEN' : 'ZONE ' + region.unlock}</div>
+      </article>`;
+    }).join('');
+    const secretOpen = (R.bossWins || 0) >= 1;
+    const secretNode = R.map.find(n => n.isSecretBoss);
+    const secretCleared = !!(secretNode && secretNode.cleared);
+    body.innerHTML = `<section class="world-atlas">
+      <div class="atlas-hero"><div class="atlas-kicker">CHRONOREALM · WORLD ATLAS</div><h2>The Known Realms</h2><p>Every fallen zone guardian opens the next region. The map also hides a dangerous side path for those who explore beyond the main road.</p><div class="atlas-progress"><span>REGION PROGRESS</span><strong>${Math.min(R.zone, 5)} / 5</strong></div><div class="atlas-progress-track"><i style="width:${Math.min(100, R.zone / 5 * 100)}%"></i></div></div>
+      <div class="atlas-region-list">${regions}</div>
+      <div class="atlas-secret ${secretOpen ? 'open' : 'sealed'}"><div class="atlas-secret-icon">${secretCleared ? '✓' : '⌘'}</div><div><div class="atlas-region-kicker">HIDDEN ROUTE · OPTIONAL BOSS</div><h3>${secretCleared ? 'Veilbound Warden defeated' : secretOpen ? 'The Veilbound Warden' : 'A path behind the veil'}</h3><p>${secretCleared ? 'The secret guardian has been defeated. Its reward is already yours.' : secretOpen ? 'A hidden node now appears on your Zone map, branching from the central route. Defeat it for bonus rewards.' : 'Defeat your first zone boss to reveal a secret route on the map.'}</p></div><span class="atlas-secret-state">${secretCleared ? 'CLEARED' : secretOpen ? 'REVEALED' : 'SEALED'}</span></div>
+    </section>`;
+  }
+
   function renderWorldEventsTab(body) {
     const event=getWorldEventRecord();
     const completed=!!event.completed;
