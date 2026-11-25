@@ -734,13 +734,13 @@
       const done = q.current >= q.target, claimed = claims.includes(q.id);
       const amount = q.unit === 'minutes' ? Math.floor(q.current) : q.current;
       const pct = Math.min(100, Math.round((q.current / q.target) * 100));
-      return \`<div class="mission-card">
-        <div class="mission-top"><div><div class="mission-title">\${q.title}</div><div class="mission-detail">\${q.detail}</div></div><div class="mission-reward">+\${q.shards} ◈</div></div>
-        <div class="mission-track"><div class="mission-fill" style="width:\${pct}%"></div></div>
-        <div class="mission-bottom"><span>\${amount}/\${q.target} \${q.unit}</span>
-          \${claimed ? '<span class="mission-status">CLAIMED</span>' : done ? \`<button class="mission-claim" data-week-claim="\${q.id}">Claim reward</button>\` : '<span class="mission-status">IN PROGRESS</span>'}
+      return `<div class="mission-card">
+        <div class="mission-top"><div><div class="mission-title">${q.title}</div><div class="mission-detail">${q.detail}</div></div><div class="mission-reward">+${q.shards} ◈</div></div>
+        <div class="mission-track"><div class="mission-fill" style="width:${pct}%"></div></div>
+        <div class="mission-bottom"><span>${amount}/${q.target} ${q.unit}</span>
+          ${claimed ? '<span class="mission-status">CLAIMED</span>' : done ? `<button class="mission-claim" data-week-claim="${q.id}">Claim reward</button>` : '<span class="mission-status">IN PROGRESS</span>'}
         </div>
-      </div>\`;
+      </div>`;
     }).join('');
 
     const chain = [
@@ -753,18 +753,18 @@
       const claimed = claims.includes(q.id), unlocked = chainUnlocked, done = p.studyDays >= q.target;
       if (!claimed) chainUnlocked = false;
       const pct = Math.min(100, Math.round((p.studyDays / q.target) * 100));
-      return \`<div class="mission-card \${unlocked ? '' : 'quest-locked'}">
-        <div class="mission-top"><div><div class="mission-title">\${q.title}</div><div class="mission-detail">\${q.detail}\${unlocked ? '' : ' · Complete the previous step first'}</div></div><div class="mission-reward">+\${q.shards} ◈</div></div>
-        <div class="mission-track"><div class="mission-fill" style="width:\${pct}%"></div></div>
-        <div class="mission-bottom"><span>\${Math.min(p.studyDays, q.target)}/\${q.target} days</span>
-          \${claimed ? '<span class="mission-status">CLAIMED</span>' : !unlocked ? '<span class="mission-status">LOCKED</span>' : done ? \`<button class="mission-claim" data-week-claim="\${q.id}">Claim reward</button>\` : '<span class="mission-status">IN PROGRESS</span>'}
+      return `<div class="mission-card ${unlocked ? '' : 'quest-locked'}">
+        <div class="mission-top"><div><div class="mission-title">${q.title}</div><div class="mission-detail">${q.detail}${unlocked ? '' : ' · Complete the previous step first'}</div></div><div class="mission-reward">+${q.shards} ◈</div></div>
+        <div class="mission-track"><div class="mission-fill" style="width:${pct}%"></div></div>
+        <div class="mission-bottom"><span>${Math.min(p.studyDays, q.target)}/${q.target} days</span>
+          ${claimed ? '<span class="mission-status">CLAIMED</span>' : !unlocked ? '<span class="mission-status">LOCKED</span>' : done ? `<button class="mission-claim" data-week-claim="${q.id}">Claim reward</button>` : '<span class="mission-status">IN PROGRESS</span>'}
         </div>
-      </div>\`;
+      </div>`;
     }).join('');
 
-    body.innerHTML = \`<div class="missions-heading"><div class="section-label">WEEKLY QUEST BOARD</div><div class="mission-date">\${p.weekStart} — \${p.weekEnd}</div><p>Resets every Monday. Progress comes from saved sessions across this week.</p></div>
-      <div class="section-label quest-section-label">WEEKLY OBJECTIVES</div><div class="mission-list">\${objectiveCards}</div>
-      <div class="section-label quest-section-label">QUEST CHAIN · THE SCHOLAR’S PATH</div><p class="quest-chain-note">Claim each step to unlock the next.</p><div class="mission-list">\${chainCards}</div>\`;
+    body.innerHTML = `<div class="missions-heading"><div class="section-label">WEEKLY QUEST BOARD</div><div class="mission-date">${p.weekStart} — ${p.weekEnd}</div><p>Resets every Monday. Progress comes from saved sessions across this week.</p></div>
+      <div class="section-label quest-section-label">WEEKLY OBJECTIVES</div><div class="mission-list">${objectiveCards}</div>
+      <div class="section-label quest-section-label">QUEST CHAIN · THE SCHOLAR’S PATH</div><p class="quest-chain-note">Claim each step to unlock the next.</p><div class="mission-list">${chainCards}</div>`;
 
     body.querySelectorAll('[data-week-claim]').forEach(btn => btn.addEventListener('click', () => {
       const id = btn.dataset.weekClaim, latest = getWeeklyQuestProgress();
@@ -785,7 +785,7 @@
       ledger.push(id); R.shards += reward.shards;
       addSkillXp(reward.skill, reward.xp);
       saveR(); updateRealmBadge(); renderRealm();
-      showToast(\`Quest claimed · +\${reward.shards} Shards · +\${reward.xp} Skill XP\`);
+      showToast(`Quest claimed · +${reward.shards} Shards · +${reward.xp} Skill XP`);
     }));
   }
 
