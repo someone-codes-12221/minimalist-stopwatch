@@ -1,0 +1,28 @@
+/* Keep the minimalist landscape timer centered in the actual viewport. */
+@media (orientation: landscape) {
+  body {
+    display: block;
+    position: relative;
+  }
+
+  .dial-wrap {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: max-content;
+    max-width: calc(100vw - 40px);
+    height: auto;
+    margin: 0;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  .time-box {
+    width: max-content;
+    max-width: calc(100vw - 40px);
+    margin: 0 auto;
+  }
+
+  body.zen .dial-wrap {
+    transform: translate(-50%, -50%) !important;
+  }
+}
