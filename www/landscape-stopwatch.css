@@ -1,0 +1,112 @@
+/* Minimal landscape stopwatch view.
+   Keep the timer's existing dial interaction and timer logic; hide the study dashboard chrome. */
+@media (orientation: landscape) {
+  html,
+  body {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  body {
+    display: grid;
+    place-items: center;
+    justify-content: center;
+    gap: 0;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(20px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(20px, env(safe-area-inset-left));
+  }
+
+  .goal-bar-track,
+  .ambient-aura,
+  .topbar,
+  .subjects-wrap,
+  .quick-strip,
+  .sessions,
+  .goal-pulse,
+  .dial-svg,
+  .earned-badge,
+  .gesture-hint {
+    display: none !important;
+  }
+
+  .dial-wrap {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    flex: 0 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    transform: none !important;
+  }
+
+  .time-box {
+    width: 100%;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .mode-label {
+    margin: 0 0 clamp(8px, 2.5vh, 18px);
+    font-size: clamp(10px, 2.2vh, 14px);
+    letter-spacing: 0.28em;
+    opacity: 0.65;
+  }
+
+  .time-row {
+    transform: none;
+    white-space: nowrap;
+    letter-spacing: -0.055em;
+  }
+
+  .digit-group.hrs-group {
+    font-size: clamp(34px, 13vh, 88px);
+  }
+
+  .digit-group.ms-group {
+    font-size: clamp(42px, 17vh, 116px);
+  }
+
+  .colon,
+  .colon-h {
+    font-size: clamp(34px, 13vh, 88px);
+    margin-inline: 0.025em;
+  }
+
+  body[data-dial="typographic"] .digit-group.hrs-group,
+  body[data-dial="typographic"] .colon-h {
+    font-size: clamp(34px, 13vh, 88px);
+  }
+
+  body[data-dial="typographic"] .digit-group.ms-group {
+    font-size: clamp(42px, 17vh, 116px);
+  }
+
+  body[data-dial="typographic"] .colon {
+    font-size: clamp(34px, 13vh, 88px);
+  }
+
+  .typo-bar-wrap {
+    width: min(42vw, 320px);
+    margin: clamp(10px, 3vh, 20px) auto 0;
+  }
+
+  body.zen .dial-wrap {
+    transform: none !important;
+  }
+}
+
+@media (orientation: landscape) and (prefers-reduced-motion: reduce) {
+  .time-row,
+  .digit-strip {
+    transition: none !important;
+  }
+}
