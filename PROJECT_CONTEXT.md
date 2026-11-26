@@ -398,3 +398,11 @@ This pass is deliberately presentation-only:
 - Added `www/landscape-centering.css` as a small override layer after the minimalist landscape stylesheet.
 - Positions the stopwatch readout at the true horizontal and vertical viewport center, independent of the hidden dashboard layout and Zen mode transforms.
 - No timer logic, saved data, or portrait styling is changed.
+
+
+## 24. Landscape viewport-centering correction
+
+- Added `www/landscape-viewport-centering.css` as a final presentation override after the earlier centering layer.
+- Makes the dial wrapper a full-viewport fixed flex container and centers the intrinsic-width timer readout within it, rather than centering a fixed-width dial element whose contents can appear offset.
+- Keeps the existing landscape-only scope, tap interaction, timer state, storage, and portrait layout unchanged.
+- Updated the stylesheet cache key so browsers fetch the new override.
