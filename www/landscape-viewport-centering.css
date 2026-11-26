@@ -1,0 +1,36 @@
+/* Center the visible stopwatch content against the entire landscape viewport. */
+@media (orientation: landscape) {
+  .dial-wrap {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: max(12px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transform: none !important;
+  }
+
+  .time-box {
+    position: relative !important;
+    inset: auto !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    text-align: center !important;
+    transform: none !important;
+  }
+
+  .time-row {
+    justify-content: center !important;
+    margin-inline: auto !important;
+  }
+
+  .typo-bar-wrap {
+    margin-inline: auto !important;
+  }
+}
