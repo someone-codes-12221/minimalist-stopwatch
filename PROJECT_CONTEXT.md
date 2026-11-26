@@ -391,3 +391,10 @@ This pass is deliberately presentation-only:
 - In landscape orientation, the study dashboard chrome (top bar, subject chips, quick actions, session list, goal bar, and ambient decoration) is hidden so the screen becomes a centered, large stopwatch readout.
 - The existing timer/dial tap interaction, timer state, subject selection state, session saving, storage, and portrait layout are not changed. Landscape users can still tap the readout area to use the existing start/pause interaction.
 - The stylesheet uses no scripts, external assets, or dependencies and respects reduced-motion preferences.
+
+
+## 23. Landscape stopwatch centering correction
+
+- Added `www/landscape-centering.css` as a small override layer after the minimalist landscape stylesheet.
+- Positions the stopwatch readout at the true horizontal and vertical viewport center, independent of the hidden dashboard layout and Zen mode transforms.
+- No timer logic, saved data, or portrait styling is changed.
