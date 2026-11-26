@@ -383,3 +383,11 @@ This pass is deliberately presentation-only:
 - Keeps effects scoped to known UI elements, avoids broad layout-property animation, and respects `prefers-reduced-motion`.
 - Uses a lighter mobile profile for Android WebView; no JavaScript timing loops, external libraries, or network assets were added.
 - Android compatibility is covered by the same local CSS file packaged with `www`; a successful APK build is still required before considering the change validated for app distribution.
+
+
+## 22. Minimal landscape stopwatch view
+
+- Added `www/landscape-stopwatch.css` as a separate responsive presentation layer, loaded after the shared motion stylesheet.
+- In landscape orientation, the study dashboard chrome (top bar, subject chips, quick actions, session list, goal bar, and ambient decoration) is hidden so the screen becomes a centered, large stopwatch readout.
+- The existing timer/dial tap interaction, timer state, subject selection state, session saving, storage, and portrait layout are not changed. Landscape users can still tap the readout area to use the existing start/pause interaction.
+- The stylesheet uses no scripts, external assets, or dependencies and respects reduced-motion preferences.
