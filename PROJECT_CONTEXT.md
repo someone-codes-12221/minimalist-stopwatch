@@ -406,3 +406,12 @@ This pass is deliberately presentation-only:
 - Makes the dial wrapper a full-viewport fixed flex container and centers the intrinsic-width timer readout within it, rather than centering a fixed-width dial element whose contents can appear offset.
 - Keeps the existing landscape-only scope, tap interaction, timer state, storage, and portrait layout unchanged.
 - Updated the stylesheet cache key so browsers fetch the new override.
+
+
+## 25. Remove animated stopwatch orbit
+
+- Added `www/static-stopwatch-decoration.css` as a final presentation layer.
+- Removes the rotating decorative ellipse around the stopwatch by hiding only the `.dial-wrap::after` orbit pseudo-element.
+- Leaves the timer, dial interaction, progress ring, static glow, saved data, and Realm visuals unchanged.
+- Integrated the stylesheet after the other visual layers and added a cache-busting version for Pages and Android WebView.
+- Source-level change only; APK build and on-device performance still need verification.
