@@ -1,0 +1,5 @@
+/* Remove the continuously rotating decorative orbit around the stopwatch. */
+.dial-wrap::after {
+  display: none !important;
+  animation: none !important;
+}
